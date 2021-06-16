@@ -1,4 +1,4 @@
-from ps3 import ExtendedGCD, StringToNum, NumToString
+from ps3 import *
 
 p = 7954763
 g = 4
@@ -21,7 +21,7 @@ print(f"\nProblem 2. a)\n"
 c1b = 7724479
 c2b = 3951884
 
-c1bi = ExtendedGCD(c1b, p)[1]
+c1bi = Inverse(c1b, p)
 mb = (pow(c1bi, a, p) * c2b) % p
 
 print(f"\nProblem 2. b)\n"
