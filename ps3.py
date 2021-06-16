@@ -1,25 +1,44 @@
-import time
-from statistics import mean
+def StringToNum(s):
+    n = ''
+    for i in range(len(s) - 1, -1, -1):
+        n += s[i]
 
-def PowerMod(x, y, m):
-    result = x
-    for _ in range(y-1):
-        result = (result * x) % m
+    result = 0
+    for i in range(len(n)):
+        result += (128 ** i) * ord(n[i])
     return result
 
 
-p = 7954763
-a = 1234092
-b = 6234043
-g = 4
+def NumToString(n):
+    s = ''
+    while True:
+        index = 0
+        while True:
+            if (128 ** index) < n:
+                index += 1
+            else:
+                index -= 1
+                break
 
-start = time.time()
+        k = 128 ** index
+        m = n // k
+        char = m * k
+        n -= char
+        s += chr(m)
+        if n == 0:
+            return s
 
-A = PowerMod(g, a, p)
-B = PowerMod(g, b, p)
-k = PowerMod(A, b, p)
 
-print(f"A: {A}\n"
-      f"B: {B}\n"
-      f"key: {k}")
-print(f"PowerMod took {time.time() - start}s")
+def ExtendedGCD(a, b):
+    # Base Case
+    if a == 0:
+        return b, 0, 1
+
+    gcd, x1, y1 = ExtendedGCD(b % a, a)
+
+    # Update x and y using results of recursive
+    # call
+    x = y1 - (b // a) * x1
+    y = x1
+
+    return gcd, x, y
