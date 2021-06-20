@@ -1,4 +1,4 @@
-from ps3 import *
+from crypto_functions import *
 
 p = 7954763
 g = 4
