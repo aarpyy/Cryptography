@@ -21,7 +21,7 @@ print(f"\nProblem 2. a)\n"
 c1b = 7724479
 c2b = 3951884
 
-c1bi = Inverse(c1b, p)
+c1bi = ModularInverse(c1b, p)
 mb = (pow(c1bi, a, p) * c2b) % p
 
 print(f"\nProblem 2. b)\n"

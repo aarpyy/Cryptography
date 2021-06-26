@@ -1,4 +1,5 @@
-import random
+import random, time, statistics
+from matmult import *
 
 
 def StringToNum(s):
@@ -49,8 +50,11 @@ def GCD(a, b):
     return ExtendedGCD(a, b)[0]
 
 
-def Inverse(x, m):
-    return ExtendedGCD(x, m)[1]
+def ModularInverse(x, m):
+    k = ExtendedGCD(x, m)
+    if k[0] == 1:
+        return k[1]
+    return None
 
 
 def IsPrime(num):
@@ -93,3 +97,70 @@ def RandomPrime(*args):
             prime = random.randrange(lower, upper, 2)
             if IsPrime(prime):
                 return prime
+
+
+def MakeMatrix(rows, cols):
+    mat = []
+    for i in range(rows):
+        mat.append([])
+        for j in range(cols):
+            n = input(f"{i + 1},{j + 1}: ")
+            if "," in n:
+                c = n.split(",")
+                real = int(c[0])
+                imag = int(c[1])
+                z = complex(real, imag)
+                mat[i].append(z)
+            else:
+                mat[i].append(int(n))
+    return numpy.array(mat)
+
+
+def MultiplyMatrix():
+    print("Enter dimensions for Matrix A: ")
+    rowsA = int(input("Rows: "))
+    colsA = int(input("Columns: "))
+
+    A = MakeMatrix(rowsA, colsA)
+
+    print("Enter dimensions for Matrix B: ")
+    print(f"Rows: {colsA}")
+    colsB = int(input("Columns: "))
+
+    B = MakeMatrix(colsA, colsB)
+
+    M = numpy.matmul(A, B)
+    return M
+
+
+def MakeChineseRemainder():
+    nums = []
+    mods = []
+    equations = int(input("How many equations: "))
+    for i in range(equations):
+        print("x = ", end="")
+        x = int(input())
+        print("mod ", end="")
+        m = int(input())
+        print()
+        nums.append(x)
+        mods.append(m)
+    return nums, mods
+
+
+def ChineseRemainder(nums, mods):
+    M = 1
+    mods_inverse = []
+    alt_mods = []
+
+    for m in mods:
+        M *= m
+        mi = M // m
+        alt_mods.append(mi)
+        mods_inverse.append(ModularInverse(mi, m))
+
+    acc = 0
+    for i in range(len(nums)):
+        acc = (acc + nums[i] * alt_mods[i] * mods_inverse[i]) % M
+
+    return acc
