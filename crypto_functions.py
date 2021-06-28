@@ -202,3 +202,48 @@ def ChineseRemainder(nums, mods):
         acc = (acc + nums[i] * alt_mods[i] * mods_inverse[i]) % M
 
     return acc
+
+
+def BSGS(g, h, p, prog=False, N=None):
+    if N is None:
+        N = p-1
+    n = math.ceil(math.sqrt(N))
+
+    if prog:
+        increment = n // 25
+        print("Starting Part 1: Creating Lists")
+        A, B = {}, {}
+        count = 0
+        for i in range(n):
+            if count >= increment:
+                count = 0
+                print("-", end="")
+            count += 1
+            j = i*n
+            A[pow(g, i, p)] = i
+            B[(h * pow(g, -1*j, p)) % p] = j
+
+        print("\nDone With Part 1. Starting Part 2: Finding Matches")
+
+        count = 0
+        for e in A:
+            if count >= increment:
+                count = 0
+                print("-", end="")
+            count += 1
+            if e in B:
+                print()
+                return A[e] + B[e]
+        print()
+
+    else:
+        A, B = {}, {}
+        for i in range(n):
+            j = i * n
+            A[pow(g, i, p)] = i
+            B[(h * pow(g, -1 * j, p)) % p] = j
+
+        for e in A:
+            if e in B:
+                return A[e] + B[e]
+    return None
