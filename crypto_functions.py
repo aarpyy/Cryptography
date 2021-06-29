@@ -292,4 +292,3 @@ def PohligHellman(g, h, p, q, exp, prog=False):
 
 
 
-
