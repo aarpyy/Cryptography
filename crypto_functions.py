@@ -11,17 +11,9 @@ def StringToNum(s, base=128):
 
 def NumToString(n, base=128):
     string = ''
-    while n > 0:
-        index = 0
-        while True:
-            if pow(base, index + 1) >= n:
-                break
-            index += 1
-
-        coeff = pow(base, index)
-        letter = n // coeff
-        n -= coeff * letter
-        string += chr(letter)
+    chars = toBase(n, base)
+    for c in chars:
+        string += chr(c)
     return string
 
 
@@ -192,9 +184,11 @@ def ChineseRemainder(nums, mods):
 
     for m in mods:
         M *= m
+
+    for m in mods:
         mi = M // m
         alt_mods.append(mi)
-        mods_inverse.append(ModularInverse(mi, m))
+        mods_inverse.append(pow(mi, -1, m))
 
     # accumulates product of mi, mi-inverse, and original number
     acc = 0
@@ -249,7 +243,42 @@ def BSGS(g, h, p, prog=False, N=None):
     return None
 
 
-# def Pohlig_Hellman(g, p, h, order, q, exp):
-#
+def toBase(n, base):
+    exp = 0
+    while True:
+        if n < pow(base, exp + 1):
+            break
+        exp += 1
+
+    list_coeff = [0 for _ in range(exp + 1)]
+    ind = 0
+    for i in range(exp, -1, -1):
+        k = n // pow(base, i)
+        list_coeff[ind] = k
+        n -= k * pow(base, i)
+        ind += 1
+
+    return list_coeff
+
+def fromBase(lst, base):
+    acc = 0
+    l = len(lst)
+    for i in range(l):
+        acc += lst[i] * pow(base, l-i-1)
+    return acc
+
+
+k = StringToNum("hello")
+print(k)
+print(l := toBase(k, 128))
+print(fromBase(l, 128))
+
+
+
+def Pohlig_Hellman(g, p, h, order, list_q):
+    X = []
+
+
+
 
 

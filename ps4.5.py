@@ -15,38 +15,43 @@ q1 = 268850671
 e1 = 3
 q2 = 923385191
 q1_e1 = pow(q1, 3)
-q1_2 = pow(q1, 2)
 
 
 A1 = pow(A, ord//q1_e1, p)
 g1 = pow(g, ord//q1_e1, p)
-
-r = pow(g1, q1_2, p)
-A1_q1 = pow(A1, q1_2, p)
-
-X0 = 224267126
-X0_inv = ModularInverse(X0, q1_e1)
-print((X0_inv*X0) % q1_e1)
-
-# b = pow(g1, X0_inv, p)
-# print(pow(b, X0, p) == g1)
-#
-# X1 = BSGS(r, pow(A1*b, q1, p), p, True, q1)
-# print(X1)
-
-Y0 = BSGS(g1, A1, p, True, q1_e1)
-
-
-
 A2 = pow(A, ord//q2, p)
 g2 = pow(g, ord//q2, p)
 
-Y1 = 602395184
+r = pow(g1, pow(q1, 2), p)
+
+X0 = 224267126
+X1 = 29728233
+X2 = 40052596
+
+# Y0 = X0 + X1 * q1 + X2 * pow(q1, 2)
+# Y1 = 602395184
+
+# X0 = BSGS(r, pow(A1, pow(q1, 2), p), p, True, q1)
+# print(X0)
+# f = pow(pow(g1, X0, p), -1, p)
+# h_term = pow(A1 * f, q1, p)
+# X1 = BSGS(r, h_term, p, True, q1)
+# print(X1)
+#
+# h_term = (A1 * f * pow(pow(g1, X1*q1, p), -1, p)) % p
+# X2 = BSGS(r, h_term, p, True, q1)
+# print(X2)
+
+Y0 = X0 + X1*q1 + X2 * pow(q1, 2)
 # Y1 = BSGS(g2, A2, p, True, q2)
+Y1 = 602395184
+
+print(Y0, Y1)
 
 a = ChineseRemainder([Y0, Y1], [q1_e1, q2])
-
-m = (c2 * ModularInverse(pow(c1, a, p), p))
+print(a)
+Aki = pow(pow(c1, a, p), -1, p)
+m = (c2 * Aki) % p
 print(NumToString(m))
 
 
