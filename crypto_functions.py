@@ -275,9 +275,19 @@ print(fromBase(l, 128))
 
 
 
-def Pohlig_Hellman(g, p, h, order, list_q):
+def PohligHellman(g, p, h, q, exp):
     X = []
 
+    r = pow(g, pow(q, exp-1), p)
+    X0 = BSGS(r, pow(h, pow(q, exp-1), p), p, False, q)
+    X.append(X0)
+
+    for i in range(1, exp):
+        h_term = []
+        for n in X:
+            h_term.append(n)
+        exp_term = fromBase(h_term, q)
+        k = BSGS()
 
 
 
