@@ -247,3 +247,9 @@ def BSGS(g, h, p, prog=False, N=None):
             if e in B:
                 return A[e] + B[e]
     return None
+
+
+# def Pohlig_Hellman(g, p, h, order, q, exp):
+#
+
+
