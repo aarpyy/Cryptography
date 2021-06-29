@@ -275,19 +275,28 @@ def PohligHellman(g, h, p, q, exp, prog=False):
     X.append(X0)
 
     if prog:
-        print(f"Found X0 = {X0}\n"
-              f"Starting process for X1\n")
+        print(f"Found X0 = {X0}\n")
 
     for i in range(1, exp):
+        print(f"Starting process for X{i}")
         exp_term = fromBase(X[::-1], q)
         h_term = pow(h * pow(pow(g, exp_term, p), -1, p), pow(q, exp-i-1), p)
         Xi = BSGS(r, h_term, p, prog, q)
         X.append(Xi)
         if prog:
-            print(f"Found X{i} = {Xi}\n"
-                  f"Starting process for X{i+1}\n")
+            print(f"Found X{i} = {Xi}\n")
 
     return fromBase(X[::-1], q)
+
+
+def CountBits(n):
+    binary = bin(n).split('b')[1]
+    count = 0
+    for bit in binary:
+        if bit == '1':
+            count += 1
+    return count
+
 
 
 
