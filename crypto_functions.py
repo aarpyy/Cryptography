@@ -38,10 +38,7 @@ def GCD(a, b):
 
 
 def ModularInverse(x, m):
-    k = ExtendedGCD(x, m)
-    if k[0] == 1:
-        return k[1]
-    return None
+    return pow(x, -1, m)
 
 
 # from internet
@@ -180,20 +177,20 @@ def MakeChineseRemainder():
 def ChineseRemainder(nums, mods):
     # initializes lists of moduli, M = product of all moduli
     M = 1
-    alt_mods, mods_inverse = [], []
-
     for m in mods:
         M *= m
 
+    # maps list of moduli and their inverses to x and y respectively
+    x, y = [], []
     for m in mods:
         mi = M // m
-        alt_mods.append(mi)
-        mods_inverse.append(pow(mi, -1, m))
+        x.append(mi)
+        y.append(pow(mi, -1, m))
 
-    # accumulates product of mi, mi-inverse, and original number
+    # accumulates product of numbers and moduli and their inverses
     acc = 0
     for i in range(len(nums)):
-        acc = (acc + nums[i] * alt_mods[i] * mods_inverse[i]) % M
+        acc = (acc + nums[i] * x[i] * y[i]) % M
 
     return acc
 
@@ -244,12 +241,14 @@ def BSGS(g, h, p, prog=False, N=None):
 
 
 def toBase(n, base):
+    # finds highest exponent of base
     exp = 0
     while True:
         if n < pow(base, exp + 1):
             break
         exp += 1
 
+    # itereates starting at highest exponent down to 0, creates list of 'base' base
     list_coeff = [0 for _ in range(exp + 1)]
     ind = 0
     for i in range(exp, -1, -1):
@@ -268,26 +267,28 @@ def fromBase(lst, base):
     return acc
 
 
-k = StringToNum("hello")
-print(k)
-print(l := toBase(k, 128))
-print(fromBase(l, 128))
-
-
-
-def PohligHellman(g, p, h, q, exp):
+def PohligHellman(g, h, p, q, exp, prog=False):
     X = []
 
     r = pow(g, pow(q, exp-1), p)
-    X0 = BSGS(r, pow(h, pow(q, exp-1), p), p, False, q)
+    X0 = BSGS(r, pow(h, pow(q, exp-1), p), p, prog, q)
     X.append(X0)
 
+    if prog:
+        print(f"Found X0 = {X0}\n"
+              f"Starting process for X1\n")
+
     for i in range(1, exp):
-        h_term = []
-        for n in X:
-            h_term.append(n)
-        exp_term = fromBase(h_term, q)
-        k = BSGS()
+        exp_term = fromBase(X[::-1], q)
+        h_term = pow(h * pow(pow(g, exp_term, p), -1, p), pow(q, exp-i-1), p)
+        Xi = BSGS(r, h_term, p, prog, q)
+        X.append(Xi)
+        if prog:
+            print(f"Found X{i} = {Xi}\n"
+                  f"Starting process for X{i+1}\n")
+
+    return fromBase(X[::-1], q)
+
 
 
 

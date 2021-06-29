@@ -1,32 +1,34 @@
-import numpy
+from crypto_functions import *
 
-def MakeMatrix(rows, cols):
-    mat = []
-    for i in range(rows):
-        mat.append([])
-        for j in range(cols):
-            n = input(f"{i+1},{j+1}: ")
-            if "," in n:
-                c = n.split(",")
-                real = int(c[0])
-                imag = int(c[1])
-                z = complex(real, imag)
-                mat[i].append(z)
-            else:
-                mat[i].append(int(n))
-    return numpy.array(mat)
+alt_mods, mods_inverse = [], []
 
-print("Enter dimensions for Matrix A:")
-rowsA = int(input("Rows: "))
-colsA = int(input("Columns: "))
+mods = [RandomPrime(1000) for _ in range(5)]
+M = 1
+for m in mods:
+    M *= m
 
-A = MakeMatrix(rowsA, colsA)
+start1 = time.time()
+count = 0
+while count < 50:
+    alt_mods, mods_inverse = [], []
+    for m in mods:
+        mi = M // m
+        alt_mods.append(mi)
+        mods_inverse.append(pow(mi, -1, m))
+    count += 1
 
-print("Enter dimensions for Matrix B: ")
-print(f"Rows: {colsA}")
-colsB = int(input("Columns: "))
+print(f"For loop took: {time.time() - start1:.10f}s")
 
-B = MakeMatrix(colsA, colsB)
+start2 = time.time()
+count = 0
+while count < 50:
+    x = list(map(lambda a: M // a, mods))
+    y = list(map(lambda a, b: pow(a, -1, b), x, mods))
+    count += 1
+print(f"Map took: {time.time() - start2:.10f}s")
+print(x, y)
 
-M = numpy.matmul(A, B)
-print(M)
+print(alt_mods, mods_inverse)
+
+print(ChineseRemainder([4, 14, 19], [63, 142, 97]))
+
