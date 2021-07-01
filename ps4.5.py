@@ -13,16 +13,14 @@ e1 = 3
 q2 = 923385191
 q1_e1 = pow(q1, 3)
 
-# A1 = pow(A, ord//q1_e1, p)
-# g1 = pow(g, ord//q1_e1, p)
-# A2 = pow(A, ord//q2, p)
-# g2 = pow(g, ord//q2, p)
-#
-# Y0 = PohligHellman(g1, A1, p, q1, e1, True)
-# Y1 = BSGS(g2, A2, p, False, q2)
-#
-# a = ChineseRemainder([Y0, Y1], [q1_e1, q2])
-# m = (c2 * pow(pow(c1, a, p), -1, p)) % p
-# print(NumToString(m))
+A1 = pow(A, ord//q1_e1, p)
+g1 = pow(g, ord//q1_e1, p)
+A2 = pow(A, ord//q2, p)
+g2 = pow(g, ord//q2, p)
 
-print(CountBits(p))
+Y0 = PohligHellman(g1, A1, p, q1, e1, True)
+Y1 = BSGS(g2, A2, p, True, q2)
+
+a = ChineseRemainder([Y0, Y1], [q1_e1, q2])
+m = (c2 * pow(pow(c1, a, p), -1, p)) % p
+print(NumToString(m))

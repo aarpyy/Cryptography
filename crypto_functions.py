@@ -55,6 +55,43 @@ def IsPrime(num):
     return pow(2, num - 1, num) == 1
 
 
+def MillerRabinPrimality(n, k=40):
+    if n == 2 or n == 3 or n == 5:
+        return True
+    elif n % 2 == 0:
+        return False
+    else:
+        d = n - 1
+        r = 0
+        while d % 2 == 0:
+            r += 1
+            d //= 2
+
+        for _ in range(k):
+            if not MillerTest(d, n):
+                return False
+
+        return True
+
+
+def MillerTest(d, n):
+    a = 2 + random.randrange(1, n - 4)
+
+    x = pow(a, d, n)
+    if x == 1 or x == n - 1:
+        return True
+
+    while d != n - 1:
+        x = pow(x, 2, n)
+        d *= 2
+
+        if x == 1:
+            return False
+        elif x == n - 1:
+            return True
+    return False
+
+
 def ConfirmPrime(n):
     if n == 2:
         return True
@@ -75,6 +112,27 @@ def ConfirmPrime(n):
         return True
 
 
+# https://rosettacode.org/wiki/Jacobi_symbol#Python - modified
+def Jacobi(a, n):
+    assert(n > 0, n & 1)
+    a %= n
+    result = 1
+    while a != 0:
+        while a % 2 == 0:
+            a /= 2
+            n_mod_8 = n % 8
+            if n_mod_8 in (3, 5):
+                result *= -1
+        a, n = n, a
+        if a % 4 == 3 and n % 4 == 3:
+            result *= -1
+        a %= n
+    if n == 1:
+        return result
+    else:
+        return 0
+
+
 def PercentChar(s):
     # function that returns the percent of letter characters in string s
     percent = 0
@@ -84,34 +142,32 @@ def PercentChar(s):
     return percent / len(s)
 
 
-def RandomPrime(*args):
-    # determines if user entered a lower range for prime
+# certainty value represents probability; if k = certainty value,
+# probability that number generated is prime = 4 ^ -k
+def RandomPrime(base, limit=None, certainty=40):
     base_2 = False
-    if len(args) == 2:
-        # if user entered lower base =/= 2, adjusts to nearest odd number
-        lower = args[0]
-        # if user entered lower base == 2, sets base_2 to True
-        if lower == 2:
+
+    # determines if user entered a lower and upper limit or just an upper
+    if limit is not None:
+        if base == 2:
             base_2 = True
-        elif lower % 2 == 0:
-            lower += 1
-        upper = args[1]
-    # default lower base = 3, since most times function used for large primes, 2 not desired
+        elif base % 2 == 0:
+            base += 1
     else:
-        lower = 3
-        upper = args[0]
+        limit = base
+        base = 3
 
     # if base_2, uses 2 as a base and increments by 1 (default) for generating random int
     if base_2:
         while True:
-            prime = random.randrange(2, upper)
-            if IsPrime(prime):
+            prime = random.randrange(2, limit)
+            if MillerRabinPrimality(prime, certainty):
                 return prime
 
     # if base =/= 2, generates random int starting at lower limit, incrementing by 2
     while True:
-        prime = random.randrange(lower, upper, 2)
-        if IsPrime(prime):
+        prime = random.randrange(base, limit, 2)
+        if MillerRabinPrimality(prime, certainty):
             return prime
 
 
@@ -198,7 +254,7 @@ def ChineseRemainder(nums, mods):
 def BSGS(g, h, p, prog=False, N=None):
     if N is None:
         N = p-1
-    n = math.ceil(math.sqrt(N))
+    n = math.isqrt(N) + 1
 
     if prog:
         increment = n // 25
@@ -278,7 +334,8 @@ def PohligHellman(g, h, p, q, exp, prog=False):
         print(f"Found X0 = {X0}\n")
 
     for i in range(1, exp):
-        print(f"Starting process for X{i}")
+        if prog:
+            print(f"Starting process for X{i}")
         exp_term = fromBase(X[::-1], q)
         h_term = pow(h * pow(pow(g, exp_term, p), -1, p), pow(q, exp-i-1), p)
         Xi = BSGS(r, h_term, p, prog, q)
