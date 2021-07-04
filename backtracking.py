@@ -1,6 +1,6 @@
-
-
-def PlaceQueens(size, col, sofar):
+def PlaceQueens(size, col=None, sofar=[]):
+    if col is None:
+        col = 0
     if len(sofar) == size:
         return True, sofar
 
@@ -37,7 +37,7 @@ def Draw(size, lst):
         print()
 
 
-n = 5
+n = 10
 
-possible, lst = PlaceQueens(n, 0, [])
+possible, lst = PlaceQueens(n)
 Draw(n, lst)

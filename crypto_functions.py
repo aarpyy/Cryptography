@@ -1,4 +1,5 @@
 import random, time, statistics, math, numpy
+from baillie_psw import BailliePSW_Primality
 
 
 def StringToNum(s, base=128):
@@ -51,7 +52,7 @@ def IsPrime(num):
     # not num & 1 filters all evens to return False, otherwise check below
     if not num & 1:
         return False
-    # checks if fermat's little theroem works, will sometimes produce psuedo-primes
+    # checks if fermat's little thereom works, will sometimes produce psuedo-primes
     return pow(2, num - 1, num) == 1
 
 
@@ -65,7 +66,7 @@ def MillerRabinPrimality(n, k=40):
         r = 0
         while d % 2 == 0:
             r += 1
-            d //= 2
+            d >>= 1
 
         for _ in range(k):
             if not MillerTest(d, n):
@@ -83,7 +84,7 @@ def MillerTest(d, n):
 
     while d != n - 1:
         x = pow(x, 2, n)
-        d *= 2
+        d <<= 1
 
         if x == 1:
             return False
@@ -119,7 +120,7 @@ def Jacobi(a, n):
     result = 1
     while a != 0:
         while a % 2 == 0:
-            a /= 2
+            a >>= 1
             n_mod_8 = n % 8
             if n_mod_8 in (3, 5):
                 result *= -1
@@ -314,6 +315,7 @@ def toBase(n, base):
         ind += 1
 
     return list_coeff
+
 
 def fromBase(lst, base):
     acc = 0

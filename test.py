@@ -8,5 +8,7 @@ from crypto_functions import *
 
 # print(MillerRabinPrimality(53))
 # print(Jacobi(19, 53))
-
+p = RandomPrime(pow(2, 1000))
+print(p)
+print(BailliePSW_Primality(p))
 
