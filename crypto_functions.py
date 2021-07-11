@@ -71,26 +71,40 @@ def MakeMatrix(rows, cols):
     return numpy.array(mat)
 
 
-def MultiplyMatrix():
-    print("Enter dimensions for Matrix A: ")
-    rowsA = int(input("Rows: "))
-    colsA = int(input("Columns: "))
+def MultiplyMatrix(A=None, B=None):
+    if A is None or B is None:
+        print("Enter dimensions for Matrix A: ")
+        rowsA = int(input("Rows: "))
+        colsA = int(input("Columns: "))
 
-    A = MakeMatrix(rowsA, colsA)
+        A = MakeMatrix(rowsA, colsA)
 
-    print("Enter dimensions for Matrix B: ")
-    print(f"Rows: {colsA}")
-    colsB = int(input("Columns: "))
+        print("Enter dimensions for Matrix B: ")
+        print(f"Rows: {colsA}")
+        colsB = int(input("Columns: "))
 
-    B = MakeMatrix(colsA, colsB)
+        B = MakeMatrix(colsA, colsB)
 
     M = numpy.matmul(A, B)
     return M
 
 
-def InvertMatrix():
-    size = int(input("Enter matrix dimensions nxn: "))
-    A = MakeMatrix(size, size)
+def SquareMatrix(A=None):
+    if A is None:
+        print("Enter dimensions for Matrix: ")
+        rows = int(input("Rows: "))
+        cols = int(input("Cols: "))
+
+        A = MakeMatrix(rows, cols)
+
+    M = numpy.matmul(A, A)
+    return M
+
+
+def InvertMatrix(A=None):
+    if A is None:
+        size = int(input("Enter matrix dimensions nxn: "))
+        A = MakeMatrix(size, size)
 
     M = numpy.linalg.inv(A)
     return M
@@ -236,3 +250,18 @@ def CountBits(n):
             count += 1
     return count
 
+
+def ApplyMult(lst):
+    acc = 1
+    for e in lst:
+        acc *= e
+    return acc
+
+
+def DSA(D, S1, S2, g, p, q, A):
+    S2_inv = pow(S2, -1, q)
+    V1 = (D * S2_inv) % q
+    V2 = (S1 * S2_inv) % q
+    if ((pow(g, V1, p) * pow(A, V2, p)) % p) % q == S1:
+        return True
+    return False

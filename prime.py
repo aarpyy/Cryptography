@@ -1,4 +1,5 @@
 import random, math
+from crypto_functions import *
 
 
 # from internet
@@ -35,7 +36,7 @@ def MillerRabinPrimality(n, k=40):
 
 
 def MillerTest(d, n):
-    a = 2 + random.randrange(1, n - 4)
+    a = random.randrange(2, n - 1)
 
     x = pow(a, d, n)
     if x == 1 or x == n - 1:
@@ -50,6 +51,27 @@ def MillerTest(d, n):
         elif x == n - 1:
             return True
     return False
+
+
+def MR(a, n):
+    if GCD(a, n) > 1:
+        return "Composite"
+    q = n-1
+    k = 0
+    while q % 2 == 0:
+        q //= 2
+        k += 1
+
+    a = pow(a, q, n)
+    if a == 1:
+        return "Test Fails"
+
+    for _ in range(k):
+        if a == -1 or a == n - 1:
+            return "Test Fails"
+        a = pow(a, 2, n)
+
+    return "Composite"
 
 
 # certainty value represents probability; if k = certainty value,
