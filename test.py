@@ -1,3 +1,5 @@
+import random
+
 from crypto_functions import *
 
 # p = 822171430891193443624252802027
@@ -12,4 +14,13 @@ from crypto_functions import *
 #
 # print(DSA(D, S1, S2, g, p, q, A))
 
+# for _ in range(50):
+#     a, b = random.randrange(2, 100), random.randrange(2, 100)
+#     if not MyExtendedGCD(a, b):
+#         print(a, b)
+#     elif ExtendedGCD(a, b) != MyExtendedGCD(a, b):
+#         print(a, b)
 
+# print(MyExtendedGCD(13, 78), MyExtendedGCD(78, 13))
+# testGCD(39, 14)
+ExtendedGCD(39, 14)

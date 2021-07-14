@@ -17,31 +17,33 @@ def IsPrime(num):
 
 
 def MillerRabinPrimality(n, k=40):
-    if n == 2 or n == 3 or n == 5:
-        return True
-    elif n % 2 == 0:
-        return False
-    else:
-        d = n - 1
-        r = 0
-        while d % 2 == 0:
-            r += 1
-            d >>= 1
+    for p in [2, 3, 5, 7, 9, 11]:
+        if n == p:
+            return True
+        elif n % p == 0:
+            return False
+    d = n - 1
+    r = 0
+    while d % 2 == 0:
+        r += 1
+        d >>= 1
 
-        for _ in range(k):
-            if not MillerTest(d, n):
-                return False
+    for _ in range(k):
+        if not MillerTest(d, n):
+            return False
 
-        return True
+    return True
 
 
 def MillerTest(d, n):
+    """Helper function for MRPrimality which uses previously found d to
+    check if random a is a witness to n's composite-ness"""
     a = random.randrange(2, n - 1)
-
     x = pow(a, d, n)
     if x == 1 or x == n - 1:
         return True
 
+    # doubles d every time until d returns to original n-1 value
     while d != n - 1:
         x = pow(x, 2, n)
         d <<= 1
@@ -53,25 +55,27 @@ def MillerTest(d, n):
     return False
 
 
-def MR(a, n):
-    if GCD(a, n) > 1:
-        return "Composite"
-    q = n-1
+def MillerRabin_base_a(a, n):
+    """Miller Rabin test with specific base of a"""
+    if math.gcd(a, n) > 1:
+        return False
+    q = n - 1
     k = 0
     while q % 2 == 0:
-        q //= 2
+        q >>= 1
         k += 1
 
     a = pow(a, q, n)
-    if a == 1:
-        return "Test Fails"
-
+    if a == 1 or a == n - 1:
+        return True
     for _ in range(k):
         if a == -1 or a == n - 1:
-            return "Test Fails"
+            return True
+        elif a == 1:
+            return False
         a = pow(a, 2, n)
 
-    return "Composite"
+    return False
 
 
 # certainty value represents probability; if k = certainty value,
@@ -110,7 +114,7 @@ def ConfirmPrime(n):
     elif n % 3 == 0 or n % 5 == 0:
         return False
     else:
-        sq = math.floor(math.sqrt(n))
+        sq = math.isqrt(n)
         primes = []
         for num in range(3, sq):
             if IsPrime(num):

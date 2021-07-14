@@ -1,5 +1,3 @@
-import random, time, statistics, math, numpy
-from baillie_psw import BailliePSW_Primality
 from prime import *
 
 
@@ -21,22 +19,15 @@ def NumToString(n, base=128):
 
 # from internet
 def ExtendedGCD(a, b):
-    # Base Case
     if a == 0:
         return b, 0, 1
 
-    gcd, x1, y1 = ExtendedGCD(b % a, a)
-
-    # Update x and y using results of recursive
-    # call
-    x = y1 - (b // a) * x1
-    y = x1
-
-    return gcd, x, y
+    g, x, y = ExtendedGCD(b % a, a)
+    return g, y - (b // a) * x, x
 
 
 def GCD(a, b):
-    return ExtendedGCD(a, b)[0]
+    return math.gcd(a, b)
 
 
 def ModularInverse(x, m):

@@ -37,7 +37,7 @@ def Draw(size, lst):
         print()
 
 
-n = 10
+n = 25
 
 possible, lst = PlaceQueens(n)
 Draw(n, lst)
