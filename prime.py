@@ -1,27 +1,42 @@
-import random, math
-from crypto_functions import *
+import math
+import random
+
+from bailliepsw_helper import LucasPseudoPrime, D_chooser
 
 
-# from internet
-def IsPrime(num):
-    # 2 is the only even prime, checks for 2 first
-    if num == 2:
-        return True
-    # num & 1 returns intersection of binary 1 and binary num
-    # if num is odd, it will always intersect with 1 and return True
-    # not num & 1 filters all evens to return False, otherwise check below
-    if not num & 1:
-        return False
-    # checks if fermat's little thereom works, will sometimes produce psuedo-primes
-    return pow(2, num - 1, num) == 1
+def KnownPrime(n):
+    """Helper function, confirming prime candidate is not easily known"""
 
-
-def MillerRabinPrimality(n, k=40):
-    for p in [2, 3, 5, 7, 9, 11]:
+    for p in [2, 3, 5, 7, 11, 13, 17, 19, 23, 29, 31, 37, 41, 43, 47]:
         if n == p:
             return True
         elif n % p == 0:
             return False
+    return None
+
+
+def IsPrime(n):
+    """General purpose primality function that returns False if guaranteed composite"""
+
+    # if prime candidate is too large, just performs a more accurate Miller-Rabin test
+    # instead of both Baillie-PSW and Miller-Rabin;
+    # returns just Baillie-PSW if less than 2^64, since Baillie-PSW is proven to be
+    # deterministic for pseudo-primes up to 2^64
+    if n < pow(2, 64):
+        return BailliePSW_Primality(n)
+    elif n > pow(2, 1000):
+        return MillerRabinPrimality(n, 40)
+    return BailliePSW_Primality(n) and MillerRabinPrimality(n, 10)
+
+
+def MillerRabinPrimality(n, k=40):
+    """MRPrimality test reduces n - 1 to a power of 2 and an odd number, then
+    tests if random a is a witness of composite-ness d times, testing with
+    k random a's"""
+
+    if KnownPrime(n) is not None:
+        return KnownPrime(n)
+
     d = n - 1
     r = 0
     while d % 2 == 0:
@@ -38,6 +53,7 @@ def MillerRabinPrimality(n, k=40):
 def MillerTest(d, n):
     """Helper function for MRPrimality which uses previously found d to
     check if random a is a witness to n's composite-ness"""
+
     a = random.randrange(2, n - 1)
     x = pow(a, d, n)
     if x == 1 or x == n - 1:
@@ -57,6 +73,7 @@ def MillerTest(d, n):
 
 def MillerRabin_base_a(a, n):
     """Miller Rabin test with specific base of a"""
+
     if math.gcd(a, n) > 1:
         return False
     q = n - 1
@@ -78,80 +95,74 @@ def MillerRabin_base_a(a, n):
     return False
 
 
-# certainty value represents probability; if k = certainty value,
-# probability that number generated is prime = 4 ^ -k
-def RandomPrime(base, limit=None, certainty=40):
+def RandomPrime(*args):
+    """Uses combination of Miller-Rabin and Baillie-PSW primality tests to generate random prime"""
+
     base_2 = False
 
     # determines if user entered a lower and upper limit or just an upper
-    if limit is not None:
-        if base == 2:
-            base_2 = True
-        base = base | 1
-    else:
-        limit = base
-        base = 3
+    if len(args) not in [1, 2]:
+        raise TypeError("Usage: RandomPrime(limit=int) or RandomPrime(base=int, limit=int)")
+    base, limit = (args[0], args[1]) if len(args) == 2 else (3, args[0])
+
+    if base == 2:
+        base_2 = True
+
+    base = base | 1
 
     # if base_2, uses 2 as a base and increments by 1 (default) for generating random int
-    if base_2:
-        while True:
-            prime = random.randrange(2, limit)
-            if MillerRabinPrimality(prime, certainty):
-                return prime
-
     # if base =/= 2, generates random int starting at lower limit, incrementing by 2
     while True:
-        prime = random.randrange(base, limit, 2)
-        if MillerRabinPrimality(prime, certainty):
+        prime = random.randrange(2, limit) if base_2 else random.randrange(base, limit, 2)
+        if IsPrime(prime):
             return prime
 
 
 def ConfirmPrime(n):
-    if n == 2:
-        return True
-    elif not n & 1:
-        return False
-    elif n % 3 == 0 or n % 5 == 0:
-        return False
-    else:
-        sq = math.isqrt(n)
-        primes = []
-        for num in range(3, sq):
-            if IsPrime(num):
-                primes.append(num)
+    """Uses infinitely deterministic primality test, checking if candidate has factors
+    of any primes <= square root of candidate"""
 
-        for num in primes:
-            if n % num == 0:
-                return False
-        return True
+    if KnownPrime(n) is not None:
+        return KnownPrime(n)
+
+    for num in range(3, (math.isqrt(n) + 1) | 1, 2):
+        witness = list(map(lambda x: MillerRabin_base_a(x, n), [2, 3, 5, 7, 11, 13]))
+        if False not in witness and n % num == 0:
+            return False
+    return True
 
 
 def NextPrime(n):
-    n = n | 1
+    """Returns first prime after number given"""
 
+    # ensures n is odd to start so that can increment by 2
+    n = n | 1
     while True:
         if IsPrime(n):
-            if MillerRabinPrimality(n):
-                return n
+            return n
         n += 2
 
 
-# https://rosettacode.org/wiki/Jacobi_symbol#Python - modified
-def Jacobi(a, n):
-    assert n > 0, n & 1
-    a %= n
-    result = 1
-    while a != 0:
-        while a % 2 == 0:
-            a >>= 1
-            n_mod_8 = n % 8
-            if n_mod_8 in (3, 5):
-                result *= -1
-        a, n = n, a
-        if a % 4 == 3 and n % 4 == 3:
-            result *= -1
-        a %= n
-    if n == 1:
-        return result
-    else:
-        return 0
+def BailliePSW_Primality(candidate):
+    """Perform the Baillie-PSW probabilistic primality test on candidate"""
+
+    # Check divisibility by a short list of primes less than 50
+    if KnownPrime(candidate) is not None:
+        return KnownPrime(candidate)
+
+    # Now perform the Miller-Rabin primality test base 2
+    if not MillerRabin_base_a(2, candidate):
+        return False
+
+    # Checks if number has integer square root, if it does not, math.isqrt
+    # will not be exact square root, if it has integer square root then
+    # math.isqrt will square perfectly to candidate
+    if math.isqrt(candidate) ** 2 == candidate:
+        return False
+
+    # Finally perform the Lucas primality test
+    D = D_chooser(candidate)
+    if not LucasPseudoPrime(candidate, D, 1, (1 - D) / 4):
+        return False
+
+    return True

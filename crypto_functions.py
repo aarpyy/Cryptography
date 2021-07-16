@@ -1,3 +1,5 @@
+import numpy
+
 from prime import *
 
 
@@ -17,7 +19,6 @@ def NumToString(n, base=128):
     return string
 
 
-# from internet
 def ExtendedGCD(a, b):
     if a == 0:
         return b, 0, 1
@@ -118,9 +119,7 @@ def MakeChineseRemainder():
 
 def ChineseRemainder(nums, mods):
     # initializes lists of moduli, M = product of all moduli
-    M = 1
-    for m in mods:
-        M *= m
+    M = ApplyMult(mods)
 
     # maps list of moduli and their inverses to x and y respectively
     x, y = [], []
@@ -190,7 +189,7 @@ def toBase(n, base):
             break
         exp += 1
 
-    # itereates starting at highest exponent down to 0, creates list of 'base' base
+    # iterates starting at highest exponent down to 0, creates list of 'base' base
     list_coeff = [0 for _ in range(exp + 1)]
     ind = 0
     for i in range(exp, -1, -1):
@@ -212,6 +211,8 @@ def fromBase(lst, base):
 
 def PohligHellman(g, h, p, q, exp, prog=False):
     X = []
+    if prog:
+        print("Starting process for X0")
 
     r = pow(g, pow(q, exp-1), p)
     X0 = BSGS(r, pow(h, pow(q, exp-1), p), p, prog, q)
