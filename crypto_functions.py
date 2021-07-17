@@ -1,5 +1,3 @@
-import numpy
-
 from prime import *
 
 
@@ -44,64 +42,6 @@ def PercentChar(s):
     return percent / len(s)
 
 
-def MakeMatrix(rows, cols):
-    # gets input from user for rows of matrix to be made
-    # splits into imaginary and real parts when necessary
-    mat = []
-    for i in range(rows):
-        mat.append([])
-        for j in range(cols):
-            n = input(f"{i + 1},{j + 1}: ")
-            if "," in n:
-                c = n.split(",")
-                real = int(c[0])
-                imag = int(c[1])
-                z = complex(real, imag)
-                mat[i].append(z)
-            else:
-                mat[i].append(int(n))
-    return numpy.array(mat)
-
-
-def MultiplyMatrix(A=None, B=None):
-    if A is None or B is None:
-        print("Enter dimensions for Matrix A: ")
-        rowsA = int(input("Rows: "))
-        colsA = int(input("Columns: "))
-
-        A = MakeMatrix(rowsA, colsA)
-
-        print("Enter dimensions for Matrix B: ")
-        print(f"Rows: {colsA}")
-        colsB = int(input("Columns: "))
-
-        B = MakeMatrix(colsA, colsB)
-
-    M = numpy.matmul(A, B)
-    return M
-
-
-def SquareMatrix(A=None):
-    if A is None:
-        print("Enter dimensions for Matrix: ")
-        rows = int(input("Rows: "))
-        cols = int(input("Cols: "))
-
-        A = MakeMatrix(rows, cols)
-
-    M = numpy.matmul(A, A)
-    return M
-
-
-def InvertMatrix(A=None):
-    if A is None:
-        size = int(input("Enter matrix dimensions nxn: "))
-        A = MakeMatrix(size, size)
-
-    M = numpy.linalg.inv(A)
-    return M
-
-
 def MakeChineseRemainder():
     # gets lists of solutions and moduli from user for chinese remainder
     nums, mods = [], []
@@ -138,7 +78,7 @@ def ChineseRemainder(nums, mods):
 
 def BSGS(g, h, p, prog=False, N=None):
     if N is None:
-        N = p-1
+        N = p - 1
     n = math.isqrt(N) + 1
 
     if prog:
@@ -151,9 +91,9 @@ def BSGS(g, h, p, prog=False, N=None):
                 count = 0
                 print("-", end="")
             count += 1
-            j = i*n
+            j = i * n
             A[pow(g, i, p)] = i
-            B[(h * pow(g, -1*j, p)) % p] = j
+            B[(h * pow(g, -1 * j, p)) % p] = j
 
         print("\nDone With Part 1. Starting Part 2: Finding Matches")
 
@@ -205,7 +145,7 @@ def fromBase(lst, base):
     acc = 0
     l = len(lst)
     for i in range(l):
-        acc += lst[i] * pow(base, l-i-1)
+        acc += lst[i] * pow(base, l - i - 1)
     return acc
 
 
@@ -214,8 +154,8 @@ def PohligHellman(g, h, p, q, exp, prog=False):
     if prog:
         print("Starting process for X0")
 
-    r = pow(g, pow(q, exp-1), p)
-    X0 = BSGS(r, pow(h, pow(q, exp-1), p), p, prog, q)
+    r = pow(g, pow(q, exp - 1), p)
+    X0 = BSGS(r, pow(h, pow(q, exp - 1), p), p, prog, q)
     X.append(X0)
 
     if prog:
@@ -225,7 +165,7 @@ def PohligHellman(g, h, p, q, exp, prog=False):
         if prog:
             print(f"Starting process for X{i}")
         exp_term = fromBase(X[::-1], q)
-        h_term = pow(h * pow(pow(g, exp_term, p), -1, p), pow(q, exp-i-1), p)
+        h_term = pow(h * pow(pow(g, exp_term, p), -1, p), pow(q, exp - i - 1), p)
         Xi = BSGS(r, h_term, p, prog, q)
         X.append(Xi)
         if prog:

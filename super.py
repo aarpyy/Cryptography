@@ -1,4 +1,5 @@
 from crypto_functions import *
+from matrix import *
 from bailliepsw_helper import Jacobi
 from prime import *
 import math, random, statistics, time
