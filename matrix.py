@@ -73,10 +73,6 @@ def MatrixFloat(matrix, bits=16):
     return matrix.astype(float)
 
 
-def MatrixInt(matrix):
-    return matrix.astype(int)
-
-
 def ArrayToList(matrix):
     lst = []
     for i in range(len(matrix)):

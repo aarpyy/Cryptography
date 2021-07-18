@@ -1,4 +1,29 @@
-from prime import *
+def toBase(n, base):
+    # finds highest exponent of base
+    exp = 0
+    while True:
+        if n < pow(base, exp + 1):
+            break
+        exp += 1
+
+    # iterates starting at highest exponent down to 0, creates list of 'base' base
+    list_coeff = [0 for _ in range(exp + 1)]
+    ind = 0
+    for i in range(exp, -1, -1):
+        k = n // pow(base, i)
+        list_coeff[ind] = k
+        n -= k * pow(base, i)
+        ind += 1
+
+    return list_coeff
+
+
+def fromBase(lst, base):
+    acc = 0
+    l = len(lst)
+    for i in range(l):
+        acc += lst[i] * pow(base, l - i - 1)
+    return acc
 
 
 def StringToNum(s, base=128):
@@ -17,6 +42,13 @@ def NumToString(n, base=128):
     return string
 
 
+def ApplyMult(lst):
+    acc = 1
+    for e in lst:
+        acc *= e
+    return acc
+
+
 def ExtendedGCD(a, b):
     if a == 0:
         return b, 0, 1
@@ -31,15 +63,6 @@ def GCD(a, b):
 
 def ModularInverse(x, m):
     return pow(x, -1, m)
-
-
-def PercentChar(s):
-    # function that returns the percent of letter characters in string s
-    percent = 0
-    for c in s:
-        if 65 <= ord(c) <= 90 or 97 <= ord(c) <= 122:
-            percent += 1
-    return percent / len(s)
 
 
 def MakeChineseRemainder():
@@ -121,34 +144,6 @@ def BSGS(g, h, p, prog=False, N=None):
     return None
 
 
-def toBase(n, base):
-    # finds highest exponent of base
-    exp = 0
-    while True:
-        if n < pow(base, exp + 1):
-            break
-        exp += 1
-
-    # iterates starting at highest exponent down to 0, creates list of 'base' base
-    list_coeff = [0 for _ in range(exp + 1)]
-    ind = 0
-    for i in range(exp, -1, -1):
-        k = n // pow(base, i)
-        list_coeff[ind] = k
-        n -= k * pow(base, i)
-        ind += 1
-
-    return list_coeff
-
-
-def fromBase(lst, base):
-    acc = 0
-    l = len(lst)
-    for i in range(l):
-        acc += lst[i] * pow(base, l - i - 1)
-    return acc
-
-
 def PohligHellman(g, h, p, q, exp, prog=False):
     X = []
     if prog:
@@ -172,22 +167,6 @@ def PohligHellman(g, h, p, q, exp, prog=False):
             print(f"Found X{i} = {Xi}\n")
 
     return fromBase(X[::-1], q)
-
-
-def CountBits(n):
-    binary = bin(n).split('b')[1]
-    count = 0
-    for bit in binary:
-        if bit == '1':
-            count += 1
-    return count
-
-
-def ApplyMult(lst):
-    acc = 1
-    for e in lst:
-        acc *= e
-    return acc
 
 
 def DSA(D, S1, S2, g, p, q, A):
