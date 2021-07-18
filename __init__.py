@@ -1,4 +1,4 @@
-from cryptography import *
+from crypto_functions import *
 from matrix import MakeMatrix, MultiplyMatrix, SquareMatrix, InvertMatrix, MatrixFloat, RREF
 from bailliepsw_helper import Jacobi
 from prime import IsPrime, MillerRabinPrimality, MillerRabin_base_a, RandomPrime, ConfirmPrime, NextPrime, BailliePSW_Primality
