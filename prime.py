@@ -1,7 +1,7 @@
 import math
 import random
 
-from bailliepsw_helper import LucasPseudoPrime, D_chooser
+from cryptography.bailliepsw_helper import LucasPseudoPrime, D_chooser
 
 
 def KnownPrime(n):
