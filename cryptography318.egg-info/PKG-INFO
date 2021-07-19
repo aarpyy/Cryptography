@@ -1,0 +1,15 @@
+Metadata-Version: 2.1
+Name: cryptography318
+Version: 0.1.1
+Summary: A set of functions useful in cryptography
+Home-page: https://github.com/aarpyy/Cryptography
+Author: Andrew Carpenter
+Author-email: acarpent@oberlin.edu
+License: UNKNOWN
+Platform: UNKNOWN
+Classifier: Development Status :: 1 - Planning
+Classifier: Programming Language :: Python :: 3.8
+Classifier: Programming Language :: Python :: 3.9
+
+UNKNOWN
+
