@@ -4,5 +4,5 @@ from cryptography318.bailliepsw_helper import Jacobi
 from cryptography318.prime import IsPrime, MillerRabinPrimality, MillerRabin_base_a, RandomPrime, ConfirmPrime, NextPrime, BailliePSW_Primality
 
 
-__version__ = "0.1.2"
+__version__ = "0.1.3"
 __author__ = 'Andrew Carpenter'

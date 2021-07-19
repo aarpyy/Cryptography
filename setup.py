@@ -2,7 +2,7 @@ from setuptools import setup
 
 setup(
     name='cryptography318',
-    version='0.1.2',
+    version='0.1.3',
     description='A set of functions useful in cryptography',
     url='https://github.com/aarpyy/Cryptography',
     author='Andrew Carpenter',
