@@ -1,4 +1,4 @@
-README.rst
+README.md
 setup.py
 cryptography318/__init__.py
 cryptography318/bailliepsw_helper.py

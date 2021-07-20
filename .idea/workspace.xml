@@ -2,8 +2,17 @@
 <project version="4">
   <component name="ChangeListManager">
     <list default="true" id="6ea76c49-18d8-4974-9f94-c2171563dd51" name="Default Changelist" comment="working on primality test, miller-rabin">
+      <change afterPath="$PROJECT_DIR$/dist/cryptography318-0.1.3-py3-none-any.whl" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/dist/cryptography318-0.1.3.tar.gz" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/dist/cryptography318-0.1.4-py3-none-any.whl" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/dist/cryptography318-0.1.4.tar.gz" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/README.md" beforeDir="false" afterPath="$PROJECT_DIR$/README.md" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/build/lib/cryptography318/__init__.py" beforeDir="false" afterPath="$PROJECT_DIR$/build/lib/cryptography318/__init__.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/cryptography318.egg-info/PKG-INFO" beforeDir="false" afterPath="$PROJECT_DIR$/cryptography318.egg-info/PKG-INFO" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/cryptography318.egg-info/SOURCES.txt" beforeDir="false" afterPath="$PROJECT_DIR$/cryptography318.egg-info/SOURCES.txt" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/cryptography318/__init__.py" beforeDir="false" afterPath="$PROJECT_DIR$/cryptography318/__init__.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/cryptography318/prime.py" beforeDir="false" afterPath="$PROJECT_DIR$/cryptography318/prime.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/setup.py" beforeDir="false" afterPath="$PROJECT_DIR$/setup.py" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
