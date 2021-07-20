@@ -1,7 +1,7 @@
 from cryptography318.crypto_functions import *
-from cryptography318.matrix import MakeMatrix, MultiplyMatrix, SquareMatrix, InvertMatrix, MatrixFloat, RREF
-from cryptography318.bailliepsw_helper import Jacobi
-from cryptography318.prime import IsPrime, MillerRabinPrimality, MillerRabin_base_a, RandomPrime, ConfirmPrime, NextPrime, BailliePSW_Primality
+from cryptography318.matrix import *
+from cryptography318.bailliepsw_helper import *
+from cryptography318.prime import *
 import setuptools.version
 
 

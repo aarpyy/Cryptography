@@ -143,6 +143,17 @@ def NextPrime(n):
         n += 2
 
 
+def PrevPrime(n):
+    """Returns first prime before number given"""
+
+    # ensures n is odd to start so that can decrement by 2
+    n = n | 1
+    while True:
+        if IsPrime(n):
+            return n
+        n -= 2
+
+
 def BailliePSW_Primality(candidate):
     """Perform the Baillie-PSW probabilistic primality test on candidate"""
 
