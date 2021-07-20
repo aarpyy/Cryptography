@@ -177,3 +177,21 @@ def BailliePSW_Primality(candidate):
         return False
 
     return True
+
+
+def PollardP1(n, limit=pow(10, 5)):
+    """ Pollard's p - 1 algorithm for factoring large composites.
+    Returns a factor if factor-able, False if otherwise."""
+
+    if IsPrime(n):
+        raise ValueError("Make sure to enter a composite number")
+
+    for a in [2, 3, 5]:
+        m = a
+        for j in range(2, limit):
+            m = pow(m, j, n)
+            k = math.gcd(m - 1, n)
+            if 1 < k < n:
+                return k
+
+    return False
