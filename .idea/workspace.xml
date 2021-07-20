@@ -2,8 +2,10 @@
 <project version="4">
   <component name="ChangeListManager">
     <list default="true" id="6ea76c49-18d8-4974-9f94-c2171563dd51" name="Default Changelist" comment="working on primality test, miller-rabin">
+      <change afterPath="$PROJECT_DIR$/dist/cryptography318-0.1.5.win-amd64.zip" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/build/lib/cryptography318/prime.py" beforeDir="false" afterPath="$PROJECT_DIR$/build/lib/cryptography318/prime.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/cryptography318.egg-info/PKG-INFO" beforeDir="false" afterPath="$PROJECT_DIR$/cryptography318.egg-info/PKG-INFO" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/cryptography318/prime.py" beforeDir="false" afterPath="$PROJECT_DIR$/cryptography318/prime.py" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />

@@ -1,5 +1,6 @@
 import math
 import random
+import sympy
 
 from cryptography318.bailliepsw_helper import LucasPseudoPrime, D_chooser
 

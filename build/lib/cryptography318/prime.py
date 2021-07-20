@@ -1,7 +1,7 @@
 import math
 import random
 
-from cryptography318.bailliepsw_helper import LucasPseudoPrime, D_chooser
+from bailliepsw_helper import LucasPseudoPrime, D_chooser
 
 
 def KnownPrime(n):
@@ -168,6 +168,7 @@ def BailliePSW_Primality(candidate):
     # Checks if number has integer square root, if it does not, math.isqrt
     # will not be exact square root, if it has integer square root then
     # math.isqrt will square perfectly to candidate
+
     if math.isqrt(candidate) ** 2 == candidate:
         return False
 
