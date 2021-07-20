@@ -180,7 +180,7 @@ def BailliePSW_Primality(candidate):
 
 
 def PollardP1(n, limit=pow(10, 5)):
-    """ Pollard's p - 1 algorithm for factoring large composites.
+    """Pollard's p - 1 algorithm for factoring large composites.
     Returns a factor if factor-able, False if otherwise."""
 
     if IsPrime(n):
