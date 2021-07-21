@@ -1,7 +1,8 @@
 import math
 import random
+import sympy
 
-from bailliepsw_helper import LucasPseudoPrime, D_chooser
+from cryptography318.bailliepsw_helper import LucasPseudoPrime, D_chooser
 
 
 def KnownPrime(n):
@@ -165,11 +166,9 @@ def BailliePSW_Primality(candidate):
     if not MillerRabin_base_a(2, candidate):
         return False
 
-    # Checks if number has integer square root, if it does not, math.isqrt
-    # will not be exact square root, if it has integer square root then
-    # math.isqrt will square perfectly to candidate
-
-    if math.isqrt(candidate) ** 2 == candidate:
+    # Checks if number has square root using sympy function
+    from sympy.ntheory.primetest import is_square
+    if is_square(candidate):
         return False
 
     # Finally perform the Lucas primality test

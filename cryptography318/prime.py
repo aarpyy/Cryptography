@@ -23,11 +23,36 @@ def IsPrime(n):
     # instead of both Baillie-PSW and Miller-Rabin;
     # returns just Baillie-PSW if less than 2^64, since Baillie-PSW is proven to be
     # deterministic for pseudo-primes up to 2^64
-    if n < pow(2, 64):
-        return BailliePSW_Primality(n)
-    elif n > pow(2, 1000):
-        return MillerRabinPrimality(n, 40)
-    return BailliePSW_Primality(n) and MillerRabinPrimality(n, 10)
+    if n < 2047:
+        return MillerRabin_bases([2], n)
+    if n < 1373653:
+        return MillerRabin_bases([2, 3], n)
+    if n < 9080191:
+        return MillerRabin_bases([31, 73], n)
+    if n < 25326001:
+        return MillerRabin_bases([2, 3, 5], n)
+    if n < 3215031751:
+        return MillerRabin_bases([2, 3, 5, 7], n)
+    if n < 4759123141:
+        return MillerRabin_bases([2, 7, 61], n)
+    if n < 1122004669633:
+        return MillerRabin_bases([2, 13, 23, 1662803], n)
+    if n < 2152302898747:
+        return MillerRabin_bases([2, 3, 5, 7, 11], n)
+    if n < 3474749660383:
+        return MillerRabin_bases([2, 3, 5, 7, 11, 13], n)
+    if n < 341550071728321:
+        return MillerRabin_bases([2, 3, 5, 7, 11, 13, 17], n)
+    if n < 3825123056546413051:
+        return MillerRabin_bases([2, 3, 5, 7, 11, 13, 17, 19, 23], n)
+    if n < 18446744073709551616:
+        return MillerRabin_bases([2, 3, 5, 7, 11, 13, 17, 19, 23, 29, 31, 37], n)
+    if n < 318665857834031151167461:
+        return MillerRabin_bases([2, 3, 5, 7, 11, 13, 17, 19, 23, 29, 31, 37], n)
+    if n < 3317044064679887385961981:
+        return MillerRabin_bases([2, 3, 5, 7, 11, 13, 17, 19, 23, 29, 31, 37, 41], n)
+
+    return MillerRabinPrimality(n, 20) and BailliePSW_Primality(n)
 
 
 def MillerRabinPrimality(n, k=40):
@@ -72,11 +97,19 @@ def MillerTest(d, n):
     return False
 
 
+def MillerRabin_bases(lst, n):
+    """Helper function that allows for a list of witnesses to be tested
+    using MillerRabin_base_a function"""
+
+    for a in lst:
+        if not MillerRabin_base_a(a, n):
+            return False
+    return True
+
+
 def MillerRabin_base_a(a, n):
     """Miller Rabin test with specific base of a"""
 
-    if math.gcd(a, n) > 1:
-        return False
     q = n - 1
     k = 0
     while q % 2 == 0:
@@ -119,7 +152,7 @@ def RandomPrime(*args):
             return prime
 
 
-def ConfirmPrime(n):
+def AllFactors(n):
     """Uses infinitely deterministic primality test, checking if candidate has factors
     of any primes <= square root of candidate"""
 
@@ -129,6 +162,25 @@ def ConfirmPrime(n):
     for num in range(3, (math.isqrt(n) + 1) | 1, 2):
         witness = list(map(lambda x: MillerRabin_base_a(x, n), [2, 3, 5, 7, 11, 13]))
         if False not in witness and n % num == 0:
+            return False
+    return True
+
+
+def ConfirmPrime(n):
+    """Uses infinitely deterministic AKS (Agrawal-Kayal-Saxena) primality test which
+    returns True if-and-only-if n is prime"""
+    if KnownPrime(n) is not None:
+        return KnownPrime(n)
+
+    # generates the n-th row of Pascal's triangle, if any of the coefficients != 0 mod n, n is not prime
+    for k in range(1, n):
+        res = 1
+        if k > (n - k):
+            k = n - k
+        for i in range(0, k):
+            res = res * (n - i)
+            res = res // (i + 1)
+        if res % n != 0:
             return False
     return True
 
@@ -166,10 +218,9 @@ def BailliePSW_Primality(candidate):
     if not MillerRabin_base_a(2, candidate):
         return False
 
-    # Checks if number has integer square root, if it does not, math.isqrt
-    # will not be exact square root, if it has integer square root then
-    # math.isqrt will square perfectly to candidate
-    if math.isqrt(candidate) ** 2 == candidate:
+    # Checks if number has square root using sympy function
+    from sympy.ntheory.primetest import is_square
+    if is_square(candidate):
         return False
 
     # Finally perform the Lucas primality test
