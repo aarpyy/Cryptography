@@ -1,7 +1,7 @@
 Metadata-Version: 2.1
 Name: cryptography318
 Version: 0.1.5
-Summary: A set of functions useful in cryptography.
+Summary: A set of functions useful in cryptography
 Home-page: https://github.com/aarpyy/Cryptography
 Author: Andrew Carpenter
 Author-email: acarpent@oberlin.edu
@@ -13,6 +13,10 @@ Description: Cryptography318 is a package intended for students of the MATH318 c
         This package is unlicensed and not intended for public use.
 Platform: UNKNOWN
 Classifier: Development Status :: 1 - Planning
+Classifier: Intended Audience :: Education
+Classifier: License :: Public Domain
+Classifier: Operating System :: MacOS
+Classifier: Operating System :: Microsoft :: Windows :: Windows 10
 Classifier: Programming Language :: Python :: 3.8
 Classifier: Programming Language :: Python :: 3.9
 Description-Content-Type: text/markdown

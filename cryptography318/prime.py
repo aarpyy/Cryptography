@@ -1,5 +1,5 @@
-import math
-import random
+from math import gcd, isqrt
+from random import randrange
 
 from cryptography318.bailliepsw_helper import LucasPseudoPrime, D_chooser
 
@@ -36,10 +36,12 @@ def IsPrime(n):
     if the prime-candidate is probably prime.
 
     Uses deterministic variants of the Miller-Rabin Primality test, which, through
-    the use of specific bases and ranges, can deterministically return True if
-    candidate is prime. For all n > 3317044064679887385961981 there is no known
-    set of bases that makes the MR test deterministic. Thus a SPRP-test is used, consisting
-    of a Strong Lucas Pseudo-prime test and 20 random bases a, s.t. 1 < a < n.
+    the use of specific bases and ranges, can deterministically return True iff
+    candidate is prime for n < 3317044064679887385961981. For all larger n,
+    there is no  known set of bases that makes the MR test deterministic. Thus a
+    SPRP-test consisting of a Strong Lucas Pseudo-prime test and a Miller-Rabin
+    test with 20 random bases a, s.t. 1 < a < n is used to determine if candidate is
+    probably prime.
     """
 
     if KnownPrime(n, first_n=20) is not None:
@@ -75,7 +77,7 @@ def IsPrime(n):
 
 def MillerRabinPrimality(n, k=40):
     """MRPrimality test reduces n - 1 to a power of 2 and an odd number, then
-    tests if random a is a witness of composite-ness d times, testing with
+    tests if random a is a witness of n's composite-ness, testing with
     k random a's"""
 
     if KnownPrime(n) is not None:
@@ -98,7 +100,7 @@ def MillerTest(d, n):
     """Helper function for MRPrimality which uses previously found d to
     check if random a is a witness to n's composite-ness"""
 
-    a = random.randrange(2, n - 1)
+    a = randrange(2, n - 1)
     x = pow(a, d, n)
     if x == 1 or x == n - 1:
         return True
@@ -171,7 +173,7 @@ def RandomPrime(*args):
     # if base_2, uses 2 as a base and increments by 1 (default) for generating random int
     # if base =/= 2, generates random int starting at lower limit, incrementing by 2
     while True:
-        prime = random.randrange(2, limit) if base_2 else random.randrange(base, limit, 2)
+        prime = randrange(2, limit) if base_2 else randrange(base, limit, 2)
         if IsPrime(prime):
             return prime
 
@@ -183,7 +185,7 @@ def AllFactors(n):
     if KnownPrime(n) is not None:
         return KnownPrime(n)
 
-    for num in range(3, (math.isqrt(n) + 1) | 1, 2):
+    for num in range(3, (isqrt(n) + 1) | 1, 2):
         witness = list(map(lambda x: MillerRabin_base_a(x, n), [2, 3, 5, 7, 11, 13]))
         if False not in witness and n % num == 0:
             return False
@@ -193,6 +195,7 @@ def AllFactors(n):
 def ConfirmPrime(n):
     """Uses infinitely deterministic AKS (Agrawal-Kayal-Saxena) primality test which
     returns True if-and-only-if n is prime"""
+
     if KnownPrime(n) is not None:
         return KnownPrime(n)
 
@@ -255,18 +258,21 @@ def BailliePSW_Primality(candidate, mr=True):
     return True
 
 
-def PollardP1(n, limit=pow(10, 6)):
+def PollardP1(n, limit=pow(10, 6), first_n=4):
     """Pollard's p - 1 algorithm for factoring large composites.
-    Returns a factor if factor-able, False if otherwise."""
+    Returns one non-trivial factor if factor-able, False if otherwise."""
 
     if IsPrime(n):
         raise ValueError("Make sure to enter a composite number")
 
-    for a in [2, 3, 5, 7]:
+    if not 1 < first_n < 8:
+        first_n = 8
+
+    for a in [2, 3, 5, 7, 11, 13, 17, 19][:first_n]:
         m = a
         for j in range(2, limit):
             m = pow(m, j, n)
-            k = math.gcd(m - 1, n)
+            k = gcd(m - 1, n)
             if 1 < k < n:
                 return k
 
@@ -274,9 +280,14 @@ def PollardP1(n, limit=pow(10, 6)):
 
 
 def FactorInt(n):
-    """Simple function that checks if number has small prime factors, then attempts Pollards p-1 algorithm for
+    """
+    Function that checks if number has small prime factors, then attempts Pollards p-1 algorithm for
     factoring large composite numbers in the form N = p * q, returning one non-trivial factor of N. If neither
-    of these methods factor N, sympy.factorint function is used to further factor N, if possible."""
+    of these methods factor N, sympy.factorint function is used to further factor N, if possible.
+
+    Returns a Python dictionary with each key being a prime factor and the associated value being the power of
+    that prime factor.
+    """
 
     assert n > 3 and not IsPrime(n)
 

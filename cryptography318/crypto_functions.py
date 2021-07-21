@@ -1,3 +1,6 @@
+from math import gcd, isqrt
+
+
 def toBase(n, base):
     # finds highest exponent of base
     exp = 0
@@ -58,7 +61,7 @@ def ExtendedGCD(a, b):
 
 
 def GCD(a, b):
-    return math.gcd(a, b)
+    return gcd(a, b)
 
 
 def ModularInverse(x, m):
@@ -102,7 +105,7 @@ def ChineseRemainder(nums, mods):
 def BSGS(g, h, p, prog=False, N=None):
     if N is None:
         N = p - 1
-    n = math.isqrt(N) + 1
+    n = isqrt(N) + 1
 
     if prog:
         increment = n // 25
