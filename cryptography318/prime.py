@@ -80,8 +80,8 @@ def MillerRabinPrimality(n, k=40):
     tests if random a is a witness of n's composite-ness, testing with
     k random a's"""
 
-    if KnownPrime(n) is not None:
-        return KnownPrime(n)
+    if res := KnownPrime(n) is not None:
+        return res
 
     d = n - 1
     r = 0
@@ -182,8 +182,8 @@ def AllFactors(n):
     """Uses infinitely deterministic primality test, checking if candidate has factors
     of any primes <= square root of candidate"""
 
-    if KnownPrime(n) is not None:
-        return KnownPrime(n)
+    if res := KnownPrime(n) is not None:
+        return res
 
     for num in range(3, (isqrt(n) + 1) | 1, 2):
         witness = list(map(lambda x: MillerRabin_base_a(x, n), [2, 3, 5, 7, 11, 13]))
@@ -196,11 +196,11 @@ def ConfirmPrime(n):
     """Uses infinitely deterministic AKS (Agrawal-Kayal-Saxena) primality test which
     returns True if-and-only-if n is prime"""
 
-    if KnownPrime(n) is not None:
-        return KnownPrime(n)
+    if res := KnownPrime(n) is not None:
+        return res
 
     # generates the n-th row of Pascal's triangle, if any of the coefficients != 0 mod n, n is not prime
-    for k in range(1, n):
+    for k in range(1, (n+1)//2):
         res = 1
         if k > (n - k):
             k = n - k
