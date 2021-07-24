@@ -162,7 +162,7 @@ def RandomPrime(*args):
 
     # determines if user entered a lower and upper limit or just an upper
     if len(args) not in [1, 2]:
-        raise TypeError("Usage: RandomPrime(limit->int) or RandomPrime(base->int, limit->int)")
+        raise ValueError("Usage: RandomPrime(limit->int) or RandomPrime(base->int, limit->int)")
     base, limit = (args[0], args[1]) if len(args) == 2 else (3, args[0])
 
     if base == 2:
