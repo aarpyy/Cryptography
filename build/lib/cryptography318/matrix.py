@@ -1,14 +1,24 @@
 import numpy
+import random
 
 
-def MakeMatrix(rows, cols):
-    # gets input from user for rows of matrix to be made
-    # splits into imaginary and real parts when necessary
+def MakeMatrix(rows, cols, rand=False):
+    """
+    Function that creates and returns a numpy.array object.
+
+    Creates matrix rows by getting input from user (or random if specified) and then appends rows to larger list.
+    Complex input is handled using Python's built in complex() function. Matrix holds integers by default, only
+    using floats if user enters number with decimal point.
+
+    If rand == False, function will allow user to enter input for values of matrix. If rand == True, random
+    values x will be used where -50 <= x <= 50 is a random value generated using random.randrange().
+    """
+
     mat = []
     for i in range(rows):
         mat.append([])
         for j in range(cols):
-            n = input(f"{i + 1},{j + 1}: ")
+            n = input(f"{i + 1},{j + 1}: ") if not rand else str(random.randrange(-50, 51))
             if "," in n:
                 c = n.split(",")
                 real = float(c[0])
@@ -16,8 +26,18 @@ def MakeMatrix(rows, cols):
                 z = complex(real, imag)
                 mat[i].append(z)
             else:
-                mat[i].append(float(n))
+                x = float(n) if "." in n else int(n)
+                mat[i].append(x)
     return numpy.array(mat)
+
+
+def RandomMatrix(rows=None, cols=None):
+    if rows is None:
+        rows = random.randrange(1, 10)
+    if cols is None:
+        cols = random.randrange(1, 10)
+
+    return MakeMatrix(rows, cols, rand=True)
 
 
 def CopyMatrix(matrix):
@@ -73,6 +93,23 @@ def MatrixFloat(matrix, bits=16):
     return matrix.astype(float)
 
 
+def ResetType(matrix):
+    matrix = ArrayToList(matrix)
+    for i in range(len(matrix)):
+        for j in range(len(matrix[0])):
+            e = str(matrix[i][j]).split(".")
+            if len(e) > 1 and e[1] == '0':
+                matrix[i][j] = int(matrix[i][j])
+    return numpy.array(matrix)
+
+
+def augmentMatrix(matrix, solutions):
+    m = ArrayToList(matrix)
+    for i in range(len(m)):
+        m[i].append(solutions[i][0])
+    return numpy.array(m)
+
+
 def ArrayToList(matrix):
     lst = []
     for i in range(len(matrix)):
@@ -98,7 +135,7 @@ def SortRREF(matrix):
         if index != -1:
             pivot_index += 1
 
-    return MatrixFloat(numpy.array(M))
+    return numpy.array(M)
 
 
 def RREF(matrix=None):
@@ -108,7 +145,7 @@ def RREF(matrix=None):
         cols = int(input("Cols: "))
         matrix = MakeMatrix(rows, cols)
 
-    matrixM = CopyMatrix(matrix)
+    matrixM = MatrixFloat(CopyMatrix(matrix))
 
     row_length = len(matrixM[0])
     col_length = len(matrixM)
@@ -121,6 +158,7 @@ def RREF(matrix=None):
                     shift = 1 / matrixM[j][i]
                     for k in range(row_length):
                         matrixM[j][k] *= shift
+
                 pivot_rows.append(j)
                 pivot = True
 
@@ -132,4 +170,106 @@ def RREF(matrix=None):
                             matrixM[k][l] -= shift * matrixM[j][l]
                 break
 
-    return SortRREF(matrixM)
+    return ResetType(SortRREF(matrixM))
+
+
+def augRREF(matrix, solutions=None):
+    if solutions is not None:
+        matrix = augmentMatrix(matrix, solutions)
+    matrixM = MatrixFloat(CopyMatrix(matrix))
+
+    row_length = len(matrixM[0])
+    col_length = len(matrixM)
+    pivot_rows = []
+    for i in range(row_length - 1):
+        pivot = False
+        for j in range(col_length):
+            if matrixM[j][i] != 0 and j not in pivot_rows:
+                if matrixM[j][i] != 1:
+                    shift = 1 / matrixM[j][i]
+                    for k in range(row_length):
+                        matrixM[j][k] *= shift
+
+                pivot_rows.append(j)
+                pivot = True
+
+            if pivot:
+                for k in range(col_length):
+                    if k != j and matrixM[k][i] != 0:
+                        shift = matrixM[k][i]
+                        for l in range(row_length):
+                            matrixM[k][l] -= shift * matrixM[j][l]
+                break
+
+    return ResetType(SortRREF(matrixM))
+
+
+def IsRREF(matrix):
+    """Function that returns True if a matrix is in reduced-row echelon form, and False otherwise"""
+
+    pivots = []
+    for i in range(len(matrix)):
+        j = 0
+        checked = False
+        while j < len(matrix[0]) and not checked:
+            e = matrix[i][j]
+            if e not in [0, 1]:
+                return False
+            if e == 1:
+                if j in pivots:
+                    return False
+                pivots.append(j)
+                checked = True
+            j += 1
+
+    for c in range(len(pivots) - 1):
+        if pivots[c] > pivots[c+1]:
+            return False
+    return True
+
+
+def augIsRREF(matrix):
+    """Function that returns True if a matrix is in reduced-row echelon form, and False otherwise"""
+
+    pivots = []
+    for i in range(len(matrix) - 1):
+        j = 0
+        checked = False
+        while j < len(matrix[0]) and not checked:
+            e = matrix[i][j]
+            if e not in [0, 1]:
+                return False
+            if e == 1:
+                if j in pivots:
+                    return False
+                pivots.append(j)
+                checked = True
+            j += 1
+
+    for c in range(len(pivots) - 1):
+        if pivots[c] > pivots[c+1]:
+            return False
+    return True
+
+
+def RemoveNull(matrix):
+    """Function that removes rows consisting of just zeros"""
+
+    null_rows = []
+
+    for i in range(r := len(matrix)):
+        null = 0
+        for j in range(len(matrix[0])):
+            if matrix[i][j] != 0:
+                break
+            null += 1
+
+        if null != 0:
+            null_rows.append(i)
+
+    clean_matrix = []
+    for i in range(r):
+        if i not in null_rows:
+            clean_matrix.append(matrix[i])
+
+    return numpy.array(clean_matrix)

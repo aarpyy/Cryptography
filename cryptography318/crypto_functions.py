@@ -1,5 +1,5 @@
 from math import gcd, isqrt
-from prime import IsPrime, NextPrime
+from .prime import IsPrime, NextPrime
 
 
 def toBase(n, base):

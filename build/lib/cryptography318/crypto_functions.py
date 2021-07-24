@@ -1,4 +1,5 @@
 from math import gcd, isqrt
+from prime import IsPrime, NextPrime
 
 
 def toBase(n, base):
@@ -66,6 +67,32 @@ def GCD(a, b):
 
 def ModularInverse(x, m):
     return pow(x, -1, m)
+
+
+def PrimePi(p):
+    """Returns number of primes <= given number"""
+
+    if p < 2:
+        raise ValueError("Must enter a number greater than the smallest prime (2)")
+    primes = 1
+    for n in range(3, ((p - 1) | 1) + 2, 2):
+        if IsPrime(n):
+            primes += 1
+    return primes
+
+
+def BSmoothQ(n, B):
+    """Returns True if all prime factors of given number are <= given B"""
+
+    factor_base = [p := 2]
+    while len(factor_base) < PrimePi(B):
+        factor_base.append(p := NextPrime(p))
+
+    for p in factor_base:
+        while n % p == 0:
+            n //= p
+
+    return True if n == 1 else False
 
 
 def MakeChineseRemainder():
