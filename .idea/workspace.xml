@@ -2,22 +2,12 @@
 <project version="4">
   <component name="ChangeListManager">
     <list default="true" id="6ea76c49-18d8-4974-9f94-c2171563dd51" name="Default Changelist" comment="working on primality test, miller-rabin">
-      <change afterPath="$PROJECT_DIR$/build/lib/cryptography318/linear_algebra.py" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/dist/cryptography318-0.1.5-py2-none-any.whl" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/dist/cryptography318-0.1.5.tar.gz" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/tests/__init__.py" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/tests/testLinear.py" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/tests/testFactor.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/build/lib/cryptography318/__init__.py" beforeDir="false" afterPath="$PROJECT_DIR$/build/lib/cryptography318/__init__.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/build/lib/cryptography318/crypto_functions.py" beforeDir="false" afterPath="$PROJECT_DIR$/build/lib/cryptography318/crypto_functions.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/build/lib/cryptography318/matrix.py" beforeDir="false" afterPath="$PROJECT_DIR$/build/lib/cryptography318/matrix.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/build/lib/cryptography318/prime.py" beforeDir="false" afterPath="$PROJECT_DIR$/build/lib/cryptography318/prime.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/cryptography318.egg-info/SOURCES.txt" beforeDir="false" afterPath="$PROJECT_DIR$/cryptography318.egg-info/SOURCES.txt" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/cryptography318/__init__.py" beforeDir="false" afterPath="$PROJECT_DIR$/cryptography318/__init__.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/cryptography318/crypto_functions.py" beforeDir="false" afterPath="$PROJECT_DIR$/cryptography318/crypto_functions.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/cryptography318/linear_algebra.py" beforeDir="false" afterPath="$PROJECT_DIR$/cryptography318/linear_algebra.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/cryptography318/matrix.py" beforeDir="false" afterPath="$PROJECT_DIR$/cryptography318/matrix.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/cryptography318/test.py" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/cryptography318/prime.py" beforeDir="false" afterPath="$PROJECT_DIR$/cryptography318/prime.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/tests/testLinear.py" beforeDir="false" afterPath="$PROJECT_DIR$/tests/testLinear.py" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />

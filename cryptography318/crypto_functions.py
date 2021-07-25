@@ -69,16 +69,20 @@ def ModularInverse(x, m):
     return pow(x, -1, m)
 
 
+def PrimesLT(p):
+    if p < 2:
+        raise ValueError("Must enter a number greater than the smallest prime (2)")
+    primes = [2]
+    for n in range(3, ((p - 1) | 1) + 2, 2):
+        if IsPrime(n):
+            primes.append(n)
+    return primes
+
+
 def PrimePi(p):
     """Returns number of primes <= given number"""
 
-    if p < 2:
-        raise ValueError("Must enter a number greater than the smallest prime (2)")
-    primes = 1
-    for n in range(3, ((p - 1) | 1) + 2, 2):
-        if IsPrime(n):
-            primes += 1
-    return primes
+    return len(PrimesLT(p))
 
 
 def BSmoothQ(n, B):
@@ -206,3 +210,189 @@ def DSA(D, S1, S2, g, p, q, A):
     if ((pow(g, V1, p) * pow(A, V2, p)) % p) % q == S1:
         return True
     return False
+
+
+def PollardP1(n, limit=pow(10, 6), first_n=4):
+    """Pollard's p - 1 algorithm for factoring large composites.
+    Returns one non-trivial factor if factor-able, False if otherwise."""
+
+    if IsPrime(n):
+        raise ValueError("Make sure to enter a composite number")
+
+    if not 1 < first_n < 8:
+        first_n = 8
+
+    for a in [2, 3, 5, 7, 11, 13, 17, 19][:first_n]:
+        m = a
+        for j in range(2, limit):
+            m = pow(m, j, n)
+            k = gcd(m - 1, n)
+            if 1 < k < n:
+                return k
+
+    return False
+
+
+def _factorPerfectSquare(N, B=7):
+    from itertools import combinations_with_replacement as _all
+
+    m = PrimePi(B)
+    bsmooth_nums = []
+    squared_nums = {}
+    a = isqrt(N) - 1
+    while len(bsmooth_nums) < m:
+        ci = pow(a, 2, N)
+        if BSmoothQ(ci, B):
+            bsmooth_nums.append(ci)
+            squared_nums[ci] = a
+        a += 1
+
+    ci_factors = {}
+    factor_base = PrimesLT(B)
+    mat = []
+    for num in bsmooth_nums:
+        ci = num
+        exp = []
+        for p in factor_base:
+            count = 0
+            while num % p == 0:
+                num //= p
+                count += 1
+            exp.append(count)
+        ci_factors[ci] = exp
+        mat.append(exp)
+
+    for c in range(2, len(mat)):
+        possible = list(map(list, list(_all(mat, c))))
+        for comb in possible:
+            acc = comb[0][:]
+            perfect_2 = True
+
+            for i in range(1, len(comb)):
+                for j in range(len(acc)):
+                    acc[j] += comb[i][j]
+            for j in acc:
+                if j % 2 != 0:
+                    perfect_2 = False
+
+            if not perfect_2:
+                continue
+            a, b = 1, 1
+            for num in bsmooth_nums:
+                choice = ci_factors[num]
+                if choice in comb:
+                    a *= squared_nums[num]
+            for k in range(len(acc)):
+                b *= pow(factor_base[k], acc[k] // 2)
+
+            def _factorWithKnown(p, q, N):
+                factors = {p: 0, q: 0}
+                while N % p != 0:
+                    factors[p] += 1
+                    N //= p
+                while N % q != 0:
+                    factors[q] += 1
+                    N //= q
+                if N == 1:
+                    return factors
+                if IsPrime(N):
+                    factors[N] = 1
+                    return factors
+                return factors, N
+
+            p, q = gcd(a - b, N), gcd(a + b, N)
+            if 1 < p < N and 1 < q < N:
+                if p * q == N:
+                    return {p: 1, q: 1}
+                return _factorWithKnown(p, q, N)
+            if 1 < p < N:
+                q = N // p
+                if IsPrime(q) and N == p * q:
+                    return {p: 1, q: 1}
+                if IsPrime(q):
+                    return _factorWithKnown(p, q, N)
+                q_factors = FactorInt(q)
+                if p in q_factors:
+                    q_factors[p] += 1
+                else:
+                    q_factors[p] = 1
+                return q_factors
+            if 1 < q < N:
+                p = N // q
+                if IsPrime(p) and N == p * q:
+                    return {p: 1, q: 1}
+                if IsPrime(p):
+                    return _factorWithKnown(p, q, N)
+                p_factors = FactorInt(p)
+                if q in p_factors:
+                    p_factors[q] += 1
+                else:
+                    p_factors[q] = 1
+                return p_factors
+
+    return False
+
+
+def FactorInt(n):
+    """
+    Function that checks if number has small prime factors, then attempts Pollards p-1 algorithm for
+    factoring large composite numbers in the form N = p * q, returning one non-trivial factor of N. If neither
+    of these methods factor N, sympy.factorint function is used to further factor N, if possible.
+
+    Returns a Python dictionary with each key being a prime factor and the associated value being the power of
+    that prime factor.
+    """
+
+    assert n > 3 and not IsPrime(n)
+
+    known_primes = [2, 3, 5, 7, 11, 13, 17, 19, 23, 29, 31, 37, 41, 43, 47, 53, 59, 61, 67, 71, 73, 79, 83, 89, 97, 101,
+                    103, 107, 109, 113, 127, 131, 137, 139, 149, 151, 157, 163, 167, 173, 179, 181, 191, 193, 197, 199,
+                    211, 223, 227, 229, 233, 239, 241, 251, 257, 263, 269, 271, 277, 281, 283, 293, 307, 311, 313, 317,
+                    331, 337, 347, 349, 353, 359, 367, 373, 379, 383, 389, 397, 401, 409, 419, 421, 431, 433, 439, 443,
+                    449, 457, 461, 463, 467, 479, 487, 491, 499, 503, 509, 521, 523, 541, 547, 557, 563, 569, 571, 577,
+                    587, 593, 599, 601, 607, 613, 617, 619, 631, 641, 643, 647, 653, 659, 661, 673, 677, 683, 691, 701,
+                    709, 719, 727, 733, 739, 743, 751, 757, 761, 769, 773, 787, 797, 809, 811, 821, 823, 827, 829, 839,
+                    853, 857, 859, 863, 877, 881, 883, 887, 907, 911, 919, 929, 937, 941, 947, 953, 967, 971, 977, 983,
+                    991, 997]
+
+    factors = {}
+    for p in known_primes:
+        while n % p == 0:
+            if IsPrime(n):
+                if n not in factors:
+                    factors[n] = 1
+                else:
+                    factors[n] += 1
+                return factors
+            if p not in factors:
+                factors[p] = 1
+            else:
+                factors[p] += 1
+            n //= p
+
+    while not IsPrime(n):
+        k = PollardP1(n)
+        # if Pollard p-1 returns False, try using sympy.factorint
+        if not k:
+            from sympy import factorint
+            sy_factors = factorint(n)
+            for e in sy_factors:
+                if e not in factors:
+                    factors[e] = sy_factors[e]
+                else:
+                    factors[e] += sy_factors[e]
+            return factors
+
+        n //= k
+        if k not in factors:
+            factors[k] = 1
+        else:
+            factors[k] += 1
+
+    if n != 1:
+        if n not in factors:
+            factors[n] = 1
+        else:
+            factors[n] += 1
+
+    return factors

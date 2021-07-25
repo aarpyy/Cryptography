@@ -4,7 +4,7 @@ import textwrap
 
 
 def testLinearSolve(it=500, count=False):
-    acceptable = 0
+    acceptable, solved = 0, 0
     for _ in range(it):
         m1 = RandomMatrix()
         m2 = RandomMatrix(rows=len(m1[0]), cols=1)
@@ -14,16 +14,19 @@ def testLinearSolve(it=500, count=False):
             acceptable += 1
             a1, a2 = separateMatrix(matrix)
             res = Solve(a1, sol=a2)
-            assert MatrixEquals(res, m2)
+            if b := MatrixEquals(res, m2):
+                solved += 1
+            if not count:
+                assert b
 
     if count:
         print(f"\nLinearSolve test tried to solve {it} random linear systems.")
-        print(textwrap.indent(f"Consistent and solvable systems: {acceptable}\n"
-              f"Solved: {acceptable}\n", ' ' * 5))
+        print(textwrap.indent(f"->Consistent and solvable systems: {acceptable}\n"
+              f"->Solved: {solved}\n", ' ' * 3))
 
 
 def testAllTests():
-    testLinearSolve(count=True)
+    testLinearSolve(it=1000, count=True)
 
 
 if __name__ == '__main__':
