@@ -233,106 +233,6 @@ def PollardP1(n, limit=pow(10, 6), first_n=4):
     return False
 
 
-def _factorPerfectSquare(N, B=7):
-    from itertools import combinations_with_replacement as _all
-
-    m = PrimePi(B)
-    bsmooth_nums = []
-    squared_nums = {}
-    a = isqrt(N) - 1
-    while len(bsmooth_nums) < m:
-        ci = pow(a, 2, N)
-        if BSmoothQ(ci, B):
-            bsmooth_nums.append(ci)
-            squared_nums[ci] = a
-        a += 1
-
-    ci_factors = {}
-    factor_base = PrimesLT(B)
-    mat = []
-    for num in bsmooth_nums:
-        ci = num
-        exp = []
-        for p in factor_base:
-            count = 0
-            while num % p == 0:
-                num //= p
-                count += 1
-            exp.append(count)
-        ci_factors[ci] = exp
-        mat.append(exp)
-
-    for c in range(2, len(mat)):
-        possible = list(map(list, list(_all(mat, c))))
-        for comb in possible:
-            acc = comb[0][:]
-            perfect_2 = True
-
-            for i in range(1, len(comb)):
-                for j in range(len(acc)):
-                    acc[j] += comb[i][j]
-            for j in acc:
-                if j % 2 != 0:
-                    perfect_2 = False
-
-            if not perfect_2:
-                continue
-            a, b = 1, 1
-            for num in bsmooth_nums:
-                choice = ci_factors[num]
-                if choice in comb:
-                    a *= squared_nums[num]
-            for k in range(len(acc)):
-                b *= pow(factor_base[k], acc[k] // 2)
-
-            def _factorWithKnown(p, q, N):
-                factors = {p: 0, q: 0}
-                while N % p != 0:
-                    factors[p] += 1
-                    N //= p
-                while N % q != 0:
-                    factors[q] += 1
-                    N //= q
-                if N == 1:
-                    return factors
-                if IsPrime(N):
-                    factors[N] = 1
-                    return factors
-                return factors, N
-
-            p, q = gcd(a - b, N), gcd(a + b, N)
-            if 1 < p < N and 1 < q < N:
-                if p * q == N:
-                    return {p: 1, q: 1}
-                return _factorWithKnown(p, q, N)
-            if 1 < p < N:
-                q = N // p
-                if IsPrime(q) and N == p * q:
-                    return {p: 1, q: 1}
-                if IsPrime(q):
-                    return _factorWithKnown(p, q, N)
-                q_factors = FactorInt(q)
-                if p in q_factors:
-                    q_factors[p] += 1
-                else:
-                    q_factors[p] = 1
-                return q_factors
-            if 1 < q < N:
-                p = N // q
-                if IsPrime(p) and N == p * q:
-                    return {p: 1, q: 1}
-                if IsPrime(p):
-                    return _factorWithKnown(p, q, N)
-                p_factors = FactorInt(p)
-                if q in p_factors:
-                    p_factors[q] += 1
-                else:
-                    p_factors[q] = 1
-                return p_factors
-
-    return False
-
-
 def FactorInt(n):
     """
     Function that checks if number has small prime factors, then attempts Pollards p-1 algorithm for
@@ -343,7 +243,8 @@ def FactorInt(n):
     that prime factor.
     """
 
-    assert n > 3 and not IsPrime(n)
+    if IsPrime(n):
+        return {n: 1}
 
     known_primes = [2, 3, 5, 7, 11, 13, 17, 19, 23, 29, 31, 37, 41, 43, 47, 53, 59, 61, 67, 71, 73, 79, 83, 89, 97, 101,
                     103, 107, 109, 113, 127, 131, 137, 139, 149, 151, 157, 163, 167, 173, 179, 181, 191, 193, 197, 199,
@@ -389,10 +290,203 @@ def FactorInt(n):
         else:
             factors[k] += 1
 
-    if n != 1:
+    if n != 1 and IsPrime(n):
         if n not in factors:
             factors[n] = 1
         else:
             factors[n] += 1
+        return factors
 
+    return QuadraticSieve(N)
+
+
+def _factorWithKnown(p, q, N):
+    factors = {}
+    factor_p = FactorInt(p)
+    for n in factor_p:
+        factors[n] = factor_p[n]
+    factor_q = FactorInt(q)
+    for n in factor_q:
+        factors[n] = factor_q[n]
+
+    while N % p != 0:
+        factors[p] += 1
+        N //= p
+    while N % q != 0:
+        factors[q] += 1
+        N //= q
+    if N == 1:
+        return factors
+    if IsPrime(N):
+        factors[N] = 1
+        return factors
+    more_factors = FactorInt(N)
+    for f in more_factors:
+        factors[f] = more_factors[f]
     return factors
+
+
+def _factorPerfectSquare(N, B=7):
+    from itertools import combinations_with_replacement as _all
+
+    m = PrimePi(B)
+    b_smooth_nums = []
+    squared_nums = {}
+    a = isqrt(N) - 1
+    while len(b_smooth_nums) < m:
+        ci = pow(a, 2, N)
+        if BSmoothQ(ci, B):
+            b_smooth_nums.append(ci)
+            squared_nums[ci] = a
+        a += 1
+
+    ci_factors = {}
+    factor_base = PrimesLT(B)
+    mat = []
+    for num in b_smooth_nums:
+        ci = num
+        exp = []
+        for p in factor_base:
+            count = 0
+            while num % p == 0:
+                num //= p
+                count += 1
+            exp.append(count)
+        ci_factors[ci] = exp
+        mat.append(exp)
+
+    for c in range(2, len(mat)):
+        possible = list(map(list, list(_all(mat, c))))
+        for comb in possible:
+            acc = comb[0][:]
+            perfect_2 = True
+
+            for i in range(1, len(comb)):
+                for j in range(len(acc)):
+                    acc[j] += comb[i][j]
+            for j in acc:
+                if j % 2 != 0:
+                    perfect_2 = False
+
+            if not perfect_2:
+                continue
+            a, b = 1, 1
+            for num in b_smooth_nums:
+                choice = ci_factors[num]
+                if choice in comb:
+                    a *= squared_nums[num]
+            for k in range(len(acc)):
+                b *= pow(factor_base[k], acc[k] // 2)
+
+            p, q = gcd(a - b, N), gcd(a + b, N)
+            if 1 < p < N and 1 < q < N:
+                print(f"p: {p}, q: {q}")
+                if p * q == N:
+                    return {p: 1, q: 1}
+                return _factorWithKnown(p, q, N)
+            if 1 < p < N:
+                q = N // p
+                print(f"p: {p}, q: {q}")
+                if IsPrime(q) and N == p * q:
+                    return {p: 1, q: 1}
+                if IsPrime(q):
+                    return _factorWithKnown(p, q, N)
+                q_factors = FactorInt(q)
+                if p in q_factors:
+                    q_factors[p] += 1
+                else:
+                    q_factors[p] = 1
+                return q_factors
+            if 1 < q < N:
+                p = N // q
+                print(f"p: {p}, q: {q}")
+                if IsPrime(p) and N == p * q:
+                    return {p: 1, q: 1}
+                if IsPrime(p):
+                    return _factorWithKnown(p, q, N)
+                p_factors = FactorInt(p)
+                if q in p_factors:
+                    p_factors[q] += 1
+                else:
+                    p_factors[q] = 1
+                return p_factors
+
+    return False
+
+
+def QuadraticSieve(N, B=None):
+    """Performs Quadratic Sieve Algorithm with a given Smoothness value B on a given composite N"""
+
+    from itertools import combinations_with_replacement as _all
+    from math import e, log, sqrt
+
+    if B is None:
+        L = pow(e, sqrt(log(N) * log(log(N))))
+        B = int(pow(L, 1 / sqrt(2)))
+        print(f"L: {L}\n"
+              f"B: {B}")
+
+    m = PrimePi(B)
+    sq = isqrt(N)
+    while pow(sq, 2) < N:
+        sq += 1
+
+    b_smooth_nums = []
+    squared_nums = {}
+    factor_base = PrimesLT(B)
+    while True:
+        c_i = pow(sq, 2, N)
+        sq += 1
+        if BSmoothQ(c_i, B):
+            exp = [0 for _ in range(m)]
+            for i in range(m):
+                prime = factor_base[i]
+                while c_i % prime == 0:
+                    exp[i] += 1
+                    c_i //= prime
+            squared_nums[sq] = exp
+            b_smooth_nums.append(exp)
+            if len(b_smooth_nums) < 3:
+                continue
+
+            for c in range(2, len(b_smooth_nums)):
+                choices = list(map(list, list(_all(b_smooth_nums, c))))
+                for choice in choices:
+                    if exp not in choice:
+                        continue
+                    exp_sum = [0 for _ in range(m)]
+                    b = 1
+                    valid = True
+                    for power in choice:
+                        for i in range(m):
+                            exp_sum[i] += power[i]
+                    for i in range(m):
+                        n = exp_sum[i]
+                        if n > 2 and n % 2 != 0:
+                            valid = False
+                            break
+                        b *= pow(factor_base[i], n // 2)
+                    if not valid:
+                        continue
+
+                    a = 1
+                    for sq in squared_nums:
+                        if squared_nums[sq] in choice:
+                            a *= sq
+
+                    # checks to see if a + b or a - b is a multiple of a factor of N
+                    p = gcd(N, a + b)
+                    q = gcd(N, a - b)
+
+                    if 1 < p < N and 1 < q < N:
+                        return _factorWithKnown(p, q, N)
+                    if 1 < p < N:
+                        q = N // p
+                        if IsPrime(q) and IsPrime(p):
+                            return {p: 1, q: 1}
+                        return _factorWithKnown(p, q, N)
+                    if 1 < q < N:
+                        p = N // q
+                        if IsPrime(p) and IsPrime(q):
+                            return {p: 1, q: 1}
+                        return _factorWithKnown(p, q, N)

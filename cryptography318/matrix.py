@@ -40,11 +40,14 @@ def ArrayToList(matrix):
     return lst
 
 
-def RandomMatrix(rows=None, cols=None):
+def RandomMatrix(rows=None, cols=None, square=False):
+    if square:
+        size = random.randrange(2, 10)
+        return MakeMatrix(size, size, rand=True)
     if rows is None:
-        rows = random.randrange(1, 10)
+        rows = random.randrange(2, 10)
     if cols is None:
-        cols = random.randrange(1, 10)
+        cols = random.randrange(2, 10)
 
     return MakeMatrix(rows, cols, rand=True)
 
@@ -64,7 +67,7 @@ def MultiplyMatrix(matrixA=None, matrixB=None):
         matrixB = MakeMatrix(colsA, colsB)
 
     M = numpy.matmul(matrixA, matrixB)
-    return M
+    return ResetType(M)
 
 
 def SquareMatrix(matrix=None):
@@ -82,19 +85,26 @@ def MatrixFloat(matrix, bits=64):
     float_types = {16: numpy.float16, 32: numpy.float32, 64: numpy.float64}
     if bits in float_types:
         return matrix.astype(float_types[bits])
-    return matrix.astype(float)
+    return matrix.astype(numpy.float64)
 
 
 def ResetType(matrix):
     """Takes as input a matrix of unknown number type and returns a matrix
     consisting of type integers if possible, type numpy.float16 if not."""
 
-    matrix = ArrayToList(matrix.astype(numpy.float16))
+    matrix = ArrayToList(matrix)
     for i in range(len(matrix)):
         for j in range(len(matrix[0])):
-            e = str(matrix[i][j]).split(".")
-            if len(e) > 1 and e[1] == '0':
-                matrix[i][j] = int(matrix[i][j])
+            try:
+                e = matrix[i][j]
+                if e == -0:
+                    matrix[i][j] = 0
+                s = str(e).split(".")
+                if len(s) == 1 or s[1] == '0':
+                    matrix[i][j] = int(matrix[i][j])
+            except OverflowError:
+                continue
+
     return numpy.array(matrix)
 
 
@@ -119,28 +129,6 @@ def separateMatrix(matrix):
         sol.append([matrix[i][c]][:])
     return numpy.array(matrixM), numpy.array(sol)
 
-
-def RemoveNull(matrix):
-    """Function that removes rows consisting of just zeros"""
-
-    null_rows = []
-
-    for i in range(r := len(matrix)):
-        null = 0
-        for j in range(len(matrix[0])):
-            if matrix[i][j] != 0:
-                break
-            null += 1
-
-        if null != 0:
-            null_rows.append(i)
-
-    clean_matrix = []
-    for i in range(r):
-        if i not in null_rows:
-            clean_matrix.append(matrix[i])
-
-    return numpy.array(clean_matrix)
 
 
 def Transpose(matrix):
