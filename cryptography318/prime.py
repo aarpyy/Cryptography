@@ -72,7 +72,7 @@ def IsPrime(n):
     if n < 3317044064679887385961981:
         return MillerRabin_bases([2, 3, 5, 7, 11, 13, 17, 19, 23, 29, 31, 37, 41], n)
 
-    return MillerRabinPrimality(n, k=20) and BailliePSW_Primality(n, mr=False)
+    return MillerRabinPrimality(n, k=40) and BailliePSW_Primality(n, mr=False)
 
 
 def MillerRabinPrimality(n, k=40):
