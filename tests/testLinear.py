@@ -2,7 +2,7 @@ from cryptography318.linear_algebra import (augRREF, IsSolvable, Solve, IsConsis
                                             augIsRREF, _augRREF_old)
 from cryptography318.matrix import RandomMatrix, augmentMatrix, MultiplyMatrix, separateMatrix
 from cryptography318.crypto_functions import QuadraticSieve, FactorInt, _factorPerfectSquare
-from cryptography318.prime import RandomPrime
+from cryptography318.prime import RandomPrime, IsPrime
 import textwrap
 import numpy, random
 
@@ -55,14 +55,17 @@ def testAllTests():
     # testRREF()
     # testMatrixEquals()
     factors = QuadraticSieve(779, 7)
-    p = RandomPrime(pow(10, 11), pow(10, 12))
+    power = 6
+    p = RandomPrime(pow(10, power), pow(10, power + 1)) * RandomPrime(pow(10, power + 1), pow(10, power + 2))
     print(p)
-    start1 = time.time()
-    q = QuadraticSieve(p + 1)
-    print(f"Quadratic Sieve took {time.time() - start1:.2f}s to factor {p + 1} into:\n{q}")
     start2 = time.time()
-    f = FactorInt(p + 1)
+    f = FactorInt(p)
     print(f"Factor Int took {time.time() - start2:.2f}s to factor {p + 1} into:\n{f}")
+    for n in f:
+        print(IsPrime(n))
+    start1 = time.time()
+    q = QuadraticSieve(p)
+    print(f"Quadratic Sieve took {time.time() - start1:.2f}s to factor {p + 1} into:\n{q}")
 
 
 

@@ -297,7 +297,7 @@ def FactorInt(n):
             factors[n] += 1
         return factors
 
-    return QuadraticSieve(N)
+    return QuadraticSieve(n)
 
 
 def _factorWithKnown(p, q, N):
