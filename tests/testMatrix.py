@@ -1,5 +1,6 @@
-from cryptography318.matrix import MakeMatrix, MultiplyMatrix, Transpose
-from cryptography318.linear_algebra import InvertMatrix, ChangeBasisMap, MatrixEquals
+from cryptography318.matrix_deprecated import MakeMatrix, MultiplyMatrix, Transpose
+from cryptography318.linear_algebra_deprecated import InvertMatrix, ChangeBasisMap, MatrixEquals
+from cryptography318.linear_algebra import *
 import numpy
 import pytest
 
@@ -15,11 +16,25 @@ B = numpy.array([[2, 3],
                  [3, 5]])
 
 
+
 def testChangeBasis():
-    assert MatrixEquals(ChangeBasisMap(S, in_basis=numpy.array([[1, 0], [0, 1]]),
-                                       out_basis=numpy.array([[1, 0, 0], [0, 1, 0], [0, 0, 1]])), S)
-    assert MatrixEquals(ChangeBasisMap(S, in_basis=numpy.array([[1, 0], [0, 1]])), S)
-    assert MatrixEquals(ChangeBasisMap(S, out_basis=numpy.array([[1, 0, 0], [0, 1, 0], [0, 0, 1]])), S)
+    test1 = ChangeBasisMap(S, in_basis=numpy.array([[1, 0], [0, 1]]),
+                                       out_basis=numpy.array([[1, 0, 0], [0, 1, 0], [0, 0, 1]]))
+    test2 = ChangeBasisMap(S, in_basis=numpy.array([[1, 0], [0, 1]]))
+    test3 = ChangeBasisMap(S, out_basis=numpy.array([[1, 0, 0], [0, 1, 0], [0, 0, 1]]))
+    S1 = LinearMap(S)
+    C1 = Matrix([[1, 0, 0], [0, 1, 0], [0, 0, 1]])
+    B1 = Matrix([[1, 0], [0, 1]])
+    test4 = S1.change_basis(in_basis=B1, out_basis=C1)
+    test5 = S1.change_basis(in_basis=B1)
+    test6 = S1.change_basis(out_basis=C1)
+    print(S1)
+    print(C1)
+    print(B1)
+    print(test4)
+    print(S1 * B1)
+    print(test2)
+
 
 
 def testAllTests():

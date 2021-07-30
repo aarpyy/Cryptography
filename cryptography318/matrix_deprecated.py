@@ -66,6 +66,12 @@ def MultiplyMatrix(matrixA=None, matrixB=None):
 
         matrixB = MakeMatrix(colsA, colsB)
 
+    if isinstance(matrixA, int) or isinstance(matrixA, float):
+        for i in range(len(matrixB)):
+            for j in range(len(matrixB[0])):
+                matrixB[i][j] *= matrixA
+        return matrixB
+
     M = numpy.matmul(matrixA, matrixB)
     return ResetType(M)
 
@@ -128,7 +134,6 @@ def separateMatrix(matrix):
         matrixM.append(list(matrix[i][:c]))
         sol.append([matrix[i][c]][:])
     return numpy.array(matrixM), numpy.array(sol)
-
 
 
 def Transpose(matrix):

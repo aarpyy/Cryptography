@@ -1,6 +1,6 @@
-from cryptography318.linear_algebra import (augRREF, IsSolvable, Solve, IsConsistent, MatrixEquals, RREF, IsRREF,
-                                            augIsRREF, _augRREF_old)
-from cryptography318.matrix import RandomMatrix, augmentMatrix, MultiplyMatrix, separateMatrix
+from cryptography318.linear_algebra_deprecated import (augRREF, IsSolvable, Solve, IsConsistent, MatrixEquals, RREF, IsRREF,
+                                                       augIsRREF, _augRREF_old)
+from cryptography318.matrix_deprecated import RandomMatrix, augmentMatrix, MultiplyMatrix, separateMatrix
 from cryptography318.crypto_functions import QuadraticSieve, FactorInt, _factorPerfectSquare
 from cryptography318.prime import RandomPrime, IsPrime
 import textwrap
@@ -66,7 +66,6 @@ def testAllTests():
     start1 = time.time()
     q = QuadraticSieve(p)
     print(f"Quadratic Sieve took {time.time() - start1:.2f}s to factor {p + 1} into:\n{q}")
-
 
 
 if __name__ == '__main__':

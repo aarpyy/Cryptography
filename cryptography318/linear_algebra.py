@@ -1,520 +1,579 @@
 import numpy
-from .matrix import augmentMatrix, MatrixFloat, ResetType, MakeMatrix, ArrayToList, MultiplyMatrix
+from random import randint
+from warnings import warn
 
 
-def CopyMatrix(matrix):
-    new_mat = []
-    for i in range(len(matrix)):
-        new_mat.append([])
-        for j in range(len(matrix[0])):
-            new_mat[i].append(matrix[i][j])
+class Matrix:
+    def __init__(self, array=None, rows=None, cols=None, rand=False, identity=False, aug=False, solution=None):
+        self.augmented = False
+        if aug or solution is not None:
+            self.augmented = True
+        if array is not None:
+            if isinstance(array, numpy.ndarray):
+                self.array = array
+            elif isinstance(array, list):
+                self.array = numpy.array(array)
+            else:
+                raise TypeError(f"Matrix must be type numpy.ndarray or list. You gave type: {type(array)}")
+        elif not rand and not identity and (rows is None or cols is None):
+            raise ValueError("Constructor requires number of rows and columns, or valid matrix")
+        elif rand:
+            if rows is None:
+                rows = randint(1, 10)
+            if cols is None:
+                cols = randint(1, 10)
+            matrix = []
+            for i in range(rows):
+                matrix.append([])
+                for j in range(cols):
+                    matrix[i].append(randint(-50, 50))
+            self.array = numpy.array(matrix)
+        elif identity:
+            if rows is None and cols is None:
+                rows = randint(1, 10)
+                cols = rows
+            elif rows is None:
+                rows = cols
+            elif cols is None:
+                cols = rows
+            matrix = []
+            for i in range(rows):
+                matrix.append([])
+                for j in range(cols):
+                    if i == j:
+                        matrix[i].append(1)
+                    else:
+                        matrix[i].append(0)
+            self.array = numpy.array(matrix)
+        else:
+            matrix = []
+            for i in range(rows):
+                matrix.append([])
+                for j in range(cols):
+                    matrix[i].append(0)
+            self.array = numpy.array(matrix)
+        # if solution is not None:
 
-    return numpy.array(new_mat)
+    def __setitem__(self, key, value):
+        self.array[key] = value
 
+    def __getitem__(self, item):
+        return self.array[item]
 
-def RemoveNull(matrix):
-    """Function that removes rows consisting of just zeros"""
+    def __len__(self):
+        return len(self.array)
 
-    matrix = CopyMatrix(matrix)
-    null_rows = []
-    for i in range(c := len(matrix)):
-        null = 0
-        for j in range(r := len(matrix[0])):
-            if matrix[i][j] != 0:
-                break
-            null += 1
+    def __iter__(self):
+        return self.array
 
-        if null == r:
-            null_rows.append(i)
+    def __str__(self):
+        """ Returns formatted string matrix """
+        for i in range(len(self)):
+            for j in range(len(self[0])):
+                self[i][j] = numpy.round(self[i][j], decimals=3)
 
-    clean_matrix = []
-    for i in range(c):
-        if i not in null_rows:
-            clean_matrix.append(matrix[i][:])
+        max_len = 0
+        for row in self.array:
+            for e in row:
+                if len(str(e)) > max_len:
+                    max_len = len(str(e))
+        padding = (max_len + 1) | 1
+        formatted = "["
+        for i in range(l := len(self.array)):
+            if i == 0:
+                formatted += "["
+            else:
+                formatted += " ["
+            for j in range(len(self.array[0])):
+                e = str(self.array[i][j])
+                pad_left = (padding - len(e))//2
+                pad_right = padding - len(e) - pad_left
+                formatted += pad_left * " " + f"{e}" + " " * pad_right
+            if i == l - 1:
+                formatted += "]"
+            else:
+                formatted += "]\n"
+        return formatted + "]"
 
-    return numpy.array(clean_matrix)
+    def __eq__(self, other):
+        if isinstance(other, (list, numpy.ndarray, Matrix)):
+            if len(other) != len(self) or len(other[0]) != len(self[0]):
+                raise ValueError("Both matrices must have the same number of rows and columns!")
+            for i in range(len(self)):
+                for j in range(len(self[0])):
+                    if abs(self[i][j] - other[i][j]) > 0.5:
+                        return False
+            return True
+        raise TypeError(f"Cannot compare objects of type Matrix and type {type(other)}")
 
+    def __mul__(self, other):
+        if isinstance(other, (Matrix, numpy.ndarray, list)):
+            if len(self[0]) != len(other):
+                raise ValueError("Number of columns in first matrix must equal number of rows in second")
+        if isinstance(other, Matrix):
+            return Matrix(numpy.matmul(self.array, other.array))
+        if isinstance(other, numpy.ndarray):
+            return Matrix(numpy.matmul(self.array, other))
+        if isinstance(other, list):
+            return Matrix(numpy.matmul(self.array, numpy.array(other)))
+        if isinstance(other, int) or isinstance(other, float):
+            warn("Proper syntax assumes scalar comes before matrix in scalar-matrix multiplication", SyntaxWarning)
+            for i in range(len(self.array)):
+                for j in range(len(self.array[0])):
+                    self.array[i][j] *= other
+            return self
+        raise TypeError("Matrix multiplication must be done between two matrices or a matrix and a scalar")
 
-def ChangeBasisMap(lin_map, in_basis=None, out_basis=None):
-    """Function that takes as input a linear map and at least one basis and outputs
-    the linear map with a change of basis.
+    def __rmul__(self, other):
+        if isinstance(other, (Matrix, numpy.ndarray, list)):
+            if len(other[0]) != len(self):
+                raise ValueError("Number of columns in first matrix must equal number of rows in second")
+        if isinstance(other, Matrix):
+            return Matrix(numpy.matmul(other.array, self.array))
+        if isinstance(other, numpy.ndarray):
+            return Matrix(numpy.matmul(other, self.array))
+        if isinstance(other, list):
+            return Matrix(numpy.matmul(numpy.array(list), self.array))
+        if isinstance(other, int) or isinstance(other, float):
+            for i in range(len(self.array)):
+                for j in range(len(self.array[0])):
+                    self.array[i][j] *= other
+            return self
+        raise TypeError("Matrix multiplication must be done between two matrices or a matrix and a scalar")
 
-    Linear map: an m x n matrix mapping from the standard basis vectors in m-dimensions to
-    the standard basis vectors in n-dimensions.
-    Notation: [S]E->E, where S, E are the linear map and standard basis vectors respectively.
+    def __add__(self, other):
+        if isinstance(other, (list, numpy.ndarray, Matrix)):
+            if len(other) != len(self) or len(other[0]) != len(self[0]):
+                raise ValueError("Both matrices must have the same number of rows and columns!")
+        if isinstance(other, list):
+            other = numpy.array(other)
+        if isinstance(other, (Matrix, numpy.ndarray)):
+            matrix_sum = []
+            for i in range(len(self)):
+                matrix_sum.append([])
+                for j in range(len(self[0])):
+                    matrix_sum[i].append(self[i][j] + other[i][j])
+            return Matrix(matrix_sum)
+        raise TypeError("Matrix addition must be done between two matrices")
 
-    In-Basis: an m x m matrix that forms a basis in m-dimensions. This matrix, when applied
-    to the linear map, gives the linear map such that the map takes as input matrices in
-    this basis, and outputs them in the standard basis of n-dimensions.
-    Notation: [S]B->E, where B is the In-Basis.
+    def __radd__(self, other):
+        if isinstance(other, (list, numpy.ndarray, Matrix)):
+            if len(other) != len(self) or len(other[0]) != len(self[0]):
+                raise ValueError("Both matrices must have the same number of rows and columns!")
+        if isinstance(other, list):
+            other = numpy.array(other)
+        if isinstance(other, (Matrix, numpy.ndarray)):
+            matrix_sum = []
+            for i in range(len(self)):
+                matrix_sum.append([])
+                for j in range(len(self[0])):
+                    matrix_sum[i].append(self[i][j] + other[i][j])
+            return Matrix(matrix_sum)
+        raise TypeError("Matrix addition must be done between two matrices")
 
-    Out-Basis: an n x n matrix that forms a basis in n-dimensions. This matrix, when applied
-    to the linear map, gives the linear map such that the map takes as input matrices in
-    the standard basis of m-dimensions and outputs a matrix in the form of the new basis.
-    Notation: [S]E->C, where C is the Out-Basis"""
+    def __sub__(self, other):
+        if isinstance(other, (list, numpy.ndarray, Matrix)):
+            if len(other) != len(self) or len(other[0]) != len(self[0]):
+                raise ValueError("Both matrices must have the same number of rows and columns!")
+        if isinstance(other, list):
+            other = numpy.array(other)
+        if isinstance(other, (Matrix, numpy.ndarray)):
+            matrix_sum = []
+            for i in range(len(self)):
+                matrix_sum.append([])
+                for j in range(len(self[0])):
+                    matrix_sum[i].append(self[i][j] - other[i][j])
+            return Matrix(matrix_sum)
+        raise TypeError("Matrix addition must be done between two matrices")
 
-    if in_basis is None and out_basis is None:
-        raise ValueError("Make sure to enter at least one basis")
+    def __rsub__(self, other):
+        if isinstance(other, (list, numpy.ndarray, Matrix)):
+            if len(other) != len(self) or len(other[0]) != len(self[0]):
+                raise ValueError("Both matrices must have the same number of rows and columns!")
+        if isinstance(other, list):
+            other = numpy.array(other)
+        if isinstance(other, (Matrix, numpy.ndarray)):
+            matrix_sum = []
+            for i in range(len(self)):
+                matrix_sum.append([])
+                for j in range(len(self[0])):
+                    matrix_sum[i].append(other[i][j] - self[i][j])
+            return Matrix(matrix_sum)
+        raise TypeError("Matrix addition must be done between two matrices")
 
-    inputs = [lin_map, in_basis, out_basis]
-    for e in inputs:
-        if e is not None and type(e) is not numpy.ndarray:
-            raise ValueError("All input must be type numpy.ndarray")
+    def __pow__(self, power, modulo=None):
+        if not isinstance(power, int) or (power < 1 and power != -1):
+            raise TypeError("Power must be real positive integer")
+        if len(self) != len(self[0]):
+            raise ValueError("Can only exponentiate square matrices")
+        if power == -1:
+            return self.invert()
+        product = self.copy()
+        for _ in range(power - 1):
+            product = self * product
+            if modulo is not None:
+                product %= modulo
+        return product
 
-    if in_basis is None:
-        if len(out_basis) != len(out_basis[0]):
-            raise ValueError("Basis must be square matrix")
-        return MultiplyMatrix(InvertMatrix(out_basis), lin_map)
+    def __mod__(self, other):
+        for i in range(len(self)):
+            for j in range(len(self[0])):
+                self[i][j] %= other
+        return self
 
-    if out_basis is None:
-        if len(in_basis) != len(in_basis[0]):
-            raise ValueError("Basis must be square matrix")
-        return MultiplyMatrix(lin_map, in_basis)
+    def invert(self):
+        return Matrix(numpy.linalg.inv(self.array))
 
-    if len(in_basis) != len(in_basis[0]) or len(out_basis) != len(out_basis[0]):
-        raise ValueError("Bases must be square matrix")
-    return MultiplyMatrix(InvertMatrix(out_basis), MultiplyMatrix(lin_map, in_basis))
+    def transpose(self):
+        matrix = []
+        for j in range(len(self[0])):
+            matrix.append([])
+            for i in range(len(self)):
+                matrix[j].append(self[i][j])
+        return Matrix(matrix)
 
+    def make(self):
+        rows = len(self.array)
+        cols = len(self.array[0])
+        for i in range(rows):
+            for j in range(cols):
+                n = input(f"{i + 1},{j + 1}: ")
+                if "," in n:
+                    c = n.split(",")
+                    real = float(c[0])
+                    imag = float(c[1])
+                    self.array[i][j] = complex(real, imag)
+                else:
+                    self.array[i][j] = float(n) if "." in n else int(n)
 
-def InvertMatrix(matrix=None):
-    if matrix is None:
-        size = int(input("Enter matrix dimensions nxn: "))
-        matrix = MakeMatrix(size, size)
-    if len(matrix) != len(matrix[0]):
-        raise ValueError("InvertMatrix only works with square matrices")
-    return ResetType(numpy.linalg.inv(CopyMatrix(matrix)))
+    def copy(self):
+        matrix_copy = []
+        for i in range(len(self)):
+            matrix_copy.append([])
+            for j in range(len(self[0])):
+                matrix_copy[i].append(self[i][j])
+        return Matrix(matrix_copy)
 
+    def array_copy(self):
+        matrix_copy = []
+        for i in range(len(self)):
+            matrix_copy.append([])
+            for j in range(len(self[0])):
+                matrix_copy[i].append(self[i][j])
+        return matrix_copy
 
-def _SortRREF_old(matrix):
-    """Helper function for RREF that takes in RREF with unordered rows and returns
-    Matrix in true RREF"""
+    def as_type(self, type):
+        if type not in [float, int, numpy.float16, numpy.float32, numpy.float64]:
+            raise TypeError(f"Type not recognized: {type}")
+        self.array.astype(type)
 
-    M = ArrayToList(matrix)
-    pivot_index = 0
-    for i in range(len(matrix[0]) - 1):
-        index = -1
-        for j in range(len(matrix)):
-            if M[j][i] == 1:
-                index = j
-        if index > pivot_index:
-            M[index][:], M[pivot_index][:] = M[pivot_index][:], M[index][:]
-        if index != -1:
-            pivot_index += 1
+    def reset_type(self):
+        for i in range(len(self)):
+            for j in range(len(self[0])):
+                try:
+                    e = self[i][j]
+                    if e == -0:
+                        self[i][j] = 0
+                    s = str(e).split(".")
+                    if len(s) == 1 or s[1] == '0':
+                        self[i][j] = int(self[i][j])
+                except OverflowError:
+                    continue
 
-    return numpy.array(M)
+    def augment(self, solution):
+        matrix_copy = self.array_copy()
+        for i in range(len(self)):
+            matrix_copy[i].append(solution[i][0])
+        return Matrix(matrix_copy)
 
+    def separate(self):
+        """Function used to separate an augmented coefficient matrix into
+        a standard coefficient matrix and a column matrix of solutions"""
 
-def _RREF_old(matrix=None):
-    if matrix is None:
-        print("Enter dimensions for Matrix: ")
-        rows = int(input("Rows: "))
-        cols = int(input("Cols: "))
-        matrix = MakeMatrix(rows, cols)
-    matrixM = MatrixFloat(CopyMatrix(matrix))
+        matrix, sol = [], []
+        c = len(self[0]) - 1
+        for i in range(len(self)):
+            matrix.append(list(self[i][:c]))
+            sol.append([self[i][c]])
+        return Matrix(matrix), Matrix(sol)
 
-    row_length = len(matrixM[0])
-    col_length = len(matrixM)
-    pivot_rows = []
-    for i in range(row_length):
-        pivot = False
-        for j in range(col_length):
-            if matrixM[j][i] != 0 and j not in pivot_rows:
-                if matrixM[j][i] != 1:
-                    shift = 1 / matrixM[j][i]
-                    for k in range(row_length):
-                        matrixM[j][k] *= shift
+    def remove_null(self):
+        """Function that removes rows consisting of just zeros"""
 
-                pivot_rows.append(j)
-                pivot = True
+        null_rows = []
+        for i in range(c := len(self)):
+            null = False
+            for j in range(r := len(self[0])):
+                if self[i][j] != 0:
+                    null = False
+                    break
+                null = True
+            if null:
+                null_rows.append(i)
 
+        clean_matrix = []
+        for i in range(c):
+            if i not in null_rows:
+                clean_matrix.append(self[i][:])
+        return Matrix(clean_matrix)
+
+    def rref(self):
+        adjust = 1 if self.augmented else 0
+        pivot_row = -1
+        # iterates across columns
+        for j in range((row_len := len(self[0])) - adjust):
+            # iterates down columns
+            pivot = False
+            for i in range(col_len := len(self)):
+                e = self[i][j]
+                # if found a non-zero entry that could be a pivot, and is not already a row with a pivot, make it a
+                # pivot
+                if e != 0 and i > pivot_row:
+                    # shifts entire row by factor that makes first entry = 1, therefore is pivot
+                    # print(f"e = {e}, m[i] before shift: {m[i]}")
+                    # print(shift)
+                    for k in range(row_len):
+                        self[i][k] /= e
+                    # print(m[i])
+                    # pivot row increases from where it last was, so that new row will be one below last pivot row
+                    pivot_row += 1
+                    # if pivot row isn't current one, swap so that row with pivot comes directly after previous pivot
+                    # row
+                    if pivot_row != i:
+                        self[i][:], self[pivot_row][:] = self[pivot_row][:], self[i][:]
+                    # this row is a pivot
+                    pivot = True
+                    break
             if pivot:
-                for k in range(col_length):
-                    if k != j and matrixM[k][i] != 0:
-                        shift = matrixM[k][i]
-                        for l in range(row_length):
-                            matrixM[k][l] -= shift * matrixM[j][l]
-                break
+                # iterate down through matrix, removing all non-zero entries from column with pivot
+                for k in range(col_len):
+                    e = self[k][j]
+                    if k != pivot_row and e != 0:
+                        for l in range(row_len):
+                            # here, e represents the number of pivot row's needed to be removed to make i'th row have
+                            # a zero entry in this column, ex. pivot row has 1 in column, i'th row as 3, removing 3 of
+                            # pivot row will make i'th row have 0 in column
+                            self[k][l] -= self[pivot_row][l] * e
+        self.reset_type()
+        return self
 
-    return ResetType(_SortRREF_old(matrixM))
-
-
-def RREF(matrix=None):
-    if matrix is None:
-        print("Enter dimensions for Matrix: ")
-        rows = int(input("Rows: "))
-        cols = int(input("Cols: "))
-        matrix = MakeMatrix(rows, cols)
-    m = ArrayToList(MatrixFloat(CopyMatrix(matrix)))
-
-    pivot_row = -1
-    # iterates across columns
-    for j in range(row_len := len(m[0])):
-        # iterates down columns
-        pivot = False
-        for i in range(col_len := len(m)):
-            e = m[i][j]
-            # if found a non-zero entry that could be a pivot, and is not already a row with a pivot, make it a pivot
-            if e != 0 and i > pivot_row:
-                # shifts entire row by factor that makes first entry = 1, therefore is pivot
-                # print(f"e = {e}, m[i] before shift: {m[i]}")
-                # print(shift)
-                for k in range(row_len):
-                    m[i][k] /= e
-                # print(m[i])
-                # pivot row increases from where it last was, so that new row will be one below last pivot row
-                pivot_row += 1
-                # if pivot row isn't current one, swap so that row with pivot comes directly after previous pivot row
-                if pivot_row != i:
-                    m[i][:], m[pivot_row][:] = m[pivot_row][:], m[i][:]
-                # this row is a pivot
-                pivot = True
-                break
-        if pivot:
-            # iterate down through matrix, removing all non-zero entries from column with pivot
-            for k in range(col_len):
-                e = m[k][j]
-                if k != pivot_row and e != 0:
-                    for l in range(row_len):
-                        # here, e represents the number of pivot row's needed to be removed to make i'th row have
-                        # a zero entry in this column, ex. pivot row has 1 in column, i'th row as 3, removing 3 of
-                        # pivot row will make i'th row have 0 in column
-                        m[k][l] -= m[pivot_row][l] * e
-
-    return ResetType(numpy.array(m))
-
-
-def REF(matrix=None):
-    if matrix is None:
-        print("Enter dimensions for Matrix: ")
-        rows = int(input("Rows: "))
-        cols = int(input("Cols: "))
-        matrix = MakeMatrix(rows, cols)
-    m = ArrayToList(MatrixFloat(CopyMatrix(matrix)))
-
-    pivot_row = -1
-    # iterates across columns
-    for j in range(row_len := len(m[0])):
-        # iterates down columns
-        pivot = False
-        for i in range(col_len := len(m)):
-            e = m[i][j]
-            # if found a non-zero entry that could be a pivot, and is not already a row with a pivot, make it a pivot
-            if e != 0 and i > pivot_row:
-                # shifts entire row by factor that makes first entry = 1, therefore is pivot
-                # print(f"e = {e}, m[i] before shift: {m[i]}")
-                # print(shift)
-                for k in range(row_len):
-                    m[i][k] /= e
-                # print(m[i])
-                # pivot row increases from where it last was, so that new row will be one below last pivot row
-                pivot_row += 1
-                # if pivot row isn't current one, swap so that row with pivot comes directly after previous pivot row
-                if pivot_row != i:
-                    m[i][:], m[pivot_row][:] = m[pivot_row][:], m[i][:]
-                # this row is a pivot
-                pivot = True
-                break
-        if pivot:
-            # iterate down through matrix, removing all non-zero entries from column with pivot
-            for k in range(col_len):
-                e = m[k][j]
-                if k > pivot_row and e != 0:
-                    for l in range(row_len):
-                        # here, e represents the number of pivot row's needed to be removed to make i'th row have
-                        # a zero entry in this column, ex. pivot row has 1 in column, i'th row as 3, removing 3 of
-                        # pivot row will make i'th row have 0 in column
-                        m[k][l] -= m[pivot_row][l] * e
-
-    return ResetType(numpy.array(m))
-
-
-def augRREF(matrix=None):
-    if matrix is None:
-        print("Enter dimensions for Matrix: ")
-        rows = int(input("Rows: "))
-        cols = int(input("Cols: "))
-        matrix = MakeMatrix(rows, cols)
-    m = ArrayToList(MatrixFloat(CopyMatrix(matrix)))
-
-    pivot_row = -1
-    # iterates across all columns except last
-    for j in range((row_len := len(m[0])) - 1):
-        # iterates down columns
-        pivot = False
-        for i in range(col_len := len(m)):
-            e = m[i][j]
-            # if found a non-zero entry that could be a pivot, and is not already a row with a pivot, make it a pivot
-            if e != 0 and i > pivot_row:
-                # shifts entire row by factor that makes first entry = 1, therefore is pivot
-                # print(f"e = {e}, m[i] before shift: {m[i]}")
-                # print(shift)
-                for k in range(row_len):
-                    m[i][k] /= e
-                # print(m[i])
-                # pivot row increases from where it last was, so that new row will be one below last pivot row
-                pivot_row += 1
-                # if pivot row isn't current one, swap so that row with pivot comes directly after previous pivot row
-                if pivot_row != i:
-                    m[i][:], m[pivot_row][:] = m[pivot_row][:], m[i][:]
-                # this row is a pivot
-                pivot = True
-                break
-        if pivot:
-            # iterate down through matrix, removing all non-zero entries from column with pivot
-            for k in range(col_len):
-                e = m[k][j]
-                if k != pivot_row and e != 0:
-                    for l in range(row_len):
-                        # here, e represents the number of pivot row's needed to be removed to make i'th row have
-                        # a zero entry in this column, ex. pivot row has 1 in column, i'th row as 3, removing 3 of
-                        # pivot row will make i'th row have 0 in column
-                        m[k][l] -= m[pivot_row][l] * e
-
-    return ResetType(numpy.array(m))
-
-
-def _augRREF_old(matrix, solutions=None):
-    if solutions is not None:
-        matrix = augmentMatrix(matrix, solutions)
-    matrixM = MatrixFloat(CopyMatrix(matrix))
-
-    row_length = len(matrixM[0])
-    col_length = len(matrixM)
-    pivot_rows = []
-    for i in range(row_length - 1):
-        pivot = False
-        for j in range(col_length):
-            if matrixM[j][i] != 0 and j not in pivot_rows:
-                if matrixM[j][i] != 1:
-                    shift = 1 / matrixM[j][i]
-                    for k in range(row_length):
-                        matrixM[j][k] *= shift
-
-                pivot_rows.append(j)
-                pivot = True
-
+    def ref(self):
+        adjust = 1 if self.augmented else 0
+        pivot_row = -1
+        # iterates across columns
+        for j in range((row_len := len(self[0])) - adjust):
+            # iterates down columns
+            pivot = False
+            for i in range(col_len := len(self)):
+                e = self[i][j]
+                # if found a non-zero entry that could be a pivot, and is not already a row with a pivot, make it a
+                # pivot
+                if e != 0 and i > pivot_row:
+                    # shifts entire row by factor that makes first entry = 1, therefore is pivot
+                    # print(f"e = {e}, m[i] before shift: {m[i]}")
+                    # print(shift)
+                    for k in range(row_len):
+                        self[i][k] /= e
+                    # print(m[i])
+                    # pivot row increases from where it last was, so that new row will be one below last pivot row
+                    pivot_row += 1
+                    # if pivot row isn't current one, swap so that row with pivot comes directly after previous pivot
+                    # row
+                    if pivot_row != i:
+                        self[i][:], self[pivot_row][:] = self[pivot_row][:], self[i][:]
+                    # this row is a pivot
+                    pivot = True
+                    break
             if pivot:
-                for k in range(col_length):
-                    if k != j and matrixM[k][i] != 0:
-                        shift = matrixM[k][i]
-                        for l in range(row_length):
-                            matrixM[k][l] -= shift * matrixM[j][l]
-                break
+                # iterate down through matrix, removing all non-zero entries from column with pivot
+                for k in range(col_len):
+                    e = self[k][j]
+                    if k > pivot_row and e != 0:
+                        for l in range(row_len):
+                            # here, e represents the number of pivot row's needed to be removed to make i'th row have
+                            # a zero entry in this column, ex. pivot row has 1 in column, i'th row as 3, removing 3 of
+                            # pivot row will make i'th row have 0 in column
+                            self[k][l] -= self[pivot_row][l] * e
+        self.reset_type()
+        return self
 
-    return ResetType(_SortRREF_old(matrixM))
-
-
-def IsRREF1(matrix):
-    pivots = []
-    for i in range(len(matrix)):
-        j = 0
-        checked = False
-        while j < len(matrix[0]) and not checked:
-            e = matrix[i][j]
-            if e not in [0, 1]:
-                return False
-            if e == 1:
-                if j in pivots:
+    def is_rref(self):
+        adjust = 1 if self.augmented else 0
+        pivot_col, pivot_row = [], []
+        for j in range(len(self[0]) - adjust):
+            for i in range(len(self) - 1, -1, -1):
+                e = self[i][j]
+                if e != 0 and j in pivot_col:
                     return False
-                pivots.append(j)
-                checked = True
-            j += 1
+                if e == 1 and i not in pivot_row:
+                    pivot_col.append(j)
+                    pivot_row.append(i)
+        return True
 
-    for c in range(len(pivots) - 1):
-        if pivots[c] > pivots[c + 1]:
-            return False
-    return True
+    def is_consistent(self):
+        if not self.augmented:
+            raise AttributeError("This function is reserved for augmented coefficient matrices")
+        for i in range(len(self) - 1, -1, -1):
+            for j in range(r := len(self[0])):
+                e = self[i][j]
+                if e == 1 and j < r - 1:
+                    return True
+                if e != 0 and j == r - 1:
+                    return False
+        return True
 
-
-def IsRREF(matrix):
-    """Function that returns True if a matrix is in reduced-row echelon form, and False otherwise"""
-
-    pivot_col, pivot_row = [], []
-    for j in range(len(matrix[0])):
-        for i in range(len(matrix) - 1, -1, -1):
-            e = matrix[i][j]
-            if e != 0 and j in pivot_col:
-                return False
-            if e == 1 and i not in pivot_row:
-                pivot_col.append(j)
-                pivot_row.append(i)
-    return True
-
-
-def augIsRREF(matrix):
-    """Function that returns True if a matrix is in reduced-row echelon form, and False otherwise"""
-
-    pivot_col, pivot_row = [], []
-    for j in range(len(matrix[0]) - 1):
-        for i in range(len(matrix) - 1, -1, -1):
-            e = matrix[i][j]
-            if e != 0 and j in pivot_col:
-                return False
-            if e == 1 and i not in pivot_row:
-                pivot_col.append(j)
-                pivot_row.append(i)
-    return True
-
-
-def IsConsistent(matrix):
-    """Function that takes as input an augmented coefficient matrix and returns
-        True if the matrix is consistent, False if otherwise"""
-
-    if not augIsRREF(matrix):
-        matrix = augRREF(matrix)
-
-    for i in range(len(matrix) - 1, -1, -1):
-        for j in range(r := len(matrix[0])):
-            e = matrix[i][j]
-            if e == 1 and j < r - 1:
+    def is_solvable(self):
+        if not self.is_rref():
+            self.rref()
+        matrix = self.copy().remove_null()
+        if self.augmented:
+            if len(matrix) == len(matrix[0]) - 1:
                 return True
-            if e != 0 and j == r - 1:
-                return False
-    return True
-
-
-def IsSolvable(matrix, aug=False):
-    if aug and not augIsRREF(matrix):
-        matrix = augRREF(matrix)
-    elif not aug and not IsRREF(matrix):
-        matrix = RREF(matrix)
-    m = RemoveNull(matrix)
-    if aug:
-        if len(m) == len(m[0]) - 1:
+            return False
+        if len(matrix) == len(matrix[0]):
             return True
         return False
-    if len(m) == len(m[0]):
-        return True
-    return False
 
+    def solve(self):
+        """
+        Solve is a function that attempts to solve a given system of linear equations
 
-def _solveSystem(matrix, sol=None, aug=False):
-    """
-    _solveSystem is a private helper function for public Solve that recursively
-    determines solution for each variable in system of linear equations. Function
-    calls itself recursively with input matrix being the given matrix minus the
-    first row, until the input matrix is one row. Solving this row is then attempted,
-    returning False if variable has no known solution, and a dictionary with the variable
-    as the key and solution as the value otherwise. At each recursive step, the next
-    variable and its solution are again added as the key and value in the dictionary.
-    """
+        Input is expected to be in the form:
+            matrix->numpy.array, either an augmented coefficient matrix with sol=None or standard matrix
+            sol->numpy.array, represents the set of solutions, if sol is None matrix is expected to be in
+            the form of an augmented coefficient matrix
+        """
+        if not self.augmented:
+            raise AttributeError("This function is reserved for augmented coefficient matrices")
 
-    if sol is None and not aug:
-        sol = numpy.array([[0]] * len(matrix[0]))
+        if not self.is_solvable():
+            return False
 
-    if not aug:
-        matrix = augmentMatrix(matrix, sol)
+        # result could either be False, empty list, or list of solutions
+        matrix = self.copy().remove_null()
+        result = self._solve_system(matrix)
+        if not result:
+            return result
 
-    if not augIsRREF(matrix):
-        matrix = augRREF(matrix)
+        # sorts result by column number, adds in order from first to last column the solutions to a column
+        # vector that is then returned as a Matrix
+        solution = []
+        for var in sorted(result):
+            solution.append([result[var]])
 
-    r = len(matrix[0]) - 1
+        return Matrix(solution)
 
-    _vars = {}
-    if len(matrix) == 1:
+    def _solve_system(self, matrix):
+        """
+        _solveSystem is a private helper function for public Solve that recursively
+        determines solution for each variable in system of linear equations. Function
+        calls itself recursively with input matrix being the given matrix minus the
+        first row, until the input matrix is one row. Solving this row is then attempted,
+        returning False if variable has no known solution, and a dictionary with the variable
+        as the key and solution as the value otherwise. At each recursive step, the next
+        variable and its solution are again added as the key and value in the dictionary.
+        """
+
+        r = len(matrix[0]) - 1
+        _vars = {}
+
+        # base case, for each non-zero entry in the row, it is added to the dictionary of solutions, if there
+        # are more than one non-zero entry, the system has free variables and False is returend
+        if len(matrix) == 1:
+            for i in range(r):
+                if matrix[0][i] != 0:
+                    _vars[i] = matrix[0][i]
+            if len(_vars) > 1:
+                return False
+
+            # if there is just one solution, solve for variable and return dictionary
+            for x in _vars:
+                _vars[x] = matrix[0][r] / _vars[x]
+            return _vars
+
+        result = self._solve_system(matrix[1:])
+        if result is False:
+            return False
+
+        # iterates through top row of matrix excluding solutions, if a value is not zero then it must be unknown or
+        # in result, if it is not in result, it is truly unknown
+        unknowns = []
+        unknown_count = 0
         for i in range(r):
             if matrix[0][i] != 0:
-                _vars[i] = None
-        if len(_vars) > 1:
-            print("this false, 422")
-            return False
-
-        for x in _vars:
-            _vars[x] = matrix[0][r]
-        return _vars
-
-    result = _solveSystem(matrix[1:], sol=None, aug=True)
-    if result is False:
-        print("this false, 431")
-        return False
-
-    unknowns = []
-    for i in range(r):
-        if matrix[0][i] != 0:
-            if i not in result:
+                if i not in result:
+                    unknown_count += 1
                 unknowns.append(i)
 
-    if len(unknowns) > 1:
-        print("this false, 441")
-        return False
-    if len(unknowns) == 0:
-        return result
-
-    solution = 0
-    index = None
-    for i in unknowns:
-        if i in result:
-            solution += result[i] * matrix[0][1]
-        else:
-            index = i
-
-    result[index] = matrix[0][r] - solution
-    return result
-
-
-def Solve(matrix, sol=None):
-    """
-    Solve is a function that attempts to solve a given system of linear equations
-
-    Input is expected to be in the form:
-        matrix->numpy.array, either an augmented coefficient matrix with sol=None or standard matrix
-        sol->numpy.array, represents the set of solutions, if sol is None matrix is expected to be in
-        the form of an augmented coefficient matrix
-    """
-    aug = True if sol is None else False
-    if not IsSolvable(matrix, aug):
-        print("this false, 469")
-        return False
-
-    # result could either be False, empty list, or list of solutions
-    result = _solveSystem(MatrixFloat(matrix), sol, aug)
-    if not result:
-        print("this false, 475")
-        return result
-
-    solution = []
-    for var in sorted(result):
-        solution.append([result[var]])
-
-    return ResetType(numpy.array(solution))
-
-
-def IsSolvable1(matrix, aug=False):
-    """Determines if a given system of linear equations is solvable. First, matrix
-     is checked to see if it is already in reduced-row echelon form, putting it in RREF if not.
-     If matrix is an augmented coefficient (aug=True) then matrix is also checked for consistency.
-     Then matrix is checked for the number of free variables, returning False if any are found."""
-
-    if aug:
-        if not augIsRREF(matrix):
-            matrix = augRREF(matrix)
-        if not IsConsistent(matrix):
+        if unknown_count > 1:
             return False
-    else:
-        if not IsRREF(matrix):
-            matrix = RREF(matrix)
+        if unknown_count == 0:
+            return result
 
-    r = len(matrix[0])
-    if aug:
-        r -= 1
+        constant = 0
+        index = None
+        # iterates through all columns that have non-zero entries in this row, if they have a known
+        # solution it is applied, otherwise it is considered the one true unknown and the index is marked
+        for i in unknowns:
+            if i in result:
+                constant += result[i] * matrix[0][i]
+            else:
+                index = i
 
-    for j in range(r):
-        for i in range(len(matrix)):
-            if matrix[i][j] not in [0, 1]:
-                return False
-    return True
+        # the one unknown in the row equals the row solution minus the sum of solutions of each
+        # of the non-zero columns in the row
+        result[index] = matrix[0][r] - constant
+        return result
+
+    def change_basis(self, basis):
+        if not isinstance(basis, Matrix):
+            raise TypeError("Basis must be a Matrix")
+        return basis.invert() * self
 
 
-def MatrixEquals(mat1, mat2):
-    """Returns True if two given matrices are equal to a zero decimal point precision.
-    All numbers are converted into integers for comparison, since any two matrices
-    that are dis-similar by less than a whole integer value, they are considered equal."""
+class LinearMap(Matrix):
+    def __init__(self, array):
+        super().__init__(array=array)
 
-    if len(mat1) != len(mat2) or len(mat1[0]) != len(mat2[0]):
-        return False
+    def change_map_basis(self, in_basis=None, out_basis=None):
+        """Function that takes as input a linear map and at least one basis and outputs
+        the linear map with a change of basis.
 
-    for i in range(len(mat1)):
-        for j in range(len(mat1[0])):
-            if abs(round(mat1[i][j]) - round(mat2[i][j])) > 1:
-                return False
-    return True
+        Linear map: an m x n matrix mapping from the standard basis vectors in m-dimensions to
+        the standard basis vectors in n-dimensions.
+        Notation: [S]E->E, where S, E are the linear map and standard basis vectors respectively.
+
+        In-Basis: an m x m matrix that forms a basis in m-dimensions. This matrix, when applied
+        to the linear map, gives the linear map such that the map takes as input matrices in
+        this basis, and outputs them in the standard basis of n-dimensions.
+        Notation: [S]B->E, where B is the In-Basis.
+
+        Out-Basis: an n x n matrix that forms a basis in n-dimensions. This matrix, when applied
+        to the linear map, gives the linear map such that the map takes as input matrices in
+        the standard basis of m-dimensions and outputs a matrix in the form of the new basis.
+        Notation: [S]E->C, where C is the Out-Basis"""
+
+        if in_basis is None and out_basis is None:
+            raise ValueError("Make sure to enter at least one basis")
+
+        inputs = [self, in_basis, out_basis]
+        for e in inputs:
+            if e is not None and not isinstance(e, Matrix):
+                raise ValueError("All input must be type Matrix")
+
+        if in_basis is None:
+            if len(out_basis) != len(out_basis[0]):
+                raise ValueError("Basis must be square matrix")
+            return out_basis.invert() * self
+
+        if out_basis is None:
+            if len(in_basis) != len(in_basis[0]):
+                raise ValueError("Basis must be square matrix")
+            return self * in_basis
+
+        if len(in_basis) != len(in_basis[0]) or len(out_basis) != len(out_basis[0]):
+            raise ValueError("Bases must be square matrix")
+        return out_basis.invert() * self * in_basis
+
+    def map(self, other):
+        return self * other
