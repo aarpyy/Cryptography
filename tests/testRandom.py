@@ -1,3 +1,5 @@
+import math
+
 from cryptography318.linear_algebra_deprecated import *
 from cryptography318.matrix_deprecated import *
 from cryptography318.linear_algebra import *

@@ -1,7 +1,7 @@
 from cryptography318.matrix_deprecated import MakeMatrix, MultiplyMatrix, Transpose
 from cryptography318.linear_algebra_deprecated import InvertMatrix, ChangeBasisMap, MatrixEquals
 from cryptography318.linear_algebra import *
-import numpy
+import numpy, random
 import pytest
 
 S = numpy.array([[2, -1],
@@ -16,10 +16,9 @@ B = numpy.array([[2, 3],
                  [3, 5]])
 
 
-
 def testChangeBasis():
     test1 = ChangeBasisMap(S, in_basis=numpy.array([[1, 0], [0, 1]]),
-                                       out_basis=numpy.array([[1, 0, 0], [0, 1, 0], [0, 0, 1]]))
+                           out_basis=numpy.array([[1, 0, 0], [0, 1, 0], [0, 0, 1]]))
     test2 = ChangeBasisMap(S, in_basis=numpy.array([[1, 0], [0, 1]]))
     test3 = ChangeBasisMap(S, out_basis=numpy.array([[1, 0, 0], [0, 1, 0], [0, 0, 1]]))
     S1 = LinearMap(S)
@@ -36,29 +35,73 @@ def testChangeBasis():
     m[1][3] = 5
     m[4][4] = 1
     m[4][3] = 1
-    print(S1.map(C1))
+
+    test_map = LinearMap([[3, 2],
+                          [-1, 0]])
+    vector = Matrix([[1],
+                     [1]])
+    value = 2
+    mat = Matrix([[3, 2],
+                  [-1, 0]])
+
+
+def testRankNull():
+    for _ in range(5000):
+        x = random.randrange(2, 10)
+        m = Matrix(rows=x, cols=x, rand=True)
+        assert m.rank() + m.null() == m.dimension()
+
+
+def testRREF():
+    for _ in range(5000):
+        x = random.randrange(2, 10)
+        m = Matrix(rows=x, cols=x, rand=True)
+        I_x = Matrix(rows=x, cols=x, identity=True)
+        assert m.rref() == I_x
 
 
 def testAllTests():
     testChangeBasis()
+    testRankNull()
+    testRREF()
 
 
-"""Problem 5: a), b), c)"""
+def homework_9():
+    """Problem 3.5.8"""
+    b = Matrix([[1, 1],
+                [1, -1]])
+    c = Matrix([[1, 1, 0],
+                [1, 0, 1],
+                [0, 1, 1]])
+    a1 = Matrix([[-2],
+                 [1]])
+    a2 = Matrix([[2],
+                 [3]])
+    a3 = Matrix([[1],
+                 [-2],
+                 [3]])
+    a4 = Matrix([[3],
+                 [2],
+                 [1]])
+    T = LinearMap([[0, 1, 0],
+                [1, 0, 0]])
 
-# a = ChangeBasisMap(S, in_basis=B)
-# b = ChangeBasisMap(S, out_basis=C)
-# c = ChangeBasisMap(S, in_basis=B, out_basis=C)
-#
-# print(f"[S]B->E\n{a}\n")
-# print(f"[S]E->C\n{b}\n")
-# print(f"[S]B->C\n{c}\n")
+    print("a)\ni)\n1/2 *")
+    print(2 * a1.change_basis(b))
+    print("\nii)\n1/2 *")
+    print(2 * a2.change_basis(b))
+    print("\niii)")
+    print(a3.change_basis(c))
+    print("\niv)")
+    print(a4.change_basis(c))
+    print("\nb)\nv)")
+    print(T.change_basis(in_basis=c))
+    print("\nvi)\n1/2 *")
+    print((2 * T.change_basis(out_basis=b)))
+    print("\nvii)\n1/2 *")
+    print((2 * T.change_basis(in_basis=c, out_basis=b)))
 
-"""Problem 4: b), c)"""
-
-# basis = numpy.array([[1, 1, 0], [-1, 2, 2], [1, -1, -1]])
-# for _ in range(2):
-#     m = MakeMatrix(3, 1)
-#     print(MultiplyMatrix(InvertMatrix(basis), m))
 
 if __name__ == '__main__':
-    testAllTests()
+    # testAllTests()
+    homework_9()

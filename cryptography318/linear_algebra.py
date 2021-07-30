@@ -116,17 +116,18 @@ class Matrix:
             if len(self[0]) != len(other):
                 raise ValueError("Number of columns in first matrix must equal number of rows in second")
         if isinstance(other, Matrix):
-            return Matrix(numpy.matmul(self.array, other.array))
+            return Matrix(numpy.matmul(self.array, other.array)).reset_type()
         if isinstance(other, numpy.ndarray):
-            return Matrix(numpy.matmul(self.array, other))
+            return Matrix(numpy.matmul(self.array, other)).reset_type()
         if isinstance(other, list):
-            return Matrix(numpy.matmul(self.array, numpy.array(other)))
+            return Matrix(numpy.matmul(self.array, numpy.array(other))).reset_type()
         if isinstance(other, int) or isinstance(other, float):
             warn("Proper syntax assumes scalar comes before matrix in scalar-matrix multiplication", SyntaxWarning)
+            matrix = self.copy()
             for i in range(len(self.array)):
                 for j in range(len(self.array[0])):
-                    self.array[i][j] *= other
-            return self
+                    matrix.array[i][j] *= other
+            return matrix.reset_type()
         raise TypeError("Matrix multiplication must be done between two matrices or a matrix and a scalar")
 
     def __rmul__(self, other):
@@ -134,16 +135,17 @@ class Matrix:
             if len(other[0]) != len(self):
                 raise ValueError("Number of columns in first matrix must equal number of rows in second")
         if isinstance(other, Matrix):
-            return Matrix(numpy.matmul(other.array, self.array))
+            return Matrix(numpy.matmul(other.array, self.array)).reset_type()
         if isinstance(other, numpy.ndarray):
-            return Matrix(numpy.matmul(other, self.array))
+            return Matrix(numpy.matmul(other, self.array)).reset_type()
         if isinstance(other, list):
-            return Matrix(numpy.matmul(numpy.array(list), self.array))
+            return Matrix(numpy.matmul(numpy.array(list), self.array)).reset_type()
         if isinstance(other, int) or isinstance(other, float):
-            for i in range(len(self.array)):
-                for j in range(len(self.array[0])):
-                    self.array[i][j] *= other
-            return self
+            matrix = self.copy()
+            for i in range(len(self)):
+                for j in range(len(self[0])):
+                    matrix.array[i][j] *= other
+            return matrix.reset_type()
         raise TypeError("Matrix multiplication must be done between two matrices or a matrix and a scalar")
 
     def __add__(self, other):
@@ -158,23 +160,11 @@ class Matrix:
                 matrix_sum.append([])
                 for j in range(len(self[0])):
                     matrix_sum[i].append(self[i][j] + other[i][j])
-            return Matrix(matrix_sum)
+            return Matrix(matrix_sum, aug=self.augmented).reset_type()
         raise TypeError("Matrix addition must be done between two matrices")
 
     def __radd__(self, other):
-        if isinstance(other, (list, numpy.ndarray, Matrix)):
-            if len(other) != len(self) or len(other[0]) != len(self[0]):
-                raise ValueError("Both matrices must have the same number of rows and columns!")
-        if isinstance(other, list):
-            other = numpy.array(other)
-        if isinstance(other, (Matrix, numpy.ndarray)):
-            matrix_sum = []
-            for i in range(len(self)):
-                matrix_sum.append([])
-                for j in range(len(self[0])):
-                    matrix_sum[i].append(self[i][j] + other[i][j])
-            return Matrix(matrix_sum)
-        raise TypeError("Matrix addition must be done between two matrices")
+        return self.__add__(other)
 
     def __sub__(self, other):
         if isinstance(other, (list, numpy.ndarray, Matrix)):
@@ -188,7 +178,7 @@ class Matrix:
                 matrix_sum.append([])
                 for j in range(len(self[0])):
                     matrix_sum[i].append(self[i][j] - other[i][j])
-            return Matrix(matrix_sum)
+            return Matrix(matrix_sum, aug=self.augmented).reset_type()
         raise TypeError("Matrix addition must be done between two matrices")
 
     def __rsub__(self, other):
@@ -203,7 +193,7 @@ class Matrix:
                 matrix_sum.append([])
                 for j in range(len(self[0])):
                     matrix_sum[i].append(other[i][j] - self[i][j])
-            return Matrix(matrix_sum)
+            return Matrix(matrix_sum, aug=self.augmented).reset_type()
         raise TypeError("Matrix addition must be done between two matrices")
 
     def __pow__(self, power, modulo=None):
@@ -218,13 +208,13 @@ class Matrix:
             product = self * product
             if modulo is not None:
                 product %= modulo
-        return product
+        return product.reset_type()
 
     def __mod__(self, other):
         for i in range(len(self)):
             for j in range(len(self[0])):
                 self[i][j] %= other
-        return self
+        return self.reset_type()
 
     def invert(self):
         """Inverts Matrix objecct using numpy.linalg.inv function."""
@@ -261,7 +251,7 @@ class Matrix:
     def copy(self):
         """Returns exact copy of values of matrix in a new Matrix object."""
 
-        return Matrix(self.array_copy())
+        return Matrix(self.array_copy(), aug=self.augmented)
 
     def array_copy(self):
         """Returns exact copy of values of matrix in a new list object."""
@@ -279,42 +269,46 @@ class Matrix:
 
         if data_type not in [float, int, numpy.float16, numpy.float32, numpy.float64]:
             raise TypeError(f"Data type not recognized: {data_type}")
-        self.array.astype(data_type)
+
+        matrix = self.array_copy()
+        for i in range(len(self)):
+            for j in range(len(self[0])):
+                matrix[i][j] = data_type(self[i][j])
+        return Matrix(matrix, aug=self.augmented)
 
     def reset_type(self):
         """Attempts to reset matrix to smaller floats or integers if possible. If matrix has
         complex numbers they are left un-modified."""
 
-        self.astype(numpy.float16)
+        matrix = self.astype(numpy.float16).array_copy()
         for i in range(len(self)):
             for j in range(len(self[0])):
                 try:
-                    e = self[i][j]
+                    e = matrix[i][j]
                     if "," in str(e):
                         continue
                     if e == -0:
-                        self[i][j] = 0
+                        matrix[i][j] = 0
                     s = str(e).split(".")
                     if len(s) == 1 or s[1] == '0':
-                        self[i][j] = int(self[i][j])
+                        matrix[i][j] = numpy.int64(self[i][j])
                 except OverflowError:
                     continue
+        return Matrix(matrix, aug=self.augmented)
 
     def augment(self, solution):
         """Given matrix object and set of solutions, returns an augmented coefficient matrix
         with the set of solutions as the final column."""
 
-        self.augmented = True
         matrix_copy = self.array_copy()
         for i in range(len(self)):
             matrix_copy[i].append(solution[i][0])
-        return Matrix(matrix_copy)
+        return Matrix(matrix_copy, aug=True)
 
     def separate(self):
         """Function used to separate an augmented coefficient matrix into
         a standard coefficient matrix and a column matrix of solutions"""
 
-        self.augmented = False
         matrix, sol = [], []
         c = len(self[0]) - 1
         for i in range(len(self)):
@@ -340,11 +334,12 @@ class Matrix:
         for i in range(c):
             if i not in null_rows:
                 clean_matrix.append(self[i][:])
-        return Matrix(clean_matrix)
+        return Matrix(clean_matrix, aug=self.augmented)
 
     def rref(self):
         """Function that puts matrix in reduced row echelon form"""
 
+        matrix = self.astype(numpy.float64).array_copy()
         adjust = 1 if self.augmented else 0
         pivot_row = -1
         # iterates across columns
@@ -352,41 +347,38 @@ class Matrix:
             # iterates down columns
             pivot = False
             for i in range(col_len := len(self)):
-                e = self[i][j]
+                e = matrix[i][j]
                 # if found a non-zero entry that could be a pivot, and is not already a row with a pivot, make it a
                 # pivot
                 if e != 0 and i > pivot_row:
                     # shifts entire row by factor that makes first entry = 1, therefore is pivot
-                    # print(f"e = {e}, m[i] before shift: {m[i]}")
-                    # print(shift)
                     for k in range(row_len):
-                        self[i][k] /= e
-                    # print(m[i])
+                        matrix[i][k] /= e
                     # pivot row increases from where it last was, so that new row will be one below last pivot row
                     pivot_row += 1
                     # if pivot row isn't current one, swap so that row with pivot comes directly after previous pivot
                     # row
                     if pivot_row != i:
-                        self[i][:], self[pivot_row][:] = self[pivot_row][:], self[i][:]
+                        matrix[i][:], matrix[pivot_row][:] = matrix[pivot_row][:], matrix[i][:]
                     # this row is a pivot
                     pivot = True
                     break
             if pivot:
                 # iterate down through matrix, removing all non-zero entries from column with pivot
                 for k in range(col_len):
-                    e = self[k][j]
+                    e = matrix[k][j]
                     if k != pivot_row and e != 0:
                         for l in range(row_len):
                             # here, e represents the number of pivot row's needed to be removed to make i'th row have
                             # a zero entry in this column, ex. pivot row has 1 in column, i'th row as 3, removing 3 of
                             # pivot row will make i'th row have 0 in column
-                            self[k][l] -= self[pivot_row][l] * e
-        self.reset_type()
-        return self
+                            matrix[k][l] -= matrix[pivot_row][l] * e
+        return Matrix(matrix, aug=self.augmented).reset_type()
 
     def ref(self):
         """Function that puts matrix in row echelon form."""
 
+        matrix = self.astype(numpy.float64).array_copy()
         adjust = 1 if self.augmented else 0
         pivot_row = -1
         # iterates across columns
@@ -394,7 +386,7 @@ class Matrix:
             # iterates down columns
             pivot = False
             for i in range(col_len := len(self)):
-                e = self[i][j]
+                e = matrix[i][j]
                 # if found a non-zero entry that could be a pivot, and is not already a row with a pivot, make it a
                 # pivot
                 if e != 0 and i > pivot_row:
@@ -402,29 +394,28 @@ class Matrix:
                     # print(f"e = {e}, m[i] before shift: {m[i]}")
                     # print(shift)
                     for k in range(row_len):
-                        self[i][k] /= e
+                        matrix[i][k] /= e
                     # print(m[i])
                     # pivot row increases from where it last was, so that new row will be one below last pivot row
                     pivot_row += 1
                     # if pivot row isn't current one, swap so that row with pivot comes directly after previous pivot
                     # row
                     if pivot_row != i:
-                        self[i][:], self[pivot_row][:] = self[pivot_row][:], self[i][:]
+                        matrix[i][:], matrix[pivot_row][:] = matrix[pivot_row][:], matrix[i][:]
                     # this row is a pivot
                     pivot = True
                     break
             if pivot:
                 # iterate down through matrix, removing all non-zero entries from column with pivot
                 for k in range(col_len):
-                    e = self[k][j]
+                    e = matrix[k][j]
                     if k > pivot_row and e != 0:
                         for l in range(row_len):
                             # here, e represents the number of pivot row's needed to be removed to make i'th row have
                             # a zero entry in this column, ex. pivot row has 1 in column, i'th row as 3, removing 3 of
                             # pivot row will make i'th row have 0 in column
-                            self[k][l] -= self[pivot_row][l] * e
-        self.reset_type()
-        return self
+                            matrix[k][l] -= matrix[pivot_row][l] * e
+        return Matrix(matrix, aug=self.augmented).reset_type()
 
     def is_rref(self):
         """Function that checks to see if matrix is in reduced row echelon form."""
@@ -443,6 +434,8 @@ class Matrix:
                 if e == 1 and i not in pivot_row:
                     pivot_col.append(j)
                     pivot_row.append(i)
+                if e != 0 and i not in pivot_row:
+                    return False
         return True
 
     def is_consistent(self):
@@ -466,16 +459,59 @@ class Matrix:
                     return False
         return True
 
+    def free_vars(self):
+        """Function that checks if Matrix object has free variables, returning the number of free variables
+        or 0 if none found."""
+
+        pivots = self.pivot_count()
+        adjust = 1 if self.augmented else 0
+        return len(self[0]) - adjust - pivots
+
+    def rank(self):
+        return self.pivot_count()
+
+    def null(self):
+        return self.free_vars()
+
+    def dimension(self):
+        """Returns the dimension of the column span of the matrix. This is not necessarily the
+        dimension of the domain. Use .domain_dimension to get the dimension of the domain."""
+
+        adjust = 1 if self.augmented else 0
+        return len(self[0]) - adjust
+
+    def domain_dimension(self):
+        return len(self)
+
+    def pivot_count(self):
+        matrix = self.copy()
+        if not matrix.is_rref():
+            matrix = matrix.rref()
+        adjust = 1 if self.augmented else 0
+        pivots = 0
+        for i in range(len(matrix)):
+            row_pivot = False
+            for j in range(len(matrix[0]) - adjust):
+                e = matrix[i][j]
+                if e == 1:
+                    row_pivot = True
+            if row_pivot:
+                pivots += 1
+        return pivots
+
     def is_solvable(self):
-        """is_solvable returns True if object is a square matrix with null rows removed,
-        and False otherwise. If matrix is augmented, the column of solutions is not counted
-        towards object being square."""
+        """is_solvable returns True if object is (with null rows removed) a square matrix with
+        no free variables, and False otherwise. If matrix is augmented, the column of solutions
+        is not counted towards object being square."""
 
         # if not in rref, put it in that form
         if not self.is_rref():
             self.rref()
         # get copy with no null rows
         matrix = self.copy().remove_null()
+        # any free variables in the system mean there is not a unique solution
+        if matrix.free_vars() > 0:
+            return False
         # if augmented, check for square excluding last column, otherwise check for square
         if self.augmented:
             if len(matrix) == len(matrix[0]) - 1:
@@ -581,6 +617,14 @@ class Matrix:
             raise TypeError("Basis must be a Matrix")
         return basis.invert() * self
 
+    def is_basis(self):
+        if len(self) != len(self[0]):
+            return False
+        matrix = self.copy()
+        if not matrix.is_rref():
+            matrix = matrix.rref()
+        return matrix == Matrix(rows=len(self), cols=len(self), identity=True)
+
 
 class LinearMap(Matrix):
     def __init__(self, array):
@@ -588,6 +632,55 @@ class LinearMap(Matrix):
             super().__init__(array=array.array)
         else:
             super().__init__(array=array)
+
+    def is_solvable(self):
+        """Method only applies to augmented coefficient matrices. Does not apply to linear maps."""
+
+        pass
+
+    def is_consistent(self):
+        """Method only applies to augmented coefficient matrices. Does not apply to linear maps."""
+
+        pass
+
+    def solve(self):
+        """Method only applies to augmented coefficient matrices. Does not apply to linear maps."""
+
+        pass
+
+    def _solve_system(self, matrix):
+        """Method only applies to augmented coefficient matrices. Does not apply to linear maps."""
+
+        pass
+
+    def augment(self, solution):
+        """Method only applies to augmented coefficient matrices. Does not apply to linear maps."""
+
+        pass
+
+    def separate(self):
+        """Method only applies to augmented coefficient matrices. Does not apply to linear maps."""
+
+        pass
+
+    def is_basis(self):
+        """is_basis allows a Matrix object to be a basis for its vector space. Linear maps map from one vector
+        space to another (sometimes the same space but this doesn't matter here) and is not supposed to
+        represent a basis of any one vector space. This method is thus ignored for linear maps."""
+
+        pass
+
+    def dimension(self):
+        """Dimension for a linear map is split into the dimension of the domain and
+        dimension of the codomain, this functions serves no purpose."""
+
+        pass
+
+    def domain_dimension(self):
+        return len(self[0])
+
+    def codomain_dimension(self):
+        return len(self)
 
     def change_basis(self, in_basis=None, out_basis=None):
         """Function that takes as input a linear map and at least one basis and outputs
@@ -637,3 +730,58 @@ class LinearMap(Matrix):
                 raise ValueError(f"This linear function maps from {len(self[0])} dimensions to "
                                  f"{len(self)} dimensions, given: matrix in {len(other)} dimensions")
             return self * other
+        raise TypeError("Linear map can only apply to objects with type Matrix, numpy.ndarray, or list")
+
+    def eigen_vector(self, vector):
+        """Function takes as input some column vector and returns its eigenvalue if it is an
+        eigenvector of the given linear map, or False if it is not an eigenvector."""
+
+        from statistics import mean
+
+        if len(self[0]) == len(vector):
+            # maps vector with linear map
+            eigen_vector = self.map(vector)
+            eigen_value = []
+            # iterates through column vector, checking to see if each element of the new eigen vector
+            # is a scalar of the original vector, if one is zero the other must also be zero or it is not
+            # an eigen vector
+            for i in range(len(vector)):
+                v1 = vector[i][0]
+                ev1 = eigen_vector[i][0]
+                if v1 == 0 or ev1 == 0:
+                    if v1 != ev1:
+                        return False
+                    continue
+                value = ev1 / v1
+                if value not in eigen_value:
+                    eigen_value.append(value)
+
+            # if all scalars were the exact same, return the eigenvalue
+            if len(eigen_value) == 1:
+                return eigen_value.pop()
+            # if scalars were different enough, return False, but if all were within 0.1 of each other, this
+            # is being considered an eigenvector, and the average of the eigenvalues is returned
+            for i in range(len(eigen_value) - 1):
+                e1, e2 = eigen_value[i], eigen_value[i + 1]
+                if abs(e1 - e2) > 0.1:
+                    return False
+            return numpy.round(mean(eigen_value), decimals=3)
+
+    def is_eigen_value(self, value):
+        """Function that takes in possible eigenvalue and returns True if value is eigenvalue, False otherwise.
+        This only works with square maps."""
+
+        if len(self) != len(self[0]):
+            raise AttributeError("This function only works with square maps")
+
+        # sets matrix equal to (T - eI) where T is the linear map, e is the potential eigen value, and
+        # I is the identity matrix
+        matrix = self - value * Matrix(rows=len(self), cols=len(self), identity=True)
+        # augments matrix with a column vector = 0, this is equivalent to the homogenous system Tx = 0
+        # whose solution is equivalent to the kernel of T, if the kernel is {0} this is not an eigenvalue
+        matrix = matrix.augment(solution=Matrix(rows=len(self), cols=1)).rref()
+        # if the number of free variables is 0 then the kernel is guaranteed to be {0} and thus value is not
+        # an eigenvalue, otherwise the kernel will be greater than the empty set and thus value is an eigenvalue
+        if matrix.free_vars() == 0:
+            return False
+        return True
