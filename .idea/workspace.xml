@@ -5,16 +5,13 @@
   </component>
   <component name="ChangeListManager">
     <list default="true" id="6ea76c49-18d8-4974-9f94-c2171563dd51" name="Default Changelist" comment="working on primality test, miller-rabin">
-      <change afterPath="$PROJECT_DIR$/cryptography318/linear_algebra_deprecated.py" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/tests/testRandom.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/.idea/cryptography318.iml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/cryptography318.iml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/.idea/misc.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/misc.xml" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/cryptography318/deprecated.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/cryptography318/__init__.py" beforeDir="false" afterPath="$PROJECT_DIR$/cryptography318/__init__.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/cryptography318/crypto_functions.py" beforeDir="false" afterPath="$PROJECT_DIR$/cryptography318/crypto_functions.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/cryptography318/linear_algebra.py" beforeDir="false" afterPath="$PROJECT_DIR$/cryptography318/linear_algebra.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/cryptography318/matrix.py" beforeDir="false" afterPath="$PROJECT_DIR$/cryptography318/matrix_deprecated.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/tests/testLinear.py" beforeDir="false" afterPath="$PROJECT_DIR$/tests/testLinear.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/tests/testMatrix.py" beforeDir="false" afterPath="$PROJECT_DIR$/tests/testMatrix.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/tests/testRandom.py" beforeDir="false" afterPath="$PROJECT_DIR$/tests/testRandom.py" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -221,7 +218,7 @@
       <workItem from="1626810023790" duration="648000" />
       <workItem from="1626903251740" duration="2471000" />
       <workItem from="1627577851804" duration="3479000" />
-      <workItem from="1627589673665" duration="15354000" />
+      <workItem from="1627589673665" duration="20959000" />
     </task>
     <task id="LOCAL-00001" summary="wrote some stuff for ps4.5, figured out problem with pohlig-hellman, bsgs in work">
       <created>1624923163169</created>

@@ -1,5 +1,6 @@
 from .crypto_functions import (toBase, fromBase, StringToNum, NumToString, ApplyMult, ExtendedGCD, GCD, ModularInverse,
-                               MakeChineseRemainder, ChineseRemainder, BSGS, PohligHellman, DSA, PollardP1, FactorInt)
+                               makeChineseRemainder, ChineseRemainder, BSGS, PohligHellman, DSA, PollardP1, FactorInt,
+                               QuadraticSieve)
 from .bailliepsw_helper import Jacobi
 from .prime import IsPrime, MillerRabin_bases, RandomPrime, ConfirmPrime, NextPrime, PrevPrime
 from .linear_algebra import Matrix, LinearMap

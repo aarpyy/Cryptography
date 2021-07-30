@@ -1,6 +1,7 @@
 from cryptography318.linear_algebra_deprecated import *
 from cryptography318.matrix_deprecated import *
 from cryptography318.linear_algebra import *
+from cryptography318.crypto_functions import *
 import numpy
 
 b = Matrix([[1, 1],
@@ -21,6 +22,10 @@ a4 = Matrix([[3],
 
 T = Matrix([[0, 1, 0],
             [1, 0, 0]])
+
+print(T.change_basis(b))
+
+
 
 # print("3.5.8 a)")
 # print(f"i) \n{ChangeBasis(a1, b)}\n")

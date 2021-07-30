@@ -1,5 +1,17 @@
+import operator
 from math import gcd, isqrt
 from .prime import IsPrime, NextPrime
+from .deprecated import deprecated
+
+
+def apply(proc, lst):
+    lst_proc = {'*': operator.mul, '+': operator.add, '-': operator.sub, '/': operator.truediv}
+    if proc in lst_proc:
+        acc = lst[0]
+        for e in lst[1:]:
+            acc = lst_proc[proc](acc, e)
+        return acc
+    return proc(lst[:])
 
 
 def toBase(n, base):
@@ -46,6 +58,7 @@ def NumToString(n, base=128):
     return string
 
 
+@deprecated
 def ApplyMult(lst):
     acc = 1
     for e in lst:
@@ -61,10 +74,12 @@ def ExtendedGCD(a, b):
     return g, y - (b // a) * x, x
 
 
+@deprecated
 def GCD(a, b):
     return gcd(a, b)
 
 
+@deprecated
 def ModularInverse(x, m):
     return pow(x, -1, m)
 
@@ -99,7 +114,7 @@ def BSmoothQ(n, B):
     return True if n == 1 else False
 
 
-def MakeChineseRemainder():
+def makeChineseRemainder():
     # gets lists of solutions and moduli from user for chinese remainder
     nums, mods = [], []
     equations = int(input("How many equations: "))

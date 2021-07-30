@@ -28,13 +28,15 @@ def testChangeBasis():
     test4 = S1.change_basis(in_basis=B1, out_basis=C1)
     test5 = S1.change_basis(in_basis=B1)
     test6 = S1.change_basis(out_basis=C1)
-    print(S1)
-    print(C1)
-    print(B1)
-    print(test4)
-    print(S1 * B1)
-    print(test2)
 
+    m = Matrix(rows=5, cols=5, identity=True, aug=True)
+    m[4][4] = 0
+    m[3][4] = 3
+    m[2][2] = 2
+    m[1][3] = 5
+    m[4][4] = 1
+    m[4][3] = 1
+    print(S1.map(C1))
 
 
 def testAllTests():

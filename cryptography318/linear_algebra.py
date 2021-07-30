@@ -29,6 +29,8 @@ class Matrix:
                     matrix[i].append(randint(-50, 50))
             self.array = numpy.array(matrix)
         elif identity:
+            if rows is not None and cols is not None and rows != cols:
+                raise ValueError("Number of rows must equal number of columns in an identity matrix")
             if rows is None and cols is None:
                 rows = randint(1, 10)
                 cols = rows
@@ -45,6 +47,10 @@ class Matrix:
                     else:
                         matrix[i].append(0)
             self.array = numpy.array(matrix)
+        elif solution is not None:
+            self.array = array
+            for i in range(len(self)):
+                self.array[i].append(solution[i][0])
         else:
             matrix = []
             for i in range(rows):
@@ -52,7 +58,6 @@ class Matrix:
                 for j in range(cols):
                     matrix[i].append(0)
             self.array = numpy.array(matrix)
-        # if solution is not None:
 
     def __setitem__(self, key, value):
         self.array[key] = value
@@ -222,9 +227,13 @@ class Matrix:
         return self
 
     def invert(self):
+        """Inverts Matrix objecct using numpy.linalg.inv function."""
+
         return Matrix(numpy.linalg.inv(self.array))
 
     def transpose(self):
+        """Returns transpose of Matrix object."""
+
         matrix = []
         for j in range(len(self[0])):
             matrix.append([])
@@ -233,6 +242,9 @@ class Matrix:
         return Matrix(matrix)
 
     def make(self):
+        """Function iterates through entire matrix, prompting user for input for each cell and
+        subsequently changing value of cell to match input. Nothing is returned."""
+
         rows = len(self.array)
         cols = len(self.array[0])
         for i in range(rows):
@@ -247,14 +259,13 @@ class Matrix:
                     self.array[i][j] = float(n) if "." in n else int(n)
 
     def copy(self):
-        matrix_copy = []
-        for i in range(len(self)):
-            matrix_copy.append([])
-            for j in range(len(self[0])):
-                matrix_copy[i].append(self[i][j])
-        return Matrix(matrix_copy)
+        """Returns exact copy of values of matrix in a new Matrix object."""
+
+        return Matrix(self.array_copy())
 
     def array_copy(self):
+        """Returns exact copy of values of matrix in a new list object."""
+
         matrix_copy = []
         for i in range(len(self)):
             matrix_copy.append([])
@@ -262,16 +273,25 @@ class Matrix:
                 matrix_copy[i].append(self[i][j])
         return matrix_copy
 
-    def as_type(self, type):
-        if type not in [float, int, numpy.float16, numpy.float32, numpy.float64]:
-            raise TypeError(f"Type not recognized: {type}")
-        self.array.astype(type)
+    def astype(self, data_type):
+        """Returns matrix with a given data type, as specified by the numpy.ndarray dtypes:
+        float16, float32, float64, or the traditional Python float or int."""
+
+        if data_type not in [float, int, numpy.float16, numpy.float32, numpy.float64]:
+            raise TypeError(f"Data type not recognized: {data_type}")
+        self.array.astype(data_type)
 
     def reset_type(self):
+        """Attempts to reset matrix to smaller floats or integers if possible. If matrix has
+        complex numbers they are left un-modified."""
+
+        self.astype(numpy.float16)
         for i in range(len(self)):
             for j in range(len(self[0])):
                 try:
                     e = self[i][j]
+                    if "," in str(e):
+                        continue
                     if e == -0:
                         self[i][j] = 0
                     s = str(e).split(".")
@@ -281,6 +301,10 @@ class Matrix:
                     continue
 
     def augment(self, solution):
+        """Given matrix object and set of solutions, returns an augmented coefficient matrix
+        with the set of solutions as the final column."""
+
+        self.augmented = True
         matrix_copy = self.array_copy()
         for i in range(len(self)):
             matrix_copy[i].append(solution[i][0])
@@ -290,6 +314,7 @@ class Matrix:
         """Function used to separate an augmented coefficient matrix into
         a standard coefficient matrix and a column matrix of solutions"""
 
+        self.augmented = False
         matrix, sol = [], []
         c = len(self[0]) - 1
         for i in range(len(self)):
@@ -318,6 +343,8 @@ class Matrix:
         return Matrix(clean_matrix)
 
     def rref(self):
+        """Function that puts matrix in reduced row echelon form"""
+
         adjust = 1 if self.augmented else 0
         pivot_row = -1
         # iterates across columns
@@ -358,6 +385,8 @@ class Matrix:
         return self
 
     def ref(self):
+        """Function that puts matrix in row echelon form."""
+
         adjust = 1 if self.augmented else 0
         pivot_row = -1
         # iterates across columns
@@ -398,34 +427,56 @@ class Matrix:
         return self
 
     def is_rref(self):
+        """Function that checks to see if matrix is in reduced row echelon form."""
+
+        # adjust prevents iterating last column if augmented
         adjust = 1 if self.augmented else 0
         pivot_col, pivot_row = [], []
         for j in range(len(self[0]) - adjust):
+            # iterate up from bottom row
             for i in range(len(self) - 1, -1, -1):
                 e = self[i][j]
+                # if non-zero entry in column with a pivot, this is not rref
                 if e != 0 and j in pivot_col:
                     return False
+                # if found a pivot in a row not already occupied by a pivot, then is legitimate pivot
                 if e == 1 and i not in pivot_row:
                     pivot_col.append(j)
                     pivot_row.append(i)
         return True
 
     def is_consistent(self):
+        """Function returns True if object is augmented and when in RREF has
+        no non-zero solutions in rows without pivots, otherwise returns False."""
+
         if not self.augmented:
             raise AttributeError("This function is reserved for augmented coefficient matrices")
-        for i in range(len(self) - 1, -1, -1):
-            for j in range(r := len(self[0])):
-                e = self[i][j]
+        matrix = self.copy()
+        if not matrix.is_rref():
+            matrix = matrix.rref()
+        # iterate from bottom up to top row
+        for i in range(len(matrix) - 1, -1, -1):
+            for j in range(r := len(matrix[0])):
+                e = matrix[i][j]
+                # if there is a pivot in this row, this row is consistent, move to next
                 if e == 1 and j < r - 1:
-                    return True
+                    break
+                # if no pivot found in row and there exists non-zero entry in final column, row is inconsistent
                 if e != 0 and j == r - 1:
                     return False
         return True
 
     def is_solvable(self):
+        """is_solvable returns True if object is a square matrix with null rows removed,
+        and False otherwise. If matrix is augmented, the column of solutions is not counted
+        towards object being square."""
+
+        # if not in rref, put it in that form
         if not self.is_rref():
             self.rref()
+        # get copy with no null rows
         matrix = self.copy().remove_null()
+        # if augmented, check for square excluding last column, otherwise check for square
         if self.augmented:
             if len(matrix) == len(matrix[0]) - 1:
                 return True
@@ -436,12 +487,10 @@ class Matrix:
 
     def solve(self):
         """
-        Solve is a function that attempts to solve a given system of linear equations
+        Solve is a function that attempts to solve a given system of linear equations.
 
-        Input is expected to be in the form:
-            matrix->numpy.array, either an augmented coefficient matrix with sol=None or standard matrix
-            sol->numpy.array, represents the set of solutions, if sol is None matrix is expected to be in
-            the form of an augmented coefficient matrix
+        Function expects to be called on an augmented coefficient matrix, not necessarily
+        in RREF. The function removes all null rows and attempts to solve using _solve_system.
         """
         if not self.augmented:
             raise AttributeError("This function is reserved for augmented coefficient matrices")
@@ -475,11 +524,11 @@ class Matrix:
         """
 
         r = len(matrix[0]) - 1
-        _vars = {}
 
         # base case, for each non-zero entry in the row, it is added to the dictionary of solutions, if there
         # are more than one non-zero entry, the system has free variables and False is returend
         if len(matrix) == 1:
+            _vars = {}
             for i in range(r):
                 if matrix[0][i] != 0:
                     _vars[i] = matrix[0][i]
@@ -526,6 +575,8 @@ class Matrix:
         return result
 
     def change_basis(self, basis):
+        """Returns object previously in standard basis now in given basis"""
+
         if not isinstance(basis, Matrix):
             raise TypeError("Basis must be a Matrix")
         return basis.invert() * self
@@ -533,9 +584,12 @@ class Matrix:
 
 class LinearMap(Matrix):
     def __init__(self, array):
-        super().__init__(array=array)
+        if isinstance(array, Matrix):
+            super().__init__(array=array.array)
+        else:
+            super().__init__(array=array)
 
-    def change_map_basis(self, in_basis=None, out_basis=None):
+    def change_basis(self, in_basis=None, out_basis=None):
         """Function that takes as input a linear map and at least one basis and outputs
         the linear map with a change of basis.
 
@@ -576,4 +630,10 @@ class LinearMap(Matrix):
         return out_basis.invert() * self * in_basis
 
     def map(self, other):
-        return self * other
+        """Applies linear map to matrix"""
+
+        if isinstance(other, (Matrix, numpy.ndarray, list)):
+            if len(self[0]) != len(other):
+                raise ValueError(f"This linear function maps from {len(self[0])} dimensions to "
+                                 f"{len(self)} dimensions, given: matrix in {len(other)} dimensions")
+            return self * other
