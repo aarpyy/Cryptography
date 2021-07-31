@@ -1,6 +1,7 @@
 import numpy
 from random import randint
 from warnings import warn
+from .tools import string_reduce
 
 
 class Matrix:
@@ -71,8 +72,9 @@ class Matrix:
     def __iter__(self):
         return self.array
 
-    def __str__(self):
+    def _str1(self):
         """ Returns formatted string matrix """
+
         for i in range(len(self)):
             for j in range(len(self[0])):
                 self[i][j] = numpy.round(self[i][j], decimals=3)
@@ -80,8 +82,38 @@ class Matrix:
         max_len = 0
         for row in self.array:
             for e in row:
-                if len(str(e)) > max_len:
+                if not isinstance(e, complex) and len(str(e)) > max_len:
                     max_len = len(str(e))
+                elif isinstance(e, complex):
+                    if e.real == 0 and e.imag == 0:
+                        if 1 > max_len:
+                            max_len = 1
+                    elif e.real == 0:
+                        imag = str(e.imag)
+                        lst_imag = imag.split(".")
+                        if lst_imag[1] == '0' and len(lst_imag[0]) + 2 > max_len:
+                            max_len = len(lst_imag[0]) + 2
+                        elif len(imag) > max_len:
+                            max_len = len(imag)
+                    elif e.imag == 0:
+                        real = str(e.real)
+                        lst_real = real.split(".")
+                        if lst_real[1] == '0' and len(lst_real[0]) > max_len:
+                            max_len = len(lst_real[0])
+                        elif len(real) > max_len:
+                            max_len = len(real)
+                    else:
+                        real, imag = str(e.real), str(e.imag)
+                        lst_real, lst_imag = real.split("."), imag.split(".")
+                        if lst_real[1] == '0' and lst_imag[1] == '0' and len(lst_real[0] + lst_imag[0]) + 3 > max_len:
+                            max_len = len(lst_real[0] + lst_imag[0]) + 2
+                        elif lst_real[1] == '0' and len(lst_real[0] + imag) + 1 > max_len:
+                            max_len = len(lst_real[0] + imag) + 1
+                        elif lst_imag[0] == '0' and len(lst_imag[0] + real) + 1 > max_len:
+                            max_len = len(lst_imag[0] + real) + 1
+                        elif len(real + imag) + 3 > max_len:
+                            max_len = len(real + imag) + 3
+
         padding = (max_len + 1) | 1
         formatted = "["
         for i in range(l := len(self.array)):
@@ -90,8 +122,100 @@ class Matrix:
             else:
                 formatted += " ["
             for j in range(len(self.array[0])):
-                e = str(self.array[i][j])
-                pad_left = (padding - len(e))//2
+                e = str(n := self.array[i][j])
+                if isinstance(n, complex):
+                    if n.real == 0 and n.imag == 0:
+                        e = "0"
+                    elif n.real == 0:
+                        lst_imag = str(n.imag).split(".")
+                        if n.imag == 1:
+                            e = "i"
+                        elif lst_imag[1] == '0':
+                            e = lst_imag[0] + "i"
+                        else:
+                            e = str(n.imag) + "i"
+                    elif n.imag == 0:
+                        lst_real = str(n.real).split(".")
+                        if lst_real[1] == '0':
+                            e = lst_real[0] + "i"
+                        else:
+                            e = str(n.real) + "i"
+                    else:
+                        lst_real, lst_imag = str(n.real).split("."), str(n.imag).split(".")
+                        if lst_imag[1] == '0':
+                            str_imag = lst_imag[0] + "i"
+                        else:
+                            str_imag = str(n.imag) + "i"
+                        if lst_real[1] == '0':
+                            str_real = lst_real[0]
+                        else:
+                            str_real = str(n.real)
+                        e = str_real + " " + str_imag
+                pad_left = (padding - len(e) + 1) // 2
+                pad_right = padding - len(e) - pad_left
+                if isinstance(n, complex):
+                    print(pad_left)
+                formatted += pad_left * " " + f"{e}" + " " * pad_right
+            if i == l - 1:
+                formatted += "]"
+            else:
+                formatted += "]\n"
+        return formatted + "]"
+
+    def __str__(self):
+        str_array = []
+        max_len = 0
+        for i in range(len(self)):
+            str_array.append([])
+            for j in range(len(self[0])):
+                n = self[i][j]
+                if isinstance(n, complex):
+                    str_real, str_imag = string_reduce(n.real), string_reduce(n.imag) + "i"
+                    print(str_real, str_imag)
+                    if abs(n.imag) == 1:
+                        str_imag = " i"
+                    if n.real == 0 and n.imag == 0:
+                        str_real = ""
+                    elif n.real == 0:
+                        if abs(n.imag) != 1:
+                            str_imag += "i"
+                        str_real = ""
+                    elif n.imag == 0:
+                        n.imag = ""
+                    if n.real != 0:
+                        if n.imag < 0:
+                            str_imag = " - " + str_imag[1:]
+                        else:
+                            str_imag = " + " + str_imag[1:]
+                    elif n.imag < 0:
+                        str_imag = "-" + str_imag[1:]
+                    string = str_real + str_imag
+                    if len(string) > max_len:
+                        max_len = len(string)
+                    str_array[i].append(string)
+                else:
+                    s = str(n).split(".")
+                    if len(s) == 1:
+                        str_array[i].append(str(n))
+                    elif s[1] == '0':
+                        if len(s[0]) > max_len:
+                            max_len = len(s[0])
+                        str_array[i].append(s[0])
+                    else:
+                        if len(str(n)) > max_len:
+                            max_len = len(str(n))
+                        str_array[i].append(str(n))
+
+        padding = (max_len + 2) | 1
+        formatted = "["
+        for i in range(l := len(str_array)):
+            if i == 0:
+                formatted += "["
+            else:
+                formatted += " ["
+            for j in range(len(str_array[0])):
+                e = str_array[i][j]
+                pad_left = (padding - len(e)) // 2
                 pad_right = padding - len(e) - pad_left
                 formatted += pad_left * " " + f"{e}" + " " * pad_right
             if i == l - 1:
@@ -216,8 +340,56 @@ class Matrix:
                 self[i][j] %= other
         return self.reset_type()
 
+    @classmethod
+    def make(cls, rows, cols, aug=False, by_row=True):
+        """Class method that takes number of rows and columns as input and returns a new instance of
+        a Matrix object with the values given by user.
+
+        Parameters
+        ----------
+        aug : bool
+            determines if matrix is an augmented coefficient matrix or not.
+        by_row : bool
+            determines if input from user is collected each row at a time, or each element at a time."""
+
+        array = []
+        if not by_row:
+            for i in range(rows):
+                array.append([])
+                for j in range(cols):
+                    n = input(f"{i + 1},{j + 1}: ")
+                    if "," in n:
+                        c = n.split(",")
+                        real = float(c[0])
+                        imag = float(c[1])
+                        array[i].append(complex(real, imag))
+                    else:
+                        array[i].append(float(n) if "." in n else int(n))
+        else:
+            for i in range(rows):
+                array.append([])
+                while True:
+                    try:
+                        row = input(f"row {i + 1}: ")
+                        values = row.split()
+                        if len(values) != cols:
+                            raise ValueError(f"You entered {len(values)} values, this matrix is expecting {cols}")
+                    except ValueError:
+                        continue
+                    else:
+                        break
+                for v in values:
+                    if "," in v:
+                        c = v.split(",")
+                        real = float(c[0])
+                        imag = float(c[1])
+                        array[i].append(complex(real, imag))
+                    else:
+                        array[i].append(float(v) if "." in v else int(v))
+        return Matrix(array=array, aug=aug)
+
     def invert(self):
-        """Inverts Matrix objecct using numpy.linalg.inv function."""
+        """Inverts Matrix object using numpy.linalg.inv function."""
 
         return Matrix(numpy.linalg.inv(self.array))
 
@@ -230,23 +402,6 @@ class Matrix:
             for i in range(len(self)):
                 matrix[j].append(self[i][j])
         return Matrix(matrix)
-
-    def make(self):
-        """Function iterates through entire matrix, prompting user for input for each cell and
-        subsequently changing value of cell to match input. Nothing is returned."""
-
-        rows = len(self.array)
-        cols = len(self.array[0])
-        for i in range(rows):
-            for j in range(cols):
-                n = input(f"{i + 1},{j + 1}: ")
-                if "," in n:
-                    c = n.split(",")
-                    real = float(c[0])
-                    imag = float(c[1])
-                    self.array[i][j] = complex(real, imag)
-                else:
-                    self.array[i][j] = float(n) if "." in n else int(n)
 
     def copy(self):
         """Returns exact copy of values of matrix in a new Matrix object."""
@@ -322,7 +477,7 @@ class Matrix:
         null_rows = []
         for i in range(c := len(self)):
             null = False
-            for j in range(r := len(self[0])):
+            for j in range(len(self[0])):
                 if self[i][j] != 0:
                     null = False
                     break
@@ -368,11 +523,11 @@ class Matrix:
                 for k in range(col_len):
                     e = matrix[k][j]
                     if k != pivot_row and e != 0:
-                        for l in range(row_len):
+                        for m in range(row_len):
                             # here, e represents the number of pivot row's needed to be removed to make i'th row have
                             # a zero entry in this column, ex. pivot row has 1 in column, i'th row as 3, removing 3 of
                             # pivot row will make i'th row have 0 in column
-                            matrix[k][l] -= matrix[pivot_row][l] * e
+                            matrix[k][m] -= matrix[pivot_row][m] * e
         return Matrix(matrix, aug=self.augmented).reset_type()
 
     def ref(self):
@@ -410,11 +565,11 @@ class Matrix:
                 for k in range(col_len):
                     e = matrix[k][j]
                     if k > pivot_row and e != 0:
-                        for l in range(row_len):
+                        for m in range(row_len):
                             # here, e represents the number of pivot row's needed to be removed to make i'th row have
                             # a zero entry in this column, ex. pivot row has 1 in column, i'th row as 3, removing 3 of
                             # pivot row will make i'th row have 0 in column
-                            matrix[k][l] -= matrix[pivot_row][l] * e
+                            matrix[k][m] -= matrix[pivot_row][m] * e
         return Matrix(matrix, aug=self.augmented).reset_type()
 
     def is_rref(self):
@@ -562,7 +717,7 @@ class Matrix:
         r = len(matrix[0]) - 1
 
         # base case, for each non-zero entry in the row, it is added to the dictionary of solutions, if there
-        # are more than one non-zero entry, the system has free variables and False is returend
+        # are more than one non-zero entry, the system has free variables and False is returned
         if len(matrix) == 1:
             _vars = {}
             for i in range(r):

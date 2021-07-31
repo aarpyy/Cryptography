@@ -84,7 +84,7 @@ def homework_9():
                  [2],
                  [1]])
     T = LinearMap([[0, 1, 0],
-                [1, 0, 0]])
+                   [1, 0, 0]])
 
     print("a)\ni)\n1/2 *")
     print(2 * a1.change_basis(b))

@@ -1,5 +1,5 @@
-"""The purpose of this file is to easily provide warnings to old code that should not be used
-but is left in the project."""
+"""The purpose of this file is to easily provide tools for use in this package that are not
+related to the content."""
 
 from warnings import warn, simplefilter
 from functools import wraps
@@ -25,3 +25,10 @@ def deprecated(func):
         return func(*args, **kwargs)
 
     return new_func
+
+
+def string_reduce(n):
+    s = str(n).split(".")
+    if len(s) == 1 or s[1] != '0':
+        return str(n)
+    return s[0]

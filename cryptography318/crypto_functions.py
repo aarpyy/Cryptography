@@ -1,7 +1,7 @@
 import operator
 from math import gcd, isqrt
 from .prime import IsPrime, NextPrime
-from .deprecated import deprecated
+from .tools import deprecated
 
 
 def apply(proc, lst):

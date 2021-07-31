@@ -6,6 +6,8 @@
   <component name="ChangeListManager">
     <list default="true" id="6ea76c49-18d8-4974-9f94-c2171563dd51" name="Default Changelist" comment="working on primality test, miller-rabin">
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/cryptography318/crypto_functions.py" beforeDir="false" afterPath="$PROJECT_DIR$/cryptography318/crypto_functions.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/cryptography318/deprecated.py" beforeDir="false" afterPath="$PROJECT_DIR$/cryptography318/tools.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/cryptography318/linear_algebra.py" beforeDir="false" afterPath="$PROJECT_DIR$/cryptography318/linear_algebra.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/tests/testMatrix.py" beforeDir="false" afterPath="$PROJECT_DIR$/tests/testMatrix.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/tests/testRandom.py" beforeDir="false" afterPath="$PROJECT_DIR$/tests/testRandom.py" afterDir="false" />
@@ -215,7 +217,9 @@
       <workItem from="1626810023790" duration="648000" />
       <workItem from="1626903251740" duration="2471000" />
       <workItem from="1627577851804" duration="3479000" />
-      <workItem from="1627589673665" duration="29480000" />
+      <workItem from="1627589673665" duration="30497000" />
+      <workItem from="1627675686761" duration="626000" />
+      <workItem from="1627679720521" duration="10947000" />
     </task>
     <task id="LOCAL-00001" summary="wrote some stuff for ps4.5, figured out problem with pohlig-hellman, bsgs in work">
       <created>1624923163169</created>
