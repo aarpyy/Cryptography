@@ -5,7 +5,7 @@
   </component>
   <component name="CMakeRunConfigurationManager" shouldGenerate="true" shouldDeleteObsolete="true">
     <generated>
-      <config projectName="TestProject" targetName="TestProject" />
+      <config projectName="Project" targetName="TestProject" />
     </generated>
   </component>
   <component name="CMakeSettings">
@@ -15,17 +15,8 @@
   </component>
   <component name="ChangeListManager">
     <list default="true" id="6ea76c49-18d8-4974-9f94-c2171563dd51" name="Default Changelist" comment="working on primality test, miller-rabin">
-      <change afterPath="$PROJECT_DIR$/cryptography318/prime.c" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/.idea/misc.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/misc.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/.idea/modules.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/modules.xml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/README.md" beforeDir="false" afterPath="$PROJECT_DIR$/README.md" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/cryptography318/crypto_functions.py" beforeDir="false" afterPath="$PROJECT_DIR$/cryptography318/crypto_functions.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/cryptography318/linear_algebra.py" beforeDir="false" afterPath="$PROJECT_DIR$/cryptography318/linear_algebra.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/tests/testFactor.py" beforeDir="false" afterPath="$PROJECT_DIR$/tests/test_factor.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/tests/testLinear.py" beforeDir="false" afterPath="$PROJECT_DIR$/tests/test_linear.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/tests/testMatrix.py" beforeDir="false" afterPath="$PROJECT_DIR$/tests/test_matrix.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/tests/testRandom.py" beforeDir="false" afterPath="$PROJECT_DIR$/tests/test_random.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/cryptography318/prime.c" beforeDir="false" afterPath="$PROJECT_DIR$/cryptography318/prime.c" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -86,9 +77,14 @@
     </key>
   </component>
   <component name="RunManager" selected="Python.test">
-    <configuration default="true" type="GradleAppRunConfiguration" factoryName="Application" REDIRECT_INPUT="false" ELEVATE="false" USE_EXTERNAL_CONSOLE="false" PASS_PARENT_ENVS_2="true">
+    <configuration default="true" type="CLionExternalRunConfiguration" factoryName="Application" REDIRECT_INPUT="false" ELEVATE="false" USE_EXTERNAL_CONSOLE="false" PASS_PARENT_ENVS_2="true">
       <method v="2">
-        <option name="com.jetbrains.cidr.cpp.gradle.execution.GradleNativeBuildBeforeRunTaskProvider$BuildBeforeRunTask" enabled="true" />
+        <option name="CLION.EXTERNAL.BUILD" enabled="true" />
+      </method>
+    </configuration>
+    <configuration default="true" type="CMakeRunConfiguration" factoryName="Application" REDIRECT_INPUT="false" ELEVATE="false" USE_EXTERNAL_CONSOLE="false" PASS_PARENT_ENVS_2="true">
+      <method v="2">
+        <option name="com.jetbrains.cidr.execution.CidrBuildBeforeRunTaskProvider$BuildBeforeRunTask" enabled="true" />
       </method>
     </configuration>
     <configuration default="true" type="PythonConfigurationType" factoryName="Python">
@@ -255,6 +251,7 @@
       <workItem from="1627675686761" duration="626000" />
       <workItem from="1627679720521" duration="31381000" />
       <workItem from="1627945419896" duration="261000" />
+      <workItem from="1627945992666" duration="1266000" />
     </task>
     <task id="LOCAL-00001" summary="wrote some stuff for ps4.5, figured out problem with pohlig-hellman, bsgs in work">
       <created>1624923163169</created>
