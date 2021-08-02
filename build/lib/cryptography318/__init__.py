@@ -1,10 +1,9 @@
 from .crypto_functions import (toBase, fromBase, StringToNum, NumToString, ApplyMult, ExtendedGCD, GCD, ModularInverse,
-                               MakeChineseRemainder, ChineseRemainder, BSGS, PohligHellman, DSA)
-from .matrix import (MakeMatrix, RandomMatrix, MultiplyMatrix, SquareMatrix, InvertMatrix, RREF, IsRREF, augmentMatrix,
-                     augRREF, augIsRREF, ResetType)
+                               makeChineseRemainder, ChineseRemainder, BSGS, PohligHellman, DSA, PollardP1, FactorInt,
+                               QuadraticSieve)
 from .bailliepsw_helper import Jacobi
-from .prime import IsPrime, MillerRabin_bases, RandomPrime, ConfirmPrime, NextPrime, PrevPrime, PollardP1, FactorInt
-from .linear_algebra import IsConsistent, Solve, IsSolveable
+from .prime import IsPrime, MillerRabin_bases, RandomPrime, ConfirmPrime, NextPrime, PrevPrime
+from .linear_algebra import Matrix, LinearMap
 import setuptools.version
 
 
