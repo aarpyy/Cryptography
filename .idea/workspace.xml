@@ -3,20 +3,37 @@
   <component name="AutoImportSettings">
     <option name="autoReloadType" value="SELECTIVE" />
   </component>
+  <component name="CMakeRunConfigurationManager" shouldGenerate="true" shouldDeleteObsolete="true">
+    <generated>
+      <config projectName="TestProject" targetName="TestProject" />
+    </generated>
+  </component>
+  <component name="CMakeSettings">
+    <configurations>
+      <configuration PROFILE_NAME="Debug" ENABLED="true" CONFIG_NAME="Debug" />
+    </configurations>
+  </component>
   <component name="ChangeListManager">
     <list default="true" id="6ea76c49-18d8-4974-9f94-c2171563dd51" name="Default Changelist" comment="working on primality test, miller-rabin">
+      <change afterPath="$PROJECT_DIR$/cryptography318/prime.c" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/.idea/misc.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/misc.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/.idea/modules.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/modules.xml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/README.md" beforeDir="false" afterPath="$PROJECT_DIR$/README.md" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/cryptography318/crypto_functions.py" beforeDir="false" afterPath="$PROJECT_DIR$/cryptography318/crypto_functions.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/cryptography318/linear_algebra.py" beforeDir="false" afterPath="$PROJECT_DIR$/cryptography318/linear_algebra.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/cryptography318/tools.py" beforeDir="false" afterPath="$PROJECT_DIR$/cryptography318/tools.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/setup.py" beforeDir="false" afterPath="$PROJECT_DIR$/setup.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/tests/testMatrix.py" beforeDir="false" afterPath="$PROJECT_DIR$/tests/testMatrix.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/tests/testRandom.py" beforeDir="false" afterPath="$PROJECT_DIR$/tests/testRandom.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/tests/testFactor.py" beforeDir="false" afterPath="$PROJECT_DIR$/tests/test_factor.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/tests/testLinear.py" beforeDir="false" afterPath="$PROJECT_DIR$/tests/test_linear.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/tests/testMatrix.py" beforeDir="false" afterPath="$PROJECT_DIR$/tests/test_matrix.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/tests/testRandom.py" beforeDir="false" afterPath="$PROJECT_DIR$/tests/test_random.py" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
     <option name="HIGHLIGHT_NON_ACTIVE_CHANGELIST" value="false" />
     <option name="LAST_RESOLUTION" value="IGNORE" />
+  </component>
+  <component name="ClangdSettings">
+    <option name="formatViaClangd" value="false" />
   </component>
   <component name="FileTemplateManagerImpl">
     <option name="RECENT_TEMPLATES">
@@ -48,8 +65,12 @@
     <property name="ASKED_ADD_EXTERNAL_FILES" value="true" />
     <property name="RunOnceActivity.OpenProjectViewOnStart" value="true" />
     <property name="RunOnceActivity.ShowReadmeOnStart" value="true" />
+    <property name="RunOnceActivity.cidr.known.project.marker" value="true" />
     <property name="SHARE_PROJECT_CONFIGURATION_FILES" value="true" />
     <property name="WebServerToolWindowFactoryState" value="false" />
+    <property name="cf.first.check.clang-format" value="false" />
+    <property name="cidr.known.project.marker" value="true" />
+    <property name="cmake.loaded.for.project" value="true" />
     <property name="last_opened_file_path" value="$PROJECT_DIR$" />
     <property name="node.js.detected.package.eslint" value="true" />
     <property name="node.js.detected.package.tslint" value="true" />
@@ -65,6 +86,11 @@
     </key>
   </component>
   <component name="RunManager" selected="Python.test">
+    <configuration default="true" type="GradleAppRunConfiguration" factoryName="Application" REDIRECT_INPUT="false" ELEVATE="false" USE_EXTERNAL_CONSOLE="false" PASS_PARENT_ENVS_2="true">
+      <method v="2">
+        <option name="com.jetbrains.cidr.cpp.gradle.execution.GradleNativeBuildBeforeRunTaskProvider$BuildBeforeRunTask" enabled="true" />
+      </method>
+    </configuration>
     <configuration default="true" type="PythonConfigurationType" factoryName="Python">
       <module name="cryptography318" />
       <option name="INTERPRETER_OPTIONS" value="" />
@@ -197,6 +223,13 @@
       <option name="INPUT_FILE" value="" />
       <method v="2" />
     </configuration>
+    <list>
+      <item itemvalue="Python.backtracking" />
+      <item itemvalue="Python.crypto_functions" />
+      <item itemvalue="Python.ps4.2" />
+      <item itemvalue="Python.ps4.5" />
+      <item itemvalue="Python.test" />
+    </list>
     <recent_temporary>
       <list>
         <item itemvalue="Python.test" />
@@ -220,7 +253,8 @@
       <workItem from="1627577851804" duration="3479000" />
       <workItem from="1627589673665" duration="30497000" />
       <workItem from="1627675686761" duration="626000" />
-      <workItem from="1627679720521" duration="25213000" />
+      <workItem from="1627679720521" duration="31381000" />
+      <workItem from="1627945419896" duration="261000" />
     </task>
     <task id="LOCAL-00001" summary="wrote some stuff for ps4.5, figured out problem with pohlig-hellman, bsgs in work">
       <created>1624923163169</created>

@@ -619,10 +619,10 @@ class Matrix:
         # if augmented, check for square excluding last column, otherwise check for square
         if self.augmented:
             if len(matrix) == len(matrix[0]) - 1:
-                return True
+                return matrix.is_consistent()
             return False
         if len(matrix) == len(matrix[0]):
-            return True
+            return matrix.is_consistent()
         return False
 
     def solve(self):

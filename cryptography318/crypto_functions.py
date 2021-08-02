@@ -395,13 +395,11 @@ def _factorPerfectSquare(N, B=7):
 
             p, q = gcd(a - b, N), gcd(a + b, N)
             if 1 < p < N and 1 < q < N:
-                print(f"p: {p}, q: {q}")
                 if p * q == N:
                     return {p: 1, q: 1}
                 return _factorWithKnown(p, q, N)
             if 1 < p < N:
                 q = N // p
-                print(f"p: {p}, q: {q}")
                 if IsPrime(q) and N == p * q:
                     return {p: 1, q: 1}
                 if IsPrime(q):
@@ -414,7 +412,6 @@ def _factorPerfectSquare(N, B=7):
                 return q_factors
             if 1 < q < N:
                 p = N // q
-                print(f"p: {p}, q: {q}")
                 if IsPrime(p) and N == p * q:
                     return {p: 1, q: 1}
                 if IsPrime(p):
@@ -438,8 +435,6 @@ def QuadraticSieve(N, B=None):
     if B is None:
         L = pow(e, sqrt(log(N) * log(log(N))))
         B = int(pow(L, 1 / sqrt(2)))
-        print(f"L: {L}\n"
-              f"B: {B}")
 
     m = PrimePi(B)
     sq = isqrt(N)
