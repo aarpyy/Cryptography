@@ -60,48 +60,22 @@ def testRREF():
         assert m.rref() == I_x
 
 
+def diagonal():
+    m = Matrix.diag([2, 3, 5, -2, 7])
+    print(m)
+
+
+def testBasis():
+    A = LinearMap([[2, 2],
+                   [1, 3]])
+    print(A.is_eigen_value(1))
+
+
 def testAllTests():
     testChangeBasis()
     testRankNull()
     testRREF()
 
 
-def homework_9():
-    """Problem 3.5.8"""
-    b = Matrix([[1, 1],
-                [1, -1]])
-    c = Matrix([[1, 1, 0],
-                [1, 0, 1],
-                [0, 1, 1]])
-    a1 = Matrix([[-2],
-                 [1]])
-    a2 = Matrix([[2],
-                 [3]])
-    a3 = Matrix([[1],
-                 [-2],
-                 [3]])
-    a4 = Matrix([[3],
-                 [2],
-                 [1]])
-    T = LinearMap([[0, 1, 0],
-                   [1, 0, 0]])
-
-    print("a)\ni)\n1/2 *")
-    print(2 * a1.change_basis(b))
-    print("\nii)\n1/2 *")
-    print(2 * a2.change_basis(b))
-    print("\niii)")
-    print(a3.change_basis(c))
-    print("\niv)")
-    print(a4.change_basis(c))
-    print("\nb)\nv)")
-    print(T.change_basis(in_basis=c))
-    print("\nvi)\n1/2 *")
-    print((2 * T.change_basis(out_basis=b)))
-    print("\nvii)\n1/2 *")
-    print((2 * T.change_basis(in_basis=c, out_basis=b)))
-
-
 if __name__ == '__main__':
-    # testAllTests()
-    homework_9()
+    testAllTests()

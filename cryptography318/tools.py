@@ -3,6 +3,7 @@ related to the content."""
 
 from warnings import warn, simplefilter
 from functools import wraps
+from numpy import round
 
 
 def deprecated(func):
@@ -30,5 +31,5 @@ def deprecated(func):
 def string_reduce(n):
     s = str(n).split(".")
     if len(s) == 1 or s[1] != '0':
-        return str(n)
+        return str(round(n, decimals=3))
     return s[0]

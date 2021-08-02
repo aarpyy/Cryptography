@@ -44,7 +44,7 @@ class Matrix:
                 matrix.append([])
                 for j in range(cols):
                     if i == j:
-                        matrix[i].append(1)
+                        matrix[i].append(1 if identity is True else identity)
                     else:
                         matrix[i].append(0)
             self.array = numpy.array(matrix)
@@ -72,96 +72,6 @@ class Matrix:
     def __iter__(self):
         return self.array
 
-    def _str1(self):
-        """ Returns formatted string matrix """
-
-        for i in range(len(self)):
-            for j in range(len(self[0])):
-                self[i][j] = numpy.round(self[i][j], decimals=3)
-
-        max_len = 0
-        for row in self.array:
-            for e in row:
-                if not isinstance(e, complex) and len(str(e)) > max_len:
-                    max_len = len(str(e))
-                elif isinstance(e, complex):
-                    if e.real == 0 and e.imag == 0:
-                        if 1 > max_len:
-                            max_len = 1
-                    elif e.real == 0:
-                        imag = str(e.imag)
-                        lst_imag = imag.split(".")
-                        if lst_imag[1] == '0' and len(lst_imag[0]) + 2 > max_len:
-                            max_len = len(lst_imag[0]) + 2
-                        elif len(imag) > max_len:
-                            max_len = len(imag)
-                    elif e.imag == 0:
-                        real = str(e.real)
-                        lst_real = real.split(".")
-                        if lst_real[1] == '0' and len(lst_real[0]) > max_len:
-                            max_len = len(lst_real[0])
-                        elif len(real) > max_len:
-                            max_len = len(real)
-                    else:
-                        real, imag = str(e.real), str(e.imag)
-                        lst_real, lst_imag = real.split("."), imag.split(".")
-                        if lst_real[1] == '0' and lst_imag[1] == '0' and len(lst_real[0] + lst_imag[0]) + 3 > max_len:
-                            max_len = len(lst_real[0] + lst_imag[0]) + 2
-                        elif lst_real[1] == '0' and len(lst_real[0] + imag) + 1 > max_len:
-                            max_len = len(lst_real[0] + imag) + 1
-                        elif lst_imag[0] == '0' and len(lst_imag[0] + real) + 1 > max_len:
-                            max_len = len(lst_imag[0] + real) + 1
-                        elif len(real + imag) + 3 > max_len:
-                            max_len = len(real + imag) + 3
-
-        padding = (max_len + 1) | 1
-        formatted = "["
-        for i in range(l := len(self.array)):
-            if i == 0:
-                formatted += "["
-            else:
-                formatted += " ["
-            for j in range(len(self.array[0])):
-                e = str(n := self.array[i][j])
-                if isinstance(n, complex):
-                    if n.real == 0 and n.imag == 0:
-                        e = "0"
-                    elif n.real == 0:
-                        lst_imag = str(n.imag).split(".")
-                        if n.imag == 1:
-                            e = "i"
-                        elif lst_imag[1] == '0':
-                            e = lst_imag[0] + "i"
-                        else:
-                            e = str(n.imag) + "i"
-                    elif n.imag == 0:
-                        lst_real = str(n.real).split(".")
-                        if lst_real[1] == '0':
-                            e = lst_real[0] + "i"
-                        else:
-                            e = str(n.real) + "i"
-                    else:
-                        lst_real, lst_imag = str(n.real).split("."), str(n.imag).split(".")
-                        if lst_imag[1] == '0':
-                            str_imag = lst_imag[0] + "i"
-                        else:
-                            str_imag = str(n.imag) + "i"
-                        if lst_real[1] == '0':
-                            str_real = lst_real[0]
-                        else:
-                            str_real = str(n.real)
-                        e = str_real + " " + str_imag
-                pad_left = (padding - len(e) + 1) // 2
-                pad_right = padding - len(e) - pad_left
-                if isinstance(n, complex):
-                    print(pad_left)
-                formatted += pad_left * " " + f"{e}" + " " * pad_right
-            if i == l - 1:
-                formatted += "]"
-            else:
-                formatted += "]\n"
-        return formatted + "]"
-
     def __str__(self):
         str_array = []
         max_len = 0
@@ -171,42 +81,28 @@ class Matrix:
                 n = self[i][j]
                 if isinstance(n, complex):
                     str_real, str_imag = string_reduce(n.real), string_reduce(n.imag) + "i"
-                    print(str_real, str_imag)
+                    if n.imag < 0:
+                        str_imag = str_imag[1:]
                     if abs(n.imag) == 1:
-                        str_imag = " i"
+                        str_imag = "i"
                     if n.real == 0 and n.imag == 0:
-                        str_real = ""
-                    elif n.real == 0:
-                        if abs(n.imag) != 1:
-                            str_imag += "i"
-                        str_real = ""
-                    elif n.imag == 0:
-                        n.imag = ""
-                    if n.real != 0:
-                        if n.imag < 0:
-                            str_imag = " - " + str_imag[1:]
-                        else:
-                            str_imag = " + " + str_imag[1:]
+                        string = "0"
+                    elif n.real == 0 and n.imag < 0:
+                        string = "-" + str_imag
                     elif n.imag < 0:
-                        str_imag = "-" + str_imag[1:]
-                    string = str_real + str_imag
+                        string = str_real + " - " + str_imag
+                    else:
+                        string = str_real + " + " + str_imag
+                    if len(string) + 1 > max_len:
+                        max_len = len(string) + 1
+                    str_array[i].append(string)
+                else:
+                    string = string_reduce(n)
                     if len(string) > max_len:
                         max_len = len(string)
                     str_array[i].append(string)
-                else:
-                    s = str(n).split(".")
-                    if len(s) == 1:
-                        str_array[i].append(str(n))
-                    elif s[1] == '0':
-                        if len(s[0]) > max_len:
-                            max_len = len(s[0])
-                        str_array[i].append(s[0])
-                    else:
-                        if len(str(n)) > max_len:
-                            max_len = len(str(n))
-                        str_array[i].append(str(n))
 
-        padding = (max_len + 2) | 1
+        padding = (max_len + 1) | 1
         formatted = "["
         for i in range(l := len(str_array)):
             if i == 0:
@@ -386,7 +282,59 @@ class Matrix:
                         array[i].append(complex(real, imag))
                     else:
                         array[i].append(float(v) if "." in v else int(v))
-        return Matrix(array=array, aug=aug)
+        return cls(array=array, aug=aug)
+
+    @classmethod
+    def diag(cls, scalars):
+        matrix = cls(rows=len(scalars), cols=len(scalars), identity=True)
+        for i in range(len(scalars)):
+            matrix[i][i] = scalars[i]
+        return matrix
+
+    @classmethod
+    def make_basis(cls, in_basis=None, out_basis=None):
+        """
+        make_basis creates a new Matrix object which represents the change-of-basis matrix between
+        the given in_basis and out_basis if both are given. in_basis determines the basis that this
+        change-of-basis matrix can be applied to. out_basis determines the basis that the output of
+        applying this matrix to a vector will be given in.
+
+        ex.
+            in_basis = Matrix([[1, 2], [2, -1]])
+            out_basis = Matrix([[1, 1], [1, -1]])
+
+            With just in_basis, this change of basis matrix would be the in_basis. This converts each
+            input matrix from the same basis as in_basis into the standard basis for output.
+            With just out_basis, this change of basis matrix would be the inverse of out_basis. Applying
+            this simply returns the input matrix given in the basis of out_basis.
+            With both, this change of basis matrix is the inverse of in_basis multiplied against the
+            out_basis, making the matrix first convert input from in_basis into standard basis, then
+            from standard basis into out_basis, except this is done in one step since both steps are
+            combined into the multiplication of out_basis.invert() * in_basis.
+
+        Parameters
+        ----------
+        out_basis : Matrix
+            a square matrix that represents a given basis for an n-dimensional vector space, this basis will be the basis
+        of matrices that this matrix will be applied to
+
+        in_basis : Matrix
+            a square matrix that represents a given basis for an n-dimensional vector space, this basis will be the basis
+        of matrices that are produced by applying this matrix to another
+        """
+        if in_basis is None and out_basis is None:
+            raise ValueError("make_basis requires at least one basis")
+        if in_basis is None:
+            if len(out_basis) != len(out_basis[0]):
+                raise ValueError("Basis must be square matrix")
+            return out_basis.invert()
+        if out_basis is None:
+            if len(in_basis) != len(in_basis[0]):
+                raise ValueError("Basis must be square matrix")
+            return in_basis
+        if not all(length == len(in_basis) for length in [len(out_basis), len(out_basis[0]), len(in_basis[0])]):
+            raise ValueError("Bases must be square matrix")
+        return out_basis.invert() * in_basis
 
     def invert(self):
         """Inverts Matrix object using numpy.linalg.inv function."""
@@ -435,7 +383,7 @@ class Matrix:
         """Attempts to reset matrix to smaller floats or integers if possible. If matrix has
         complex numbers they are left un-modified."""
 
-        matrix = self.astype(numpy.float16).array_copy()
+        matrix = self.astype(numpy.float32).array_copy()
         for i in range(len(self)):
             for j in range(len(self[0])):
                 try:
@@ -446,9 +394,10 @@ class Matrix:
                         matrix[i][j] = 0
                     s = str(e).split(".")
                     if len(s) == 1 or s[1] == '0':
-                        matrix[i][j] = numpy.int64(self[i][j])
+                        matrix[i][j] = numpy.int64(matrix[i][j])
                 except OverflowError:
                     continue
+
         return Matrix(matrix, aug=self.augmented)
 
     def augment(self, solution):
@@ -772,6 +721,13 @@ class Matrix:
             raise TypeError("Basis must be a Matrix")
         return basis.invert() * self
 
+    def revert_basis(self, basis):
+        """Returns object previously in given basis now in standard basis"""
+
+        if not isinstance(basis, Matrix):
+            raise TypeError("Basis must be a Matrix")
+        return basis * self
+
     def is_basis(self):
         if len(self) != len(self[0]):
             return False
@@ -779,6 +735,18 @@ class Matrix:
         if not matrix.is_rref():
             matrix = matrix.rref()
         return matrix == Matrix(rows=len(self), cols=len(self), identity=True)
+
+    def to_vector(self):
+        """Function that converts m x n Matrix into n columns vectors of
+        length m."""
+
+        columns = []
+        for j in range(len(self[0])):
+            vector = []
+            for i in range(len(self)):
+                vector.append([self[i][j]])
+            columns.append(Matrix(vector))
+        return columns
 
 
 class LinearMap(Matrix):
@@ -831,6 +799,11 @@ class LinearMap(Matrix):
 
         pass
 
+    def revert_basis(self, basis):
+        """revert_basis function is incorporated in inherited change_basis function."""
+
+        pass
+
     def domain_dimension(self):
         return len(self[0])
 
@@ -858,24 +831,32 @@ class LinearMap(Matrix):
         if in_basis is None and out_basis is None:
             raise ValueError("Make sure to enter at least one basis")
 
-        inputs = [self, in_basis, out_basis]
-        for e in inputs:
-            if e is not None and not isinstance(e, Matrix):
-                raise ValueError("All input must be type Matrix")
+        if not all(isinstance(e, Matrix) or e is None for e in [self, in_basis, out_basis]):
+            raise ValueError("All input must be type Matrix")
 
         if in_basis is None:
             if len(out_basis) != len(out_basis[0]):
                 raise ValueError("Basis must be square matrix")
-            return out_basis.invert() * self
+            return LinearMap(out_basis.invert() * self)
 
         if out_basis is None:
             if len(in_basis) != len(in_basis[0]):
                 raise ValueError("Basis must be square matrix")
-            return self * in_basis
+            return LinearMap(self * in_basis)
 
         if len(in_basis) != len(in_basis[0]) or len(out_basis) != len(out_basis[0]):
             raise ValueError("Bases must be square matrix")
-        return out_basis.invert() * self * in_basis
+        # order of operations here is very important, first convert Te,e -> Tb,e converting T so that it takes input
+        # in base b and output in e, then Tb,e -> Tb,b, converting T output to base b also
+        return LinearMap(out_basis.invert() * (self * in_basis))
+
+    def in_basis(self, basis):
+        """This function converts a linear map into a new basis entirely, so that both input and output
+        are in the given basis. This is a helper function that makes change_basis easier to work with."""
+
+        if not all(length == len(self) for length in [len(self[0]), len(basis), len(basis[0])]):
+            raise AttributeError("This function only works with square matrices for both basis and map")
+        return self.change_basis(in_basis=basis, out_basis=basis)
 
     def map(self, other):
         """Applies linear map to matrix"""
@@ -893,34 +874,36 @@ class LinearMap(Matrix):
 
         from statistics import mean
 
-        if len(self[0]) == len(vector):
-            # maps vector with linear map
-            eigen_vector = self.map(vector)
-            eigen_value = []
-            # iterates through column vector, checking to see if each element of the new eigen vector
-            # is a scalar of the original vector, if one is zero the other must also be zero or it is not
-            # an eigen vector
-            for i in range(len(vector)):
-                v1 = vector[i][0]
-                ev1 = eigen_vector[i][0]
-                if v1 == 0 or ev1 == 0:
-                    if v1 != ev1:
-                        return False
-                    continue
-                value = ev1 / v1
-                if value not in eigen_value:
-                    eigen_value.append(value)
-
-            # if all scalars were the exact same, return the eigenvalue
-            if len(eigen_value) == 1:
-                return eigen_value.pop()
-            # if scalars were different enough, return False, but if all were within 0.1 of each other, this
-            # is being considered an eigenvector, and the average of the eigenvalues is returned
-            for i in range(len(eigen_value) - 1):
-                e1, e2 = eigen_value[i], eigen_value[i + 1]
-                if abs(e1 - e2) > 0.1:
+        if len(self[0]) != len(vector):
+            raise AttributeError(f"Eigenvector must have dimension {len(self[0])}. Given: vector with dimension "
+                                 f"{len(vector)}")
+        # maps vector with linear map
+        eigen_vector = self.map(vector)
+        eigen_value = []
+        # iterates through column vector, checking to see if each element of the new eigen vector
+        # is a scalar of the original vector, if one is zero the other must also be zero or it is not
+        # an eigen vector
+        for i in range(len(vector)):
+            v1 = vector[i][0]
+            ev1 = eigen_vector[i][0]
+            if v1 == 0 or ev1 == 0:
+                if v1 != ev1:
                     return False
-            return numpy.round(mean(eigen_value), decimals=3)
+                continue
+            value = ev1 / v1
+            if value not in eigen_value:
+                eigen_value.append(value)
+
+        # if all scalars were the exact same, return the eigenvalue
+        if len(eigen_value) == 1:
+            return eigen_value.pop()
+        # if scalars were different enough, return False, but if all were within 0.1 of each other, this
+        # is being considered an eigenvector, and the average of the eigenvalues is returned
+        for i in range(len(eigen_value) - 1):
+            e1, e2 = eigen_value[i], eigen_value[i + 1]
+            if abs(e1 - e2) > 0.1:
+                return False
+        return numpy.round(mean(eigen_value), decimals=3)
 
     def is_eigen_value(self, value):
         """Function that takes in possible eigenvalue and returns True if value is eigenvalue, False otherwise.
@@ -929,14 +912,5 @@ class LinearMap(Matrix):
         if len(self) != len(self[0]):
             raise AttributeError("This function only works with square maps")
 
-        # sets matrix equal to (T - eI) where T is the linear map, e is the potential eigen value, and
-        # I is the identity matrix
-        matrix = self - value * Matrix(rows=len(self), cols=len(self), identity=True)
-        # augments matrix with a column vector = 0, this is equivalent to the homogenous system Tx = 0
-        # whose solution is equivalent to the kernel of T, if the kernel is {0} this is not an eigenvalue
-        matrix = matrix.augment(solution=Matrix(rows=len(self), cols=1)).rref()
-        # if the number of free variables is 0 then the kernel is guaranteed to be {0} and thus value is not
-        # an eigenvalue, otherwise the kernel will be greater than the empty set and thus value is an eigenvalue
-        if matrix.free_vars() == 0:
-            return False
-        return True
+        matrix = self - Matrix(rows=len(self), cols=len(self), identity=value)
+        return numpy.linalg.det(matrix.array) == 0

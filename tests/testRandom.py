@@ -29,60 +29,9 @@ T = Matrix([[0, 1, 0],
 
 m = Matrix([[complex(0, 1), complex(4, -2)],
             [complex(1, 2), complex(2, 1)]])
-print(m)
-print(T)
+a = Matrix([[0.1, 1.0, -2],
+            [1.0, 4.5, 0]])
+for v in a.to_vector():
+    print(v)
 
 
-
-# print("3.5.8 a)")
-# print(f"i) \n{ChangeBasis(a1, b)}\n")
-# print(f"ii) \n{ChangeBasis(a2, b)}\n")
-# print(f"iii) \n{ChangeBasis(a3, c)}\n")
-# print(f"iv) \n{ChangeBasis(a4, c)}\n")
-# print(f"v) \n{ChangeBasisMap(T, in_basis=c)}\n")
-# print(f"vi) \n{ChangeBasisMap(T, out_basis=b)}\n")
-# print(f"vii) \n{ChangeBasisMap(T, in_basis=c, out_basis=b)}\n")
-
-
-
-
-# imag = n.imag
-#                     if n.imag < 1:
-#                         imag = n.imag * -1
-#                         str_imag += "-"
-#                     else:
-#                         str_imag += "+"
-#                     if n.real == 0 and imag == 0:
-#                         str_real = "0"
-#                     elif n.real == 0 and (imag == 1 or imag == -1):
-#                         str_imag += " i"
-#                     elif n.real == 0:
-#                         s = str(imag).split(".")
-#                         if s[1] == '0':
-#                             str_imag += s[0] + "i"
-#                         else:
-#                             str_imag += str(imag) + "i"
-#                         str_imag = str_imag[2:]
-#                     elif n.imag == 0:
-#                         s = str(n.real).split(".")
-#                         if s[1] == '0':
-#                             str_real = s[0]
-#                         else:
-#                             str_real = str(n.real)
-#                     else:
-#                         s = str(n.real).split(".")
-#                         if s[1] == '0':
-#                             str_real = s[0]
-#                         else:
-#                             str_real = str(n.real)
-#                         s = str(imag).split(".")
-#                         if imag == 1:
-#                             str_imag += " i"
-#                         elif s[1] == '0':
-#                             str_imag += " " + s[0] + "i"
-#                         else:
-#                             str_imag += " " + str(imag) + "i"
-#                     string = str_real + " " + str_imag
-#                     if len(string) > max_len:
-#                         max_len = len(string)
-#                     str_array[i].append(string)
