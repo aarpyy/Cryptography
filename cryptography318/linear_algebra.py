@@ -4,6 +4,18 @@ from warnings import warn
 from .tools import string_reduce
 
 
+def where(array, if_exp=None, else_exp=None):
+    if isinstance(array, Matrix):
+        if if_exp is None and else_exp is None:
+            return numpy.where(array.array)
+        return numpy.where(array.array, if_exp, else_exp)
+    if isinstance(array, numpy.ndarray):
+        if if_exp is None and else_exp is None:
+            return numpy.where(array)
+        return numpy.where(array, if_exp, else_exp)
+    raise TypeError("where only accepts Matrix or numpy.ndarray objects")
+
+
 class Matrix:
     def __init__(self, array=None, rows=None, cols=None, rand=False, identity=False, aug=False, solution=None):
         self.augmented = False
@@ -70,7 +82,7 @@ class Matrix:
         return len(self.array)
 
     def __iter__(self):
-        return self.array
+        return iter(self.array)
 
     def __str__(self):
         str_array = []
@@ -95,6 +107,11 @@ class Matrix:
                         string = str_real + " + " + str_imag
                     if len(string) + 1 > max_len:
                         max_len = len(string) + 1
+                    str_array[i].append(string)
+                elif isinstance(n, (bool, numpy.bool_)):
+                    string = str(n)
+                    if len(string) > max_len:
+                        max_len = len(string)
                     str_array[i].append(string)
                 else:
                     string = string_reduce(n)
@@ -129,7 +146,43 @@ class Matrix:
                     if abs(self[i][j] - other[i][j]) > 0.5:
                         return False
             return True
+
+        if isinstance(other, (int, float, numpy.int, numpy.float)):
+            binary_matrix = []
+            for i, row in enumerate(self):
+                binary_matrix.append([])
+                for e in row:
+                    binary_matrix[i].append(True if e == other else False)
+            return Matrix(binary_matrix)
         raise TypeError(f"Cannot compare objects of type Matrix and type {type(other)}")
+
+    def __lt__(self, other):
+        if isinstance(other, (int, float, numpy.int, numpy.float, numpy.ndarray)):
+            return Matrix(self.array < other)
+        if isinstance(other, Matrix):
+            return Matrix(self.array < other.array)
+        raise TypeError(f"Cannot compare between type Matrix and type {type(other)}")
+
+    def __le__(self, other):
+        if isinstance(other, (int, float, numpy.int, numpy.float, numpy.ndarray)):
+            return Matrix(self.array <= other)
+        if isinstance(other, Matrix):
+            return Matrix(self.array <= other.array)
+        raise TypeError(f"Cannot compare between type Matrix and type {type(other)}")
+
+    def __gt__(self, other):
+        if isinstance(other, (int, float, numpy.int, numpy.float, numpy.ndarray)):
+            return Matrix(self.array > other)
+        if isinstance(other, Matrix):
+            return Matrix(self.array > other.array)
+        raise TypeError(f"Cannot compare between type Matrix and type {type(other)}")
+
+    def __ge__(self, other):
+        if isinstance(other, (int, float, numpy.int, numpy.float, numpy.ndarray)):
+            return Matrix(self.array >= other)
+        if isinstance(other, Matrix):
+            return Matrix(self.array >= other.array)
+        raise TypeError(f"Cannot compare between type Matrix and type {type(other)}")
 
     def __mul__(self, other):
         if isinstance(other, (Matrix, numpy.ndarray, list)):
@@ -141,7 +194,7 @@ class Matrix:
             return Matrix(numpy.matmul(self.array, other)).reset_type()
         if isinstance(other, list):
             return Matrix(numpy.matmul(self.array, numpy.array(other))).reset_type()
-        if isinstance(other, int) or isinstance(other, float):
+        if isinstance(other, (int, float, numpy.int, numpy.float)):
             warn("Proper syntax assumes scalar comes before matrix in scalar-matrix multiplication", SyntaxWarning)
             matrix = self.copy()
             for i in range(len(self.array)):
@@ -160,7 +213,7 @@ class Matrix:
             return Matrix(numpy.matmul(other, self.array)).reset_type()
         if isinstance(other, list):
             return Matrix(numpy.matmul(numpy.array(list), self.array)).reset_type()
-        if isinstance(other, int) or isinstance(other, float):
+        if isinstance(other, (int, float, numpy.int, numpy.float)):
             matrix = self.copy()
             for i in range(len(self)):
                 for j in range(len(self[0])):
@@ -181,9 +234,13 @@ class Matrix:
                 for j in range(len(self[0])):
                     matrix_sum[i].append(self[i][j] + other[i][j])
             return Matrix(matrix_sum, aug=self.augmented).reset_type()
+        if isinstance(other, (int, float, numpy.int, numpy.float)):
+            return Matrix(self.array + other, aug=self.augmented)
         raise TypeError("Matrix addition must be done between two matrices")
 
     def __radd__(self, other):
+        if isinstance(other, (int, float, numpy.int, numpy.float)):
+            raise TypeError("Cannot add matrix to number")
         return self.__add__(other)
 
     def __sub__(self, other):
@@ -199,7 +256,9 @@ class Matrix:
                 for j in range(len(self[0])):
                     matrix_sum[i].append(self[i][j] - other[i][j])
             return Matrix(matrix_sum, aug=self.augmented).reset_type()
-        raise TypeError("Matrix addition must be done between two matrices")
+        if isinstance(other, (int, float, numpy.int, numpy.float)):
+            return Matrix(self.array - other, aug=self.augmented)
+        raise TypeError("Matrix subtraction must be done between two matrices")
 
     def __rsub__(self, other):
         if isinstance(other, (list, numpy.ndarray, Matrix)):
@@ -214,7 +273,20 @@ class Matrix:
                 for j in range(len(self[0])):
                     matrix_sum[i].append(other[i][j] - self[i][j])
             return Matrix(matrix_sum, aug=self.augmented).reset_type()
-        raise TypeError("Matrix addition must be done between two matrices")
+        raise TypeError("Matrix subtraction must be done between two matrices")
+
+    def __floordiv__(self, other):
+        if isinstance(other, (int, float, numpy.int, numpy.float)):
+            self.array //= other
+            return self
+        raise TypeError("Matrix division only accepts number divisors")
+
+    def __truediv__(self, other):
+        if isinstance(other, (int, float, numpy.int, numpy.float)):
+            matrix = self.astype(numpy.float64)
+            matrix.array /= other
+            return matrix
+        raise TypeError("Matrix division only accepts number divisors")
 
     def __pow__(self, power, modulo=None):
         if not isinstance(power, int) or (power < 1 and power != -1):
@@ -335,6 +407,31 @@ class Matrix:
         if not all(length == len(in_basis) for length in [len(out_basis), len(out_basis[0]), len(in_basis[0])]):
             raise ValueError("Bases must be square matrix")
         return out_basis.invert() * in_basis
+
+    def append(self, row):
+        def assert_len(obj):
+            if len(obj) != len(self[0]):
+                raise ValueError(f"Unable to append. Length should be {len(self[0])} not {len(obj)}")
+
+        if not isinstance(row, (list, numpy.ndarray, Matrix)):
+            raise TypeError("Can only append items of type list, numpy.ndarray, or Matrix to Matrix object")
+        if isinstance(row, (numpy.ndarray, Matrix)):
+            matrix = self.array_copy()
+            if isinstance(row[0], (list, numpy.ndarray)):
+                for r in row:
+                    assert_len(r)
+                    matrix.append(r)
+                self.array = numpy.array(matrix)
+                return
+            assert_len(row)
+            matrix.append(list(row))
+            self.array = numpy.array(matrix)
+        if isinstance(row, list):
+            new_matrix = self.array_copy()
+            assert_len(row)
+            new_matrix.append(row)
+            self.array = numpy.array(new_matrix)
+            return
 
     def invert(self):
         """Inverts Matrix object using numpy.linalg.inv function."""
@@ -458,6 +555,7 @@ class Matrix:
                     # shifts entire row by factor that makes first entry = 1, therefore is pivot
                     for k in range(row_len):
                         matrix[i][k] /= e
+                    # matrix[i] /= e
                     # pivot row increases from where it last was, so that new row will be one below last pivot row
                     pivot_row += 1
                     # if pivot row isn't current one, swap so that row with pivot comes directly after previous pivot
@@ -473,10 +571,11 @@ class Matrix:
                     e = matrix[k][j]
                     if k != pivot_row and e != 0:
                         for m in range(row_len):
-                            # here, e represents the number of pivot row's needed to be removed to make i'th row have
-                            # a zero entry in this column, ex. pivot row has 1 in column, i'th row as 3, removing 3 of
-                            # pivot row will make i'th row have 0 in column
+                        # here, e represents the number of pivot row's needed to be removed to make i'th row have
+                        # a zero entry in this column, ex. pivot row has 1 in column, i'th row as 3, removing 3 of
+                        # pivot row will make i'th row have 0 in column
                             matrix[k][m] -= matrix[pivot_row][m] * e
+                        # matrix[k] -= (e * matrix[pivot_row])
         return Matrix(matrix, aug=self.augmented).reset_type()
 
     def ref(self):
@@ -497,8 +596,9 @@ class Matrix:
                     # shifts entire row by factor that makes first entry = 1, therefore is pivot
                     # print(f"e = {e}, m[i] before shift: {m[i]}")
                     # print(shift)
-                    for k in range(row_len):
-                        matrix[i][k] /= e
+                    # for k in range(row_len):
+                    #     matrix[i][k] /= e
+                    matrix[i] /= e
                     # print(m[i])
                     # pivot row increases from where it last was, so that new row will be one below last pivot row
                     pivot_row += 1
@@ -514,11 +614,12 @@ class Matrix:
                 for k in range(col_len):
                     e = matrix[k][j]
                     if k > pivot_row and e != 0:
-                        for m in range(row_len):
-                            # here, e represents the number of pivot row's needed to be removed to make i'th row have
-                            # a zero entry in this column, ex. pivot row has 1 in column, i'th row as 3, removing 3 of
-                            # pivot row will make i'th row have 0 in column
-                            matrix[k][m] -= matrix[pivot_row][m] * e
+                        # for m in range(row_len):
+                        # here, e represents the number of pivot row's needed to be removed to make i'th row have
+                        # a zero entry in this column, ex. pivot row has 1 in column, i'th row as 3, removing 3 of
+                        # pivot row will make i'th row have 0 in column
+                            # matrix[k][m] -= matrix[pivot_row][m] * e
+                        matrix[k] -= matrix[pivot_row] * e
         return Matrix(matrix, aug=self.augmented).reset_type()
 
     def is_rref(self):

@@ -32,15 +32,6 @@ def KnownPrime(n, first_n=50):
     return None
 
 
-def test_cprime(n):
-    if n >= 7999252175582851:
-        print(f"Prime candidate {n} too large. Using IsPrime")
-        return IsPrime(n)
-    libname = pathlib.Path().absolute() / "cryptography318/libprime.so"
-    c_lib = ctypes.CDLL(libname)
-    return False if c_lib.is_prime(n) == 0 else True
-
-
 def IsPrime(n):
     """
     IsPrime function returns False iff the prime-candidate is composite, and True

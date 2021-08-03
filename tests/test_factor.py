@@ -12,10 +12,34 @@ def test_factor_perfect_square():
     assert n == 198103
 
 
-def test_factor_int(power=6):
+def test_factor_int(power=1):
+    from itertools import combinations as _all
+
+    def same_combination(lst1, lst2):
+        not_same = 0
+        for term in lst1:
+            in_other = False
+            for term1 in lst2:
+                same = 0
+                for t in term:
+                    if t not in term1:
+                        continue
+                    same += 1
+                if same == len(term):
+                    in_other = True
+                    break
+            if not in_other:
+                not_same += 1
+        return not_same == 0
+    import timeit
     p = RandomPrime(pow(10, power), pow(10, power + 1)) * RandomPrime(pow(10, power + 1), pow(10, power + 2))
-    factors = FactorInt(p)
-    assert p == prod(map(lambda b, e: pow(b, e), factors.keys(), factors.values()))
+    # factors = FactorInt(p)
+    # assert p == prod(map(lambda b, e: pow(b, e), factors.keys(), factors.values()))
+    print(timeit.timeit(lambda: QuadraticSieve(p), number=100))
+    print(timeit.timeit(lambda: FactorInt(p), number=100))
+
+
+
 
 
 def test_all_tests():

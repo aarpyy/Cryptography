@@ -2,6 +2,7 @@ import operator
 from math import gcd, isqrt
 from .prime import IsPrime, NextPrime
 from .tools import deprecated
+from .linear_algebra import Matrix
 
 
 def apply(proc, lst):
@@ -26,9 +27,8 @@ def toBase(n, base):
     list_coeff = [0 for _ in range(exp + 1)]
     ind = 0
     for i in range(exp, -1, -1):
-        k = n // pow(base, i)
+        k, n = divmod(n, pow(base, i))
         list_coeff[ind] = k
-        n -= k * pow(base, i)
         ind += 1
 
     return list_coeff
@@ -114,6 +114,17 @@ def BSmoothQ(n, B):
     return True if n == 1 else False
 
 
+def factor_base_exp(n, factors):
+    """Function that takes in number and list of factors and returns a list of each of the powers of each factor."""
+
+    exp = [0] * len(factors)
+    for i, f in enumerate(factors):
+        while n % f == 0:
+            n //= f
+            exp[i] += 1
+    return exp
+
+
 def makeChineseRemainder():
     # gets lists of solutions and moduli from user for chinese remainder
     nums, mods = [], []
@@ -148,7 +159,8 @@ def ChineseRemainder(nums, mods):
     return acc
 
 
-def BSGS(g, h, p, prog=False, N=None):
+def baby_step_giant_step(g, h, p, prog=False, N=None):
+    """Function attempts to solve DLP using classic baby-step-giant-step algorithm."""
     if N is None:
         N = p - 1
     n = isqrt(N) + 1
@@ -193,13 +205,42 @@ def BSGS(g, h, p, prog=False, N=None):
     return None
 
 
-def PohligHellman(g, h, p, q, exp, prog=False):
+def solve_DLP(g, h, p):
+    """Function attempts to solve DLP by solving other smaller DLP's and combining into system of equations."""
+
+    from math import e, sqrt, log
+    from functools import reduce
+
+    L = pow(e, sqrt(log(p) * log(log(p))))
+    B = int(pow(L, 1 / sqrt(2)))
+
+    primes = PrimesLT(B)
+
+    logs = {}
+    for n in primes:
+        logs[n] = baby_step_giant_step(g, n, p)
+    print(logs)
+    return
+
+    k = 0
+    while True:
+        k += 1
+        x = (h * pow(g, -k, p)) % p
+        if BSmoothQ(x, B):
+            exponents = factor_base_exp(x, primes)
+            # reduce sums list returned by map, which returns list of products of exponents and logs
+            return reduce(lambda a, b: a + b, list(map(lambda i, n: i * logs[n], exponents, logs))) + k
+
+
+def pohlig_hellman(g, h, p, q, exp, prog=False):
+    """Function attempts to solve DLP mod p where order of g, q, is some prime raised to a power."""
+
     X = []
     if prog:
         print("Starting process for X0")
 
     r = pow(g, pow(q, exp - 1), p)
-    X0 = BSGS(r, pow(h, pow(q, exp - 1), p), p, prog, q)
+    X0 = baby_step_giant_step(r, pow(h, pow(q, exp - 1), p), p, prog, q)
     X.append(X0)
 
     if prog:
@@ -210,7 +251,7 @@ def PohligHellman(g, h, p, q, exp, prog=False):
             print(f"Starting process for X{i}")
         exp_term = fromBase(X[::-1], q)
         h_term = pow(h * pow(pow(g, exp_term, p), -1, p), pow(q, exp - i - 1), p)
-        Xi = BSGS(r, h_term, p, prog, q)
+        Xi = baby_step_giant_step(r, h_term, p, prog, q)
         X.append(Xi)
         if prog:
             print(f"Found X{i} = {Xi}\n")
@@ -426,7 +467,7 @@ def _factorPerfectSquare(N, B=7):
     return False
 
 
-def QuadraticSieve(N, B=None):
+def QuadraticSieve1(N, B=None):
     """Performs Quadratic Sieve Algorithm with a given Smoothness value B on a given composite N"""
 
     from itertools import combinations_with_replacement as _all
@@ -500,3 +541,110 @@ def QuadraticSieve(N, B=None):
                         if IsPrime(p) and IsPrime(q):
                             return {p: 1, q: 1}
                         return _factorWithKnown(p, q, N)
+
+
+def QuadraticSieve(N, B=None):
+    """Performs Quadratic Sieve Algorithm with a given Smoothness value B on a given composite N"""
+
+    from itertools import combinations as _all
+    from math import e, log, sqrt
+
+    if B is None:
+        L = pow(e, sqrt(log(N) * log(log(N))))
+        B = int(pow(L, 1 / sqrt(2)))
+
+    m = PrimePi(B)
+    sq = isqrt(N)
+    while pow(sq, 2) < N:
+        sq += 1
+
+    b_smooth_nums = []
+    squared_nums = {}
+    factor_base = PrimesLT(B)
+    nums_found = 0
+    while nums_found < m + 1:
+        c_i = pow(sq, 2, N)
+        sq += 1
+        if BSmoothQ(c_i, B):
+            exp = [0 for _ in range(m)]
+            for i in range(m):
+                prime = factor_base[i]
+                while c_i % prime == 0:
+                    exp[i] += 1
+                    c_i //= prime
+            squared_nums[sq] = exp
+            b_smooth_nums.append(exp)
+            nums_found += 1
+
+    choices = list(map(list, list(_all(b_smooth_nums, 2))))
+    for c in range(2, len(b_smooth_nums)):
+        for choice in choices:
+            exp_sum = [0 for _ in range(m)]
+            b = 1
+            valid = True
+            for power in choice:
+                for i in range(m):
+                    exp_sum[i] += power[i]
+            for i in range(m):
+                n = exp_sum[i]
+                if n > 2 and n % 2 != 0:
+                    valid = False
+                    break
+                b *= pow(factor_base[i], n // 2)
+            if not valid:
+                continue
+
+            a = 1
+            for sq in squared_nums:
+                if squared_nums[sq] in choice:
+                    a *= sq
+
+            # checks to see if a + b or a - b is a multiple of a factor of N
+            p = gcd(N, a + b)
+            q = gcd(N, a - b)
+
+            if 1 < p < N and 1 < q < N:
+                return _factorWithKnown(p, q, N)
+            if 1 < p < N:
+                q = N // p
+                if IsPrime(q) and IsPrime(p):
+                    return {p: 1, q: 1}
+                return _factorWithKnown(p, q, N)
+            if 1 < q < N:
+                p = N // q
+                if IsPrime(p) and IsPrime(q):
+                    return {p: 1, q: 1}
+                return _factorWithKnown(p, q, N)
+
+        choices = combinations_cumulative(choices, b_smooth_nums)
+
+    return {}
+
+
+def combinations_cumulative(combinations, source):
+    """Function takes in set of combinations of k-choices without replacement and returns a new
+    set of combinations of k + 1 choices without replacement."""
+
+    new_combination = []
+    for choice in combinations:
+        for e in source:
+            if e not in choice:
+                temp = choice[:]
+                temp.append(e)
+                add = True
+                for c in new_combination:
+                    different = False
+                    i = 0
+                    while i < len(temp) and not different:
+                        t = temp[i]
+                        i += 1
+                        if t not in c:
+                            different = True
+                            continue
+                    if not different:
+                        add = False
+                        break
+                if add:
+                    new_combination.append(temp)
+
+    return new_combination
