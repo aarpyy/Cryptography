@@ -1,5 +1,7 @@
 from math import gcd, isqrt
 from random import randrange
+import ctypes
+import pathlib
 
 from cryptography318.bailliepsw_helper import LucasPseudoPrime, D_chooser
 
@@ -28,6 +30,15 @@ def KnownPrime(n, first_n=50):
         elif n % p == 0:
             return False
     return None
+
+
+def test_cprime(n):
+    if n >= 7999252175582851:
+        print(f"Prime candidate {n} too large. Using IsPrime")
+        return IsPrime(n)
+    libname = pathlib.Path().absolute() / "cryptography318/libprime.so"
+    c_lib = ctypes.CDLL(libname)
+    return False if c_lib.is_prime(n) == 0 else True
 
 
 def IsPrime(n):
