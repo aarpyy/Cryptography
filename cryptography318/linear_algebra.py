@@ -537,6 +537,15 @@ class Matrix:
                 clean_matrix.append(self[i][:])
         return Matrix(clean_matrix, aug=self.augmented)
 
+    def remove_row(self, row):
+        new_matrix = []
+        for i, r in enumerate(self):
+            new_matrix.append([])
+            for j in range(len(r)):
+                if j != row:
+                    new_matrix[i].append(r[j])
+        self.array = numpy.array(new_matrix)
+
     def rref(self):
         """Function that puts matrix in reduced row echelon form"""
 
@@ -561,7 +570,10 @@ class Matrix:
                     # if pivot row isn't current one, swap so that row with pivot comes directly after previous pivot
                     # row
                     if pivot_row != i:
-                        matrix[i][:], matrix[pivot_row][:] = matrix[pivot_row][:], matrix[i][:]
+                        temp = list(matrix[i][:])
+                        matrix[i] = matrix[pivot_row][:]
+                        matrix[pivot_row] = numpy.array(temp)
+                        # matrix[i][:], matrix[pivot_row][:] = matrix[pivot_row][:], matrix[i][:]
                     # this row is a pivot
                     pivot = True
                     break

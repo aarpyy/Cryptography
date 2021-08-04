@@ -100,18 +100,20 @@ def PrimePi(p):
     return len(PrimesLT(p))
 
 
-def BSmoothQ(n, B):
+def BSmoothQ(n, B=None, factors=None):
     """Returns True if all prime factors of given number are <= given B"""
-
-    factor_base = [p := 2]
-    while len(factor_base) < PrimePi(B):
-        factor_base.append(p := NextPrime(p))
+    if factors is None:
+        factor_base = [p := 2]
+        while len(factor_base) < PrimePi(B):
+            factor_base.append(p := NextPrime(p))
+    else:
+        factor_base = factors
 
     for p in factor_base:
         while n % p == 0:
             n //= p
 
-    return True if n == 1 else False
+    return n == 1
 
 
 def factor_base_exp(n, factors):
@@ -219,8 +221,6 @@ def solve_DLP(g, h, p):
     logs = {}
     for n in primes:
         logs[n] = baby_step_giant_step(g, n, p)
-    print(logs)
-    return
 
     k = 0
     while True:
