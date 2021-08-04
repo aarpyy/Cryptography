@@ -35,22 +35,8 @@ def testAllTests():
 
 if __name__ == '__main__':
     # testAllTests()
-    m = Matrix(rows=4, cols=4, identity=True)
-    x = m.array
-    x[0][1] = 5
-    print(x)
-    print(x == 1)
-    # m[1][0] = 1
-    # m[2][3] = 1
-    # m[3][3] = 0
-    # print(m)
-    # m.is_rref1()
-    # x = where(m == 1)
-    # print(x)
-    # for e in zip(x[0], x[1]):
-    #     print(e)
+    m = array_mod([0, 5, 7, 3, 4], mod=9)
+    a = numpy.array([[1, 5, 7, 3, 4]])
+    x = [1, 2, 3, 5, 3]
+    print(m.make_pivot())
 
-    # print(m == 1)
-    # print(type(m[0][0]))
-    # m /= 5
-    # print(m)
