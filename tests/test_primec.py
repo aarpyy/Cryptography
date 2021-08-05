@@ -2,8 +2,10 @@ from pathlib import Path
 from ctypes import CDLL
 from cryptography318.prime import IsPrime
 from random import randrange
+import pytest
 
 
+@pytest.mark.skip
 def test_cprime():
     libname = Path().absolute() / "cryptography318/libprime.so"
     c_lib = CDLL(libname)

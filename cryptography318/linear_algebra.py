@@ -2,6 +2,7 @@ import numpy
 from random import randint
 from warnings import warn
 from math import gcd
+from functools import reduce
 from .tools import string_reduce
 
 
@@ -17,185 +18,264 @@ def where(array, if_exp=None, else_exp=None):
     raise TypeError("where only accepts Matrix or numpy.ndarray objects")
 
 
+def dot(obj, other, mod=None):
+    if len(obj) != len(other):
+        raise ValueError(f"Unable to take product of two arrays of different length")
+    if mod is not None:
+        return [reduce(lambda a, b: (a + b) % mod, map(lambda x, y: (x * y) % mod, obj, other))]
+    return [sum(map(lambda x, y: x * y, obj, other))]
+
+
+def aslist(obj):
+    """Returns object in form of Python list"""
+
+    array = []
+    if isinstance(obj[0], (list, numpy.ndarray)):
+        # if layered list of one row, return un-layered
+        if len(obj) == 1:
+            for i in range(len(obj[0])):
+                array.append(obj[0][i])
+            return array
+        for i in range(len(obj)):
+            array.append([])
+            for j in range(len(obj[0])):
+                array[i].append(obj[i][j])
+        return array
+    for i in range(len(obj)):
+        array.append(obj[i])
+    return array
+
+
 class array_mod:
     def __init__(self, array=None, cols=None, aug=False, mod=None):
         self.augmented = aug
-        if isinstance(array, array_mod):
-            mod = array.mod
-        if array is None and cols is None:
-            raise ValueError("write error!")
-        if cols is None:
-            if isinstance(array, (list, numpy.ndarray, Matrix)):
-                if isinstance(array[0], (list, numpy.ndarray)):
-                    raise TypeError("Can't have multi-dimensional array")
-            if isinstance(array, numpy.ndarray):
-                self.array = array
-            elif isinstance(array, list):
-                self.array = numpy.array(array)
-            elif isinstance(array, Matrix):
-                self.array = array.array
-        if mod is None:
-            raise ValueError("write this too!")
         self.mod = mod
-
-    def __setitem__(self, key, value):
-        self.array[key] = value
+        if array is None and cols is None:
+            raise ValueError("Constructor must be given either valid array or number of columns")
+        # inherit modulus if possible
+        if isinstance(array, array_mod):
+            self.mod = array.mod
+            self.array = aslist(array)
+        elif cols is None:
+            if isinstance(array, (list, Matrix, numpy.ndarray)):
+                if isinstance(array[0], (list, numpy.ndarray)) and len(array) > 1:
+                    raise ValueError("Input array must be a row vector")
+                self.array = aslist(array)
+            else:
+                raise ValueError("Input array must be a row vector")
+        else:
+            self.array = [0] * cols
+        if self.mod is None:
+            raise ValueError(f"Constructor for {__class__.__name__} requires a modulus")
 
     def __getitem__(self, item):
         return self.array[item]
+
+    def __setitem__(self, key, value):
+        if isinstance(value, float):
+            value = int(value)
+        if not isinstance(value, int):
+            raise ValueError(f"Type {type(value)} unacceptable in object of type {__class__.__name__}")
+        self.array[key] = value
 
     def __len__(self):
         return len(self.array)
 
     def __iter__(self):
-        return iter(self.array)
+        return iter(aslist(self))
 
     def __str__(self):
         return str(self.array)
 
     def __add__(self, other):
         self.assert_array(other)
+        if isinstance(other, float):
+            other = int(other)
+        result = aslist(self)
         if isinstance(other, (list, numpy.ndarray, array_mod, Matrix)):
+            if isinstance(other[0], (list, numpy.ndarray)) and len(other) > 1:
+                self.dimension_error()
+            other = aslist(other)
             for i in range(len(self)):
-                self[i] += other[i]
-                if self[i] >= self.mod:
-                    self[i] %= self.mod
-            return self
-        if isinstance(other, (int, float, numpy.int, numpy.float)):
+                result[i] += other[i]
+                if result[i] >= self.mod:
+                    result[i] %= self.mod
+            return array_mod(result, mod=self.mod)
+        if isinstance(other, int):
             for i in range(len(self)):
-                self[i] += other
-                if self[i] >= self.mod:
-                    self[i] %= self.mod
-            return self
+                result[i] += other
+                if result[i] >= self.mod:
+                    result[i] %= self.mod
+            return array_mod(result, mod=self.mod)
+        self.type_error()
 
     def __radd__(self, other):
-        if isinstance(other, (int, float, numpy.int, numpy.float)):
-            raise ValueError("Can't add array to number")
-        return self.__add__(other)
+        if isinstance(other, (int, float)):
+            raise ValueError(f"Unable to add {__class__.__name__} object to number")
+        result = self.__add__(other)
+        if isinstance(other, array_mod):
+            result.mod = other.mod
+        return result
+
+    def __sub__(self, other):
+        self.assert_array(other)
+        if isinstance(other, float):
+            other = int(other)
+        result = aslist(self)
+        if isinstance(other, (list, numpy.ndarray, array_mod, Matrix)):
+            other = aslist(other)
+            for i in range(len(self)):
+                result[i] -= other[i]
+                if result[i] >= self.mod or result[i] < 0:
+                    result[i] %= self.mod
+            return array_mod(result, mod=self.mod)
+        if isinstance(other, int):
+            for i in range(len(self)):
+                result[i] -= other
+                if result[i] >= self.mod or result[i] < 0:
+                    result[i] %= self.mod
+            return array_mod(result, mod=self.mod)
+        self.type_error()
+
+    def __rsub__(self, other):
+        self.assert_array(other)
+        result = aslist(self)
+        if isinstance(other, (list, numpy.ndarray, array_mod, Matrix)):
+            other = aslist(other)
+            for i in range(len(self)):
+                result[i] = other[i] - self[i]
+                if result[i] >= self.mod or result[i] < 0:
+                    result[i] %= self.mod
+            return array_mod(result, mod=self.mod)
+        self.type_error()
 
     def __mul__(self, other):
-        if not isinstance(other, (int, float, numpy.int, numpy.float, list, numpy.ndarray, array_mod, Matrix)):
-            raise ValueError(f"Type incompatible with {__class__.__name__}: {type(other)}")
-        if isinstance(other, numpy.ndarray):
-            if self.is_multi_dimensional(other):
-                if len(other[0]) == len(self):
-                    return array_mod(numpy.matmul([self.array], other)).reduce()
-                raise ValueError("Dimensions incompatible")
-            return array_mod(numpy.dot(self.array, other)).reduce()
-        if isinstance(other, (int, float, numpy.int, numpy.float)):
+        if isinstance(other, (int, float)):
             warn("Proper syntax assumes scalar comes before matrix in scalar-matrix multiplication", SyntaxWarning)
-            for i in range(len(self)):
-                self[i] *= other
-                if self[i] > self.mod:
-                    self[i] %= self.mod
-            return self
-        raise TypeError("Matrix multiplication must be done between two matrices or a matrix and a scalar")
+        # array_mod multiplication is always dot product so order does not matter thus mul == rmul
+        return self.__rmul__(other)
 
     def __rmul__(self, other):
-        if not isinstance(other, (int, float, numpy.int, numpy.float, list, numpy.ndarray, array_mod, Matrix)):
-            raise ValueError(f"Type incompatible with {__class__.__name__}: {type(other)}")
-        if isinstance(other, numpy.ndarray):
+        result = aslist(self)
+        if isinstance(other, float):
+            other = int(other)
+        if isinstance(other, int):
+            for i in range(len(result)):
+                result[i] *= other
+                if result[i] >= self.mod or result[i] < 0:
+                    result[i] %= self.mod
+            return array_mod(result, mod=self.mod)
+        if isinstance(other, (list, array_mod, numpy.ndarray, Matrix)):
             if self.is_multi_dimensional(other):
-                if len(other[0]) == len(self):
-                    return array_mod(numpy.matmul(other, [self.array])).reduce()
-                raise ValueError("Dimensions incompatible")
-            return array_mod(numpy.dot(other, [self.array])).reduce()
-        if isinstance(other, (int, float, numpy.int, numpy.float)):
-            for i in range(len(self)):
-                self[i] *= other
-                if self[i] > self.mod:
-                    self[i] %= self.mod
-            return self
-        raise TypeError("Matrix multiplication must be done between two matrices or a matrix and a scalar")
+                self.dimension_error()
+            other = aslist(other)
+            if isinstance(other[0], list):
+                temp = []
+                for elem in other:
+                    temp.append(elem[0])
+                other = temp
+            result = dot(aslist(self), other)
+            return array_mod(result, mod=self.mod)
+        self.type_error()
 
     def __truediv__(self, other):
         return self.__floordiv__(other)
 
     def __floordiv__(self, other):
+        if isinstance(other, float):
+            other = int(other)
         r = gcd(other, self.mod)
         if r > 1:
-            if (e % other == 0 for e in self):
-                for i in range(len(self)):
-                    self[i] //= r
-                self.mod //= r
-                return self
-            raise ValueError(f"Dividing by {other} would result in some values being converted to floats")
-
+            result = aslist(self)
+            row = result[:] + [self.mod, other]
+            # find gcd that can divide everything
+            e = gcd(*row)
+            # if no gcd, row is not divisible by number at all
+            if e == 1:
+                raise ValueError(f"Dividing by {other} would result in some values being converted to floats")
+            # divide by gcd
+            for i in range(len(self)):
+                result[i] //= e
+            other //= e
+            # if dividing by gcd accomplished division by other, return array
+            if other == 1:
+                return array_mod(result, mod=self.mod//e)
+            # if dividing by gcd only partly divided by other, try again with remainder of other
+            return array_mod(result, mod=self.mod//e).__floordiv__(other)
+        # if number is invertible mod self.mod, multiply everything by inverse
         d = pow(other, -1, self.mod)
         return self.__rmul__(d)
 
     def __mod__(self, other):
+        result = aslist(self)
         for i in range(len(self)):
-            if self[i] > other:
-                self[i] %= other
-        return self
+            if result[i] > other:
+                result[i] %= other
+        return array_mod(result, mod=self.mod)
 
     def make_pivot(self, col=None):
         if col is None:
+            pivot = None
             for i in range(len(self)):
                 if self[i] != 0:
-                    r = gcd(self[i], self.mod)
-                    if r > 1:
-                        try:
-                            for j in range(len(self)):
-                                self[j] /= r
-                        except ValueError:
-                            pass
-                        else:
-                            self.mod /= r
-                    r = gcd(self[i], self.mod)
-                    if r == 1:
-                        d = pow(int(self[i]), -1, self.mod)
-                        for j in range(len(self)):
-                            self[j] *= d
-                            if self[j] > self.mod:
-                                self[j] %= self.mod
-                        return self
-            return False
-
-        if self[col] != 0:
-            r = gcd(self[col], self.mod)
-            if r > 1:
-                try:
-                    for j in range(len(self)):
-                        self[j] /= r
-                except ValueError:
-                    pass
-                else:
-                    self.mod /= r
-            r = gcd(self[col], self.mod)
-            if r == 1:
-                d = pow(int(self[col]), -1, self.mod)
-                for j in range(len(self)):
-                    self[j] *= d
-                    if self[j] > self.mod:
-                        self[j] %= self.mod
-                return self
-        return False
+                    pivot = self[i]
+                    break
+            if pivot is None:
+                return self.copy()
+            try:
+                result = self.copy() / pivot
+            except ValueError:
+                pass
+            else:
+                # if division of result by first succeeded, result will have correct modulus value as well
+                return result
+            return self.copy()
+        pivot = self[col]
+        try:
+            result = self.copy() / pivot
+        except ValueError:
+            pass
+        else:
+            # if division of result by first succeeded, result will have correct modulus value as well
+            return result
+        return self.copy()
 
     def reduce(self):
         for i in range(len(self)):
             if self[i] > self.mod:
                 self[i] %= self.mod
 
+    def copy(self):
+        return array_mod(aslist(self), mod=self.mod)
+
     @staticmethod
-    def assert_array(other, types=(int, float, numpy.int, numpy.float)):
+    def type_error(other=None):
+        if other is not None:
+            raise TypeError(f"Object of type {type(other)} is incompatible for the given operation")
+        raise TypeError("Object type is incompatible for the given operation")
+
+    @staticmethod
+    def dimension_error():
+        raise AttributeError(f"Performing an operation with {__class__.__name__} on a "
+                             f"multi-dimensional array is unsupported")
+
+    @staticmethod
+    def assert_array(other, types=(int, float)):
         standard = (list, numpy.ndarray, Matrix, array_mod)
         types += standard
         if not isinstance(other, types):
             raise ValueError(f"Type incompatible with {__class__.__name__}: {type(other)}")
         if isinstance(other, standard) and isinstance(other[0], standard) and len(other) > 1:
-            raise ValueError(f"Multi-dimensional arrays are incompatible with {__class__.__name__}")
+            array_mod.dimension_error()
 
     @staticmethod
     def is_multi_dimensional(other):
         standard = (list, numpy.ndarray, Matrix, array_mod)
-        if isinstance(other, standard) and isinstance(other[0], standard) and len(other) > 1:
-            return True
-
-
-
-
+        if isinstance(other, standard) and isinstance(other[0], standard):
+            if len(other[0]) == 1:
+                return False
+            return len(other) > 1
+        return False
 
 
 class Matrix:
@@ -264,7 +344,7 @@ class Matrix:
         return len(self.array)
 
     def __iter__(self):
-        return iter(self.array)
+        return iter(aslist(self))
 
     def __str__(self):
         str_array = []
@@ -598,7 +678,7 @@ class Matrix:
         if not isinstance(row, (list, numpy.ndarray, Matrix)):
             raise TypeError("Can only append items of type list, numpy.ndarray, or Matrix to Matrix object")
         if isinstance(row, (numpy.ndarray, Matrix)):
-            matrix = self.array_copy()
+            matrix = aslist(self)
             if isinstance(row[0], (list, numpy.ndarray)):
                 for r in row:
                     assert_len(r)
@@ -609,7 +689,7 @@ class Matrix:
             matrix.append(list(row))
             self.array = numpy.array(matrix)
         if isinstance(row, list):
-            new_matrix = self.array_copy()
+            new_matrix = aslist(self)
             assert_len(row)
             new_matrix.append(row)
             self.array = numpy.array(new_matrix)
@@ -633,17 +713,7 @@ class Matrix:
     def copy(self):
         """Returns exact copy of values of matrix in a new Matrix object."""
 
-        return Matrix(self.array_copy(), aug=self.augmented)
-
-    def array_copy(self):
-        """Returns exact copy of values of matrix in a new list object."""
-
-        matrix_copy = []
-        for i in range(len(self)):
-            matrix_copy.append([])
-            for j in range(len(self[0])):
-                matrix_copy[i].append(self[i][j])
-        return matrix_copy
+        return Matrix(aslist(self), aug=self.augmented)
 
     def astype(self, data_type):
         """Returns matrix with a given data type, as specified by the numpy.ndarray dtypes:
@@ -652,7 +722,7 @@ class Matrix:
         if data_type not in [float, int, numpy.float16, numpy.float32, numpy.float64]:
             raise TypeError(f"Data type not recognized: {data_type}")
 
-        matrix = self.array_copy()
+        matrix = aslist(self)
         for i in range(len(self)):
             for j in range(len(self[0])):
                 matrix[i][j] = data_type(self[i][j])
@@ -662,7 +732,7 @@ class Matrix:
         """Attempts to reset matrix to smaller floats or integers if possible. If matrix has
         complex numbers they are left un-modified."""
 
-        matrix = self.astype(numpy.float32).array_copy()
+        matrix = aslist(self.astype(numpy.float32))
         for i in range(len(self)):
             for j in range(len(self[0])):
                 try:
@@ -683,7 +753,7 @@ class Matrix:
         """Given matrix object and set of solutions, returns an augmented coefficient matrix
         with the set of solutions as the final column."""
 
-        matrix_copy = self.array_copy()
+        matrix_copy = aslist(self)
         for i in range(len(self)):
             matrix_copy[i].append(solution[i][0])
         return Matrix(matrix_copy, aug=True)
@@ -731,7 +801,7 @@ class Matrix:
     def rref(self):
         """Function that puts matrix in reduced row echelon form"""
 
-        matrix = self.astype(numpy.float64).array_copy()
+        matrix = aslist(self.astype(numpy.float64))
         adjust = 1 if self.augmented else 0
         pivot_row = -1
         # iterates across columns
@@ -775,7 +845,7 @@ class Matrix:
     def ref(self):
         """Function that puts matrix in row echelon form."""
 
-        matrix = self.astype(numpy.float64).array_copy()
+        matrix = aslist(self.astype(numpy.float64))
         adjust = 1 if self.augmented else 0
         pivot_row = -1
         # iterates across columns

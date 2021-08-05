@@ -1,5 +1,10 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <project version="4">
+  <component name="AnalysisUIOptions">
+    <option name="SPLITTER_PROPORTION" value="0.7884914" />
+    <option name="SCOPE_TYPE" value="8" />
+    <option name="CUSTOM_SCOPE_NAME" value="All Places" />
+  </component>
   <component name="AutoImportSettings">
     <option name="autoReloadType" value="SELECTIVE" />
   </component>
@@ -15,11 +20,14 @@
   </component>
   <component name="ChangeListManager">
     <list default="true" id="6ea76c49-18d8-4974-9f94-c2171563dd51" name="Default Changelist" comment="working on primality test, miller-rabin">
-      <change beforePath="$PROJECT_DIR$/.idea/cryptography318.iml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/cryptography318.iml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/.idea/misc.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/misc.xml" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/tests/test_array.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/cryptography318/linear_algebra.py" beforeDir="false" afterPath="$PROJECT_DIR$/cryptography318/linear_algebra.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/tests/test_factor.py" beforeDir="false" afterPath="$PROJECT_DIR$/tests/test_factor.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/tests/test_linear.py" beforeDir="false" afterPath="$PROJECT_DIR$/tests/test_linear.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/tests/test_matrix.py" beforeDir="false" afterPath="$PROJECT_DIR$/tests/test_matrix.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/tests/test_primec.py" beforeDir="false" afterPath="$PROJECT_DIR$/tests/test_primec.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/tests/test_random.py" beforeDir="false" afterPath="$PROJECT_DIR$/tests/ps8p1.py" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -60,6 +68,9 @@
       <filtered-out-file-type name="TAG" />
       <filtered-out-file-type name="COMMIT_BY_MESSAGE" />
     </file-type-list>
+  </component>
+  <component name="ProblemsViewState">
+    <option name="selectedIndex" value="2" />
   </component>
   <component name="ProjectId" id="1u36NPVAANkMvTilFg3SGn0Z84R" />
   <component name="ProjectLevelVcsManager" settingsEditedManually="true">
@@ -271,7 +282,7 @@
       <workItem from="1627945419896" duration="261000" />
       <workItem from="1627945992666" duration="1266000" />
       <workItem from="1627999642207" duration="1159000" />
-      <workItem from="1628000828828" duration="28923000" />
+      <workItem from="1628000828828" duration="43513000" />
     </task>
     <task id="LOCAL-00001" summary="wrote some stuff for ps4.5, figured out problem with pohlig-hellman, bsgs in work">
       <created>1624923163169</created>

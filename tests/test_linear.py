@@ -5,9 +5,10 @@ from cryptography318.crypto_functions import QuadraticSieve, FactorInt, _factorP
 from cryptography318.prime import RandomPrime, IsPrime, NextPrime
 import textwrap
 from cryptography318.linear_algebra import *
-import numpy, random
+import numpy, random, pytest
 
 
+@pytest.mark.skip
 def test_linear_solve(it=500):
     for _ in range(it):
         m = Matrix(rand=True, aug=True)
@@ -18,6 +19,7 @@ def test_linear_solve(it=500):
             assert m.solve()
 
 
+@pytest.mark.skip
 def test_rref(it=500):
     for _ in range(it):
         m = RandomMatrix()
@@ -28,6 +30,7 @@ def test_rref(it=500):
             assert type(Solve(a)) is numpy.ndarray
 
 
+@pytest.mark.skip
 def testAllTests():
     # test_rref(50)
     test_linear_solve(1)
@@ -35,8 +38,17 @@ def testAllTests():
 
 if __name__ == '__main__':
     # testAllTests()
-    m = array_mod([0, 5, 7, 3, 4], mod=9)
+    mat = Matrix(rows=3, cols=2)
+    mat[1][0] = 1
+    arr = numpy.array([[1, 0, 2]]).astype(numpy.float64)
+
+    m = array_mod([15, 6, 9, 15], mod=18)
     a = numpy.array([[1, 5, 7, 3, 4]])
     x = [1, 2, 3, 5, 3]
-    print(m.make_pivot())
+    c = [1, 2, 3]
+    d = [1, 0, 2]
+    print(m, m.mod)
+    m = m - 10
+    print(m, m.mod)
+
 

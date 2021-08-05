@@ -2,8 +2,10 @@ from cryptography318.crypto_functions import _factorPerfectSquare
 from cryptography318.prime import *
 from cryptography318.crypto_functions import *
 from math import prod
+import pytest
 
 
+@pytest.mark.skip
 def test_factor_perfect_square():
     factors = _factorPerfectSquare(198103, B=20)
     n = 1
@@ -12,6 +14,7 @@ def test_factor_perfect_square():
     assert n == 198103
 
 
+@pytest.mark.skip
 def test_factor_int(power=1):
     from itertools import combinations as _all
 
@@ -39,9 +42,7 @@ def test_factor_int(power=1):
     print(timeit.timeit(lambda: FactorInt(p), number=100))
 
 
-
-
-
+@pytest.mark.skip
 def test_all_tests():
     test_factor_perfect_square()
     test_factor_int()

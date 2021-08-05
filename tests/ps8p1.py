@@ -46,11 +46,13 @@ def find_log_g():
     print(system)
 
 
-# find_log_g()
+find_log_g()
+
 
 # wrote out dictionary with keys as primes and values as solutions log_g so that I can use for next step
 logs = {2: 386603800, 3: 584671346, 5: 1, 7: 138593831, 11: 183202078, 13: 163170104, 17: 697282118, 19: 8417856}
 
+"""Here, I am finding some k s.t. h * g^-k is 20-smooth"""
 k = 0
 while True:
     k += 1
@@ -58,6 +60,12 @@ while True:
     if BSmoothQ(x, B):
         exponents = factor_base_exp(x, primes)
         print(k)
-        # reduce: sums list returned by map, which returns list products of exponents and log_g_x
+        """
+        map is taking in a list of exponents (the powers of each prime < 20 that equal our 20-smooth number) and a list of log values (log_g_x for x = each prime < 20) and multiplying the log value by the exponent
+        
+        reduce is summing the list returned by map, which when added to k returns result of log_g_h
+        
+        since this print-to-pdf doesn't include terminal, my result for g^x = h is x = 9683732 mod p-1
+        """
         print(reduce(lambda a, b: a + b, list(map(lambda i, n: i * logs[n], exponents, logs))) + k)
         break
