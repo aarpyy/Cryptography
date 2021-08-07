@@ -20,17 +20,9 @@
   </component>
   <component name="ChangeListManager">
     <list default="true" id="6ea76c49-18d8-4974-9f94-c2171563dd51" name="Default Changelist" comment="working on primality test, miller-rabin">
-      <change afterPath="$PROJECT_DIR$/requirements.txt" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/.idea/cryptography318.iml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/cryptography318.iml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/.idea/misc.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/misc.xml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/cryptography318/libprime.so" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/cryptography318/linear_algebra.py" beforeDir="false" afterPath="$PROJECT_DIR$/cryptography318/linear_algebra.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/cryptography318/prime" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/cryptography318/prime.c" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/tests/test_linear.py" beforeDir="false" afterPath="$PROJECT_DIR$/tests/test_linear.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/tests/test_matrix.py" beforeDir="false" afterPath="$PROJECT_DIR$/tests/test_matrix.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/tests/test_primec.py" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/cryptography318/crypto_functions.py" beforeDir="false" afterPath="$PROJECT_DIR$/cryptography318/crypto_functions.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/tests/test_factor.py" beforeDir="false" afterPath="$PROJECT_DIR$/tests/test_factor.py" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -283,7 +275,7 @@
       <workItem from="1627945992666" duration="1266000" />
       <workItem from="1627999642207" duration="1159000" />
       <workItem from="1628000828828" duration="101928000" />
-      <workItem from="1628349074890" duration="12119000" />
+      <workItem from="1628349074890" duration="13876000" />
     </task>
     <task id="LOCAL-00001" summary="wrote some stuff for ps4.5, figured out problem with pohlig-hellman, bsgs in work">
       <created>1624923163169</created>

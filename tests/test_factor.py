@@ -1,4 +1,4 @@
-from cryptography318.crypto_functions import _factorPerfectSquare
+from cryptography318.crypto_functions import _factorPerfectSquare, pollard_rho_dlp
 from cryptography318.prime import *
 from cryptography318.crypto_functions import *
 from math import prod
@@ -42,6 +42,16 @@ def test_factor_int(power=1):
     print(timeit.timeit(lambda: FactorInt(p), number=100))
 
 
+def test_pollard_rho(it=50):
+    for _ in range(it):
+        g = 4
+        p = RandomPrime(pow(2, 30))
+        e = randrange(p - 1)
+        h = pow(g, e, p)
+        r = pollard_rho_dlp(g, h, p)
+        assert pow(g, r, p) == h
+
+
 @pytest.mark.skip
 def test_all_tests():
     test_factor_perfect_square()
@@ -49,4 +59,4 @@ def test_all_tests():
 
 
 if __name__ == '__main__':
-    test_all_tests()
+    test_pollard_rho()

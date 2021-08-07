@@ -375,9 +375,8 @@ def index_calculus_dlp(g, h, p):
 
 
 def pollard_rho_dlp(g, h, p, q=None):
-    from time import sleep
-    xstate = calculate_state((0, 0, 0), g, h, p)
-    ystate = calculate_state(calculate_state((0, 0, 0), g, h, p), g, h, p)
+    xstate = (1, 0, 0)
+    ystate = (1, 0, 0)
 
     if q is None:
         q = p - 1
@@ -386,13 +385,36 @@ def pollard_rho_dlp(g, h, p, q=None):
         xstate = calculate_state(xstate, g, h, p)
         ystate = calculate_state(calculate_state(ystate, g, h, p), g, h, p)
 
-        if xstate == ystate:
+        if xstate[0] == ystate[0]:
             try:
-                result = (xstate[1] - ystate[1]) * pow(ystate[1] - xstate[1], -1, q)
+
+                # try to return result right away, fails if beta value is not invertible mod q
+                result = (xstate[1] - ystate[1]) * pow(ystate[2] - xstate[2], -1, q)
             except ValueError:
+
+                # try to reduce entire equation by gcd, then try to invert again
+                alpha = xstate[1] - ystate[1]
+                beta = ystate[2] - xstate[2]
+                e = gcd(alpha, beta, q)
+                if e > 1:
+                    alpha //= e
+                    beta //= e
+                    mod = q // e
+
+                    # if reduced until invertible, find solution
+                    if gcd(beta, mod) == 1:
+                        log_g_h = alpha * pow(beta, -1, mod)
+
+                        # current solution is mod q // e, but real solution could be mod any increment of
+                        # q up until its original value, find real solution by checking
+                        for i in range(e):
+                            if pow(g, log_g_h, p) == h % p:
+                                return log_g_h
+                            log_g_h += mod
                 continue
             else:
-                return result
+                if pow(g, result, p) == h % p:
+                    return result
 
 
 def calculate_state(state, g, h, p):
