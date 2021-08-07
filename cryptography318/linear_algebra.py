@@ -592,6 +592,15 @@ class Matrix:
         self.reset_type()
 
     def make_pivot_mod(self, row, col=None):
+        """
+        THIS METHOD IS SLOW -- OPTIMIZE
+        Converts the first non-zero element from a row of matrix at given index into a pivot, attempting to divide
+        entire row to reduce, unless division would result in float values in row, in which case a modular inverse
+        is found. If column value is given, attempts to convert specific column value of given row into pivot.
+
+        :params row: integer index of matrix corresponding to row to be operated on
+        :params col: integer index of matrix corresponding to specific element in row to be converted into pivot
+        """
 
         def mod_inv(array, e, mod):
             if gcd(e, mod) == 1:
@@ -653,7 +662,10 @@ class Matrix:
                 if res:
                     return
 
-    def find_pivots_mod(self):
+    def find_invertible(self):
+        """Iterates through matrix over field of integers, finding values in each row that are invertible
+        given their specific modulus, then returning a binary matrix, with truth values at each pivot location."""
+
         if self.mod is None:
             raise AttributeError("This function is reserved for matrices with a specific modulus")
 
@@ -671,7 +683,15 @@ class Matrix:
         return pivot_matrix
 
     def choose_pivots_mod(self):
-        pivot_matrix = self.find_pivots_mod()
+        """
+        Calls find_pivots_mod() to find all possible values that have modular inverse with row modulus,
+        then decides, first through process of elimination (choosing only valid pivot in given row/column) then
+        through recursion, which possible pivots would make a valid configuration of pivots in order to reduce original
+        matrix into rref for solving.
+        :return: set of coordinate pairs of pivots for matrix object (set of tuples)
+        """
+
+        pivot_matrix = self.find_invertible()
         adj = 1 if self.augmented else 0
 
         pivot_rows = []
@@ -686,6 +706,7 @@ class Matrix:
                     # r is the list of columns with an entry == 1 from row i
                     r = set(numpy.where(pivot_matrix[i] == 1)[0]) - set(pivot_cols)
 
+                    # if only one column to choose from, choose that column
                     if len(r) == 1:
                         p = r.pop()
                         if i in pivot_rows or p in pivot_cols:
@@ -699,12 +720,16 @@ class Matrix:
                     # print("pivots found")
                     # print(pivot_rows, "\n", pivot_cols)
 
+                # gets transpose of binary matrix so that pivots per row can be checked easily
                 pivot_t = pivot_matrix.transpose()
                 for j in range(len(pivot_t)):
 
                     # c is the list of rows with an entry == 1 for the j'th column
+                    # subtracting set of pivot rows ensures that if numpy.where found multiple columns, but
+                    # some columns are invalidated by already found pivots, if statement can stil eval as True
                     c = set(numpy.where(pivot_t[j] == 1)[0]) - set(pivot_rows)
 
+                    # if found column with one entry, use it
                     if len(c) == 1:
                         p = c.pop()
                         if j in pivot_cols or p in pivot_rows:
@@ -718,26 +743,62 @@ class Matrix:
                     # print("pivots found")
                     # print(pivot_rows, "\n", pivot_cols)
 
+                # if found the right number of pivots, return set of tuples where each tuple is coordinate pair
                 if len(pivot_cols) == len(self[0]) - adj:
                     return set(map(lambda r, c: (r, c), pivot_rows, pivot_cols))
 
+                # if didn't find pivot in this iteration, no more pivots to find, try using recursion to choose
                 if not found_pivot:
                     break
-            return None
+
+            # this is a recursive function that recurses down through rows of binary matrix, choosing pivot values,
+            # it is guaranteed to return a result because the above if statement makes sure a solution is possible
+            def choose_rec(piv_r, piv_c, row):
+                start = 0
+                while True:
+
+                    # if found enough pivots, searching more would result in a false return since it would be searching
+                    # rows that cannot have pivot, but don't need to since all are found
+                    if len(piv_c) == len(pivot_matrix[0]) - adj:
+                        return piv_r, piv_c
+
+                    # if reached end of matrix, return pivot lists
+                    if row == len(pivot_matrix):
+                        return piv_r, piv_c
+
+                    # make copies so actual values aren't overwritten if attempted values are wrong
+                    pr, pc = piv_r[:], piv_c[:]
+
+                    # bool for no new pivot has been found
+                    found = False
+                    for j in range(start, len(pivot_matrix[0]) - adj):
+
+                        # if pivot in column already with pivot, won't work
+                        if j in pc:
+                            continue
+                        if pivot_matrix[row][j] == 1:
+                            pr.append(row)
+                            pc.append(j)
+                            found = True
+                            break
+
+                    # couldn't find pivot, that means this current config is unfeasible
+                    if not found:
+                        return False
+
+                    result = choose_rec(pr, pc, row + 1)
+
+                    # increment start, so that next time variable is chosen, new pivot is also chosen
+                    if result is False:
+                        start += 1
+                        continue
+                    else:
+                        return result
+
+            piv_r, piv_c = choose_rec(pivot_rows, pivot_cols, 0)
+            return set(map(lambda r, c: (r, c), piv_r, piv_c))
+
         return False
-
-
-
-
-
-
-
-
-
-
-
-
-
 
     def reduce_mod(self):
         if isinstance(self.mod, int):
@@ -794,14 +855,14 @@ class Matrix:
         return Matrix(aslist(self), aug=self.augmented, mod=self.mod)
 
     def astype(self, data_type):
-        """Returns matrix with a given data type, as specified by the numpy.ndarray dtypes:
-        float16, float32, float64, or the traditional Python float or int."""
+        """Returns matrix with a given data type, as specified by the numpy.ndarray dtypes. This function
+        can be considered the Matrix object equivalent of numpy's astype."""
 
         if data_type not in (float, int, numpy.int64, numpy.float16, numpy.float32, numpy.float64):
             raise TypeError(f"Data type not recognized: {data_type}")
 
         result = self.array.astype(data_type)
-        return Matrix(result, aug=self.augmented)
+        return Matrix(result, aug=self.augmented, mod=self.mod)
 
     def reset_type(self):
         """Attempts to reset matrix to smaller floats or integers if possible. If matrix has
@@ -848,11 +909,13 @@ class Matrix:
         return Matrix(matrix), Matrix(sol)
 
     def remove_null(self):
+        """Removes all null rows and columns from matrix. Does not return."""
+
         self.remove_null_column()
         self.remove_null_row()
 
     def remove_null_row(self):
-        """Function that removes rows consisting of just zeros"""
+        """Removes rows consisting of just zeros. Does not return."""
 
         matrix = []
         for i in range(len(self)):
@@ -864,6 +927,8 @@ class Matrix:
         self.array = numpy.array(matrix, dtype=object)
 
     def remove_null_column(self):
+        """Removes columns consisting of just zeros. Does not return."""
+
         matrix = []
         array = self.array.transpose()
         for i in range(len(array)):
@@ -972,103 +1037,38 @@ class Matrix:
                     # row reduce everything else
                     matrix.row_reduce(pivot_row, j)
                     pivot_row += 1
+
         return matrix
 
     def rref_mod(self):
         """Uses Guassian elimination to row reduce matrix, returning a new instance of a matrix in reduced row
-        echelon form."""
+        echelon form. Currently nearly works, produces matrix in near-rref, only failing when an element is
+        attempted to be made into a pivot but fails because it does not have a modular inverse with its modulus."""
 
         matrix = self.copy().astype(numpy.float64)
+        matrix.reduce_mod()
 
         # if augmented don't reduce last column
-        adjust = 1 if self.augmented else 0
+        adj = 1 if self.augmented else 0
 
-        array = self.copy()
-        array.remove_null()
-        possible_pivots = array.find_pivots_mod()
-        print("possible pivots: ")
-        print(possible_pivots)
-        print("numpy.where")
-        print(set(numpy.where(possible_pivots == 1)[1]))
+        pivot_row = 0
+        for j in range(len(matrix[0]) - adj):
+            for i in range(pivot_row, len(matrix)):
+                mod = self.mod[i] if isinstance(self.mod, list) else self.mod
+                # if non-zero element, this row can become pivot row
+                if gcd(matrix[i][j], mod) == 1:
+                    # make j'th element the pivot, reducing rest of row as well
+                    matrix.make_pivot_mod(i, col=j)
+                    # if pivot row not already in correct position, swap
+                    if i > pivot_row:
+                        matrix.swap(i, pivot_row)
 
-        # if the number of unique (making set removes duplicates) columns with a possible pivot equals the number
-        # of columns in matrix, then there can be pivot in every column
-        if len(set(numpy.where(possible_pivots == 1)[1])) == len(self[0]) - 1:
-            pivots = []
-            while len(pivots) < len(self[0]):
-                for i in range(len(possible_pivots)):
+                    # row reduce everything else
+                    matrix.row_reduce(pivot_row, j)
+                    pivot_row += 1
 
-                    # r is list of columns where there is a potential pivot
-                    r = numpy.where(possible_pivots[i] == 1)
-
-                    # if only one column in the row, make it a pivot, and everything sharing the same column/row
-                    # now cannot be a pivot
-                    if len(r[0]) == 1:
-
-                        # add to list of pivots
-                        pivots.append((i, r[0][0]))
-
-                        # iterate across i'th row, making all elements that aren't the pivot = 0
-                        for k in range(len(possible_pivots[i])):
-                            if k == r[0][0]:
-                                pass
-                            possible_pivots[i][k] = 0
-
-                        # iterate down pivot column, making all elements that aren't the pivot = 0
-                        for k in range(len(possible_pivots)):
-                            if k == i:
-                                pass
-                            possible_pivots[k][r[0][0]] = 0
-                        possible_pivots[i][r[0][0]] = 1
-                        # print(f"possible pivots after finding {len(pivots)}")
-                        # print(possible_pivots)
-
-                # print(pivots)
-                T = possible_pivots.transpose()
-                for pivot in pivots:
-                    T[pivot[1]] = numpy.array([0] * len(self), dtype=object)
-
-                for i in range(len(T)):
-                    r = numpy.where(possible_pivots[i] == 1)
-                    if len(r[0]) == 1:
-                        pivots.append((r[0][0], i))
-                        # iterate across i'th row, making all elements that aren't the pivot = 0
-                        for k in range(len(possible_pivots[i])):
-                            if k == r[0][0]:
-                                pass
-                            possible_pivots[i][k] = 0
-
-                        # iterate down pivot column, making all elements that aren't the pivot = 0
-                        for k in range(len(possible_pivots)):
-                            if k == i:
-                                pass
-                            possible_pivots[k][r[0][0]] = 0
-                        possible_pivots[i][r[0][0]] = 1
-
-                possible_pivots = T.transpose()
-                continue_search = False
-                for i in range(len(T)):
-                    if len(numpy.where(T[i] == 1)[0]) == 1:
-                        continue_search = True
-
-                for i in range(len(possible_pivots)):
-                    if len(numpy.where(possible_pivots[i] == 1)[0]) == 1:
-                        continue_search = True
-
-                if continue_search:
-                    continue
-
-
-
-                print("remaining")
-                print(possible_pivots)
-                break
-
-            print(self)
-            print(pivots)
-            for pivot in pivots:
-                self.make_pivot_mod(row=pivot[0], col=pivot[1])
-            print(self)
+        matrix.reduce_mod()
+        return matrix
 
 
     def ref(self):

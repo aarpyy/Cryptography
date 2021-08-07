@@ -100,7 +100,7 @@ def test_mod():
         for j, n in enumerate(b[i]):
             assert 0 <= n < b.mod[i] and isinstance(n, (int, numpy.int64))
 
-    possible_pivots = b.find_pivots_mod()
+    possible_pivots = b.find_invertible()
     print(possible_pivots)
 
     # the third row in transpose is the final column in standard form, which is augmented list of solutions
@@ -115,25 +115,38 @@ def test_mod():
 def test_mod2():
     mods = [20] * 6
     mods[0] = 13
-    m = Matrix([[6, 8, 9, 2, 12, 12, 5, 0, 7, 10],
-                [14, 14, 18, 0, 10, 1, 10, 15, 7, 19],
-                [9, 19, 5, 18, 7, 6, 14, 10, 15, 13],
-                [18, 2, 1, 18, 10, 18, 4, 5, 13, 11],
-                [1, 1, 2, 15, 2, 19, 17, 18, 16, 11],
-                [15, 0, 8, 12, 7, 8, 9, 3, 5, 16]], aug=True, mod=mods)
+    m = Matrix([[4, 12, 12, 7, 1],
+                [0, 11, 11, 11, 8],
+                [13, 2, 17, 0, 9],
+                [11, 0, 0, 7, 11],
+                [2, 5, 5, 14, 5],
+                [16, 5, 5, 14, 19]], aug=True, mod=mods)
 
-    m.choose_pivots_mod()
+    a = Matrix([[1, 0, 0, 0, 0, 0, 0, 0, 386603800],
+                [0, 1, 0, 0, 0, 0, 0, 0, 584671346],
+                [0, 0, 1, 0, 0, 0, 0, 0, 1],
+                [0, 0, 0, 1, 0, 0, 0, 0, 138593831],
+                [0, 0, 0, 0, 1, 0, 0, 0, 183202078],
+                [0, 0, 0, 0, 0, 1, 0, 0, 163170104],
+                [0, 0, 0, 0, 0, 0, 1, 0, 697282118],
+                [0, 0, 0, 0, 0, 0, 0, 1, 8417856],
+                [0, 0, 0, 0, 0, 0, 0, 0, 0],
+                [0, 0, 0, 0, 0, 0, 0, 0, 0]], aug=True, mod=717994966)
+    print(a.is_rref())
+    print(a.solve())
 
     def test_for_error():
         b_count = 0
         while True:
             b = Matrix(rows=6, rand=True, mod=mods, aug=True)
+            if len(b) < len(b[0]) - 1:
+                continue
             try:
                 if b.choose_pivots_mod() is None:
                     if b_count == 0:
                         print("valid b to test")
                         print(b)
-                    b_count += 1
+                    break
             except:
                 print("error happened")
                 print(b)

@@ -1,4 +1,5 @@
 from cryptography318.crypto_functions import *
+from cryptography318.linear_algebra import *
 import numpy
 import random
 from functools import reduce
@@ -42,8 +43,12 @@ def find_log_g():
             break
 
     # this is the system I solved to find each log written in homework
-    system = Matrix(smooth_nums, aug=True).astype(numpy.float64)
-    print(system)
+    system = Matrix(smooth_nums, aug=True, mod=(p-1)).astype(numpy.float64)
+    print(system.is_rref())
+    if system.is_rref():
+        print(system.solve())
+    else:
+        print(system.rref_mod())
 
 
 find_log_g()
