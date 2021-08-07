@@ -1,6 +1,6 @@
 from .crypto_functions import (toBase, fromBase, StringToNum, NumToString, ApplyMult, ExtendedGCD, GCD, ModularInverse,
                                makeChineseRemainder, ChineseRemainder, baby_step_giant_step, pohlig_hellman, DSA,
-                               PollardP1, FactorInt, solve_DLP, StringToElliptic, EllipticToString, Elliptic,
+                               PollardP1, FactorInt, index_calculus_dlp, StringToElliptic, EllipticToString, Elliptic,
                                EllipticCurve)
 from .bailliepsw_helper import Jacobi
 from .prime import IsPrime, MillerRabin_bases, RandomPrime, ConfirmPrime, NextPrime, PrevPrime, BailliePSW_Primality

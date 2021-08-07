@@ -347,8 +347,9 @@ def elliptic_bsgs(P, Q, N=None):
     return None
 
 
-def solve_DLP(g, h, p):
-    """Function attempts to solve DLP by solving other smaller DLP's and combining into system of equations."""
+def index_calculus_dlp(g, h, p):
+    """Function attempts to solve DLP through index calculus algorithm, computing a series of smaller dlp's
+    used to solve the larger."""
 
     from math import e, sqrt, log
     from functools import reduce
@@ -371,6 +372,61 @@ def solve_DLP(g, h, p):
             exponents = factor_base_exp(x, primes)
             # reduce sums list returned by map, which returns list of products of exponents and logs
             return reduce(lambda a, b: a + b, list(map(lambda i, n: i * logs[n], exponents, logs))) + k
+
+
+def pollard_rho_dlp(g, h, p, q=None):
+    from time import sleep
+    xstate = calculate_state((0, 0, 0), g, h, p)
+    ystate = calculate_state(calculate_state((0, 0, 0), g, h, p), g, h, p)
+
+    if q is None:
+        q = p - 1
+
+    while True:
+        xstate = calculate_state(xstate, g, h, p)
+        ystate = calculate_state(calculate_state(ystate, g, h, p), g, h, p)
+
+        if xstate == ystate:
+            try:
+                result = (xstate[1] - ystate[1]) * pow(ystate[1] - xstate[1], -1, q)
+            except ValueError:
+                continue
+            else:
+                return result
+
+
+def calculate_state(state, g, h, p):
+    """This function is a helper method for Pollard's Rho algorithm for solving DLP's."""
+
+    x, alpha, beta = state[0], state[1], state[2]
+
+    if 0 <= x < p//3:
+        x *= g
+        if x >= p:
+            x %= p
+        alpha += 1
+        if alpha >= p - 1:
+            alpha %= (p - 1)
+        return x, alpha, beta
+    elif p//3 <= x < 2 * p//3:
+        x = pow(x, 2, p)
+        alpha *= 2
+        beta *= 2
+        if x >= p:
+            x %= p
+        if alpha >= p - 1:
+            alpha %= (p - 1)
+        if beta >= p - 1:
+            beta %= (p - 1)
+        return x, alpha, beta
+    elif 2 * p//3 <= x < p:
+        x *= h
+        if x >= p:
+            x %= p
+        beta += 1
+        if beta >= p - 1:
+            beta %= (p - 1)
+        return x, alpha, beta
 
 
 def pohlig_hellman(g, h, p, q, exp, prog=False):

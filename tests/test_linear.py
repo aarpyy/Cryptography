@@ -1,7 +1,7 @@
 from cryptography318.linear_algebra_deprecated import (augRREF, IsSolvable, Solve, IsConsistent, MatrixEquals, RREF, IsRREF,
-                                                       augIsRREF, _augRREF_old)
+                                                       augIsRREF)
 from cryptography318.matrix_deprecated import RandomMatrix, augmentMatrix, MultiplyMatrix, separateMatrix
-from cryptography318.crypto_functions import QuadraticSieve, FactorInt, _factorPerfectSquare
+from cryptography318.crypto_functions import QuadraticSieve, FactorInt, _factorPerfectSquare, pollard_rho_dlp
 from cryptography318.prime import RandomPrime, IsPrime, NextPrime
 import textwrap
 from cryptography318.linear_algebra import *
@@ -71,4 +71,20 @@ def testAllTests():
 
 
 if __name__ == '__main__':
-    testAllTests()
+    # testAllTests()
+    g = 4
+    p = RandomPrime(pow(2, 10))
+    q = 1
+    a = g
+    while a != 1:
+        a *= g
+        if a > p:
+            a %= p
+        q += 1
+    print(q)
+    h = pow(g, (s := randrange(p)), p)
+    print(s)
+    print(h)
+    print(pollard_rho_dlp(2, 21, 29, 28))
+
+
