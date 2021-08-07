@@ -20,7 +20,7 @@ setup(
     install_requires=['numpy',
                       'sympy'],
     classifiers=[
-        'Development Status :: 1 - Planning',
+        'Development Status :: 2 - Pre-Alpha',
         'Intended Audience :: Education',
         'License :: Public Domain',
         'Operating System :: MacOS',
