@@ -7,6 +7,8 @@ from .tools import string_reduce, deprecated
 
 
 def where(array, if_exp=None, else_exp=None):
+    """Equivalent of numpy.where, accepts Matrix object as argument."""
+
     if isinstance(array, Matrix):
         if if_exp is None and else_exp is None:
             return numpy.where(array.array)
@@ -19,6 +21,7 @@ def where(array, if_exp=None, else_exp=None):
 
 
 def dot(obj, other, mod=None):
+    """Equivalent of numpy.dot, accepts Matrix object as argument."""
     if len(obj) != len(other):
         raise ValueError(f"Unable to take product of two arrays of different length")
     if mod is not None:
@@ -31,11 +34,6 @@ def aslist(obj):
 
     array = []
     if isinstance(obj[0], (list, numpy.ndarray)):
-        # if layered list of one row, return un-layered
-        if len(obj) == 1:
-            for i in range(len(obj[0])):
-                array.append(obj[0][i])
-            return array
         # if normal multi-dimensional
         for i in range(len(obj)):
             array.append([])
@@ -48,18 +46,16 @@ def aslist(obj):
     return array
 
 
-def assert_array(obj):
-    if not isinstance(obj, (list, numpy.ndarray, Matrix)):
-        raise TypeError(f"object {obj} is not array")
-
-
 def isnumber(obj):
     types = (int, float, numpy.int16, numpy.int32, numpy.int64, numpy.float16,
-             numpy.float32, numpy.float64, numpy.float128)
+             numpy.float32, numpy.float64)
     return isinstance(obj, types)
 
 
 def is_binary_matrix(obj):
+    """Returns False if non binary element in Matrix (not 0 or 1), True otherwise. Returns
+    False if object is not Matrix."""
+
     if isinstance(obj, (Matrix, numpy.ndarray)):
         for row in obj:
             for e in row:
@@ -70,6 +66,8 @@ def is_binary_matrix(obj):
 
 
 def all_elements(obj):
+    """Returns all elements of list-type object in one Python list."""
+
     if isinstance(obj, (list, numpy.ndarray, Matrix)):
         elements = []
         for row in obj:
@@ -86,28 +84,31 @@ class Matrix:
     def __init__(self, array=None, rows=None, cols=None, rand=False, identity=False, aug=False, solution=None, mod=None):
         self.mod = mod
         self.augmented = False
-        # if augmented or solution provided, matrix is augmented
+
+        # if augmented is True or solution provided, matrix is augmented
         if aug or solution is not None:
             self.augmented = True
+
+        # if array given, check if list or numpy array (cannot inherit a Matrix object)
         if array is not None:
-            if isinstance(array, numpy.ndarray):
-                self.array = array
-            elif isinstance(array, list):
+            if isinstance(array, (list, numpy.ndarray)):
+
+                # if array given is nested list, set self.array to given, otherwise, nest it
                 if isinstance(array[0], (list, numpy.ndarray)):
                     self.array = numpy.array(array)
                 else:
                     self.array = numpy.array([array])
             else:
                 raise TypeError(f"Matrix must be type numpy.ndarray or list. Given: object of type {type(array)}")
-            if solution is not None:
-                assert_array(solution)
-                for i in range(len(self)):
-                    self.array[i].append(solution[i][0])
+
+            # if an array was given, attempt to reset type immediately
             self.reset_type()
+
         # if no array was given, matrix is not random or identity, and one of columns was not given matrix cannot be
         # constructed
         elif not rand and not identity and (rows is None or cols is None):
             raise ValueError("Constructor requires number of rows and columns, or valid matrix")
+
         # if random, no rows or columns required, creates m x n matrix with random m, n (where not given) and
         # values random integers between -50, 50
         elif rand:
@@ -121,13 +122,18 @@ class Matrix:
                 for j in range(cols):
                     matrix[i].append(randrange(-50, 50))
             self.array = numpy.array(matrix)
+
         # if identity, matrix must be square
         elif identity:
             if rows is not None and cols is not None and rows != cols:
                 raise ValueError("Number of rows must equal number of columns in an identity matrix")
+
+            # matrix constructed with just identity = True will return In for random n: [1, 10)
             if rows is None and cols is None:
-                rows = randint(1, 10)
+                rows = randrange(1, 10)
                 cols = rows
+
+            # if one of cols or rows given, make the other equal so that matrix is square
             elif rows is None:
                 rows = cols
             elif cols is None:
@@ -141,6 +147,9 @@ class Matrix:
                     else:
                         matrix[i].append(0)
             self.array = numpy.array(matrix, dtype=object)
+
+        # if no input was given other than rows/cols, return null matrix of given size, rows/cols guaranteed
+        # to not be null by this point, due to checking validity of input ~40 lines above
         else:
             matrix = []
             for i in range(rows):
@@ -148,6 +157,13 @@ class Matrix:
                 for j in range(cols):
                     matrix[i].append(0)
             self.array = numpy.array(matrix, dtype=object)
+
+        # if a solution is provided, attach column to end of matrix
+        if solution is not None:
+            if not isinstance(solution, (list, numpy.ndarray, Matrix)):
+                raise TypeError(f"object {solution} is not array")
+            for i in range(len(self)):
+                self.array[i].append(solution[i][0])
 
     def __setitem__(self, key, value):
         self.array[key] = value
@@ -160,6 +176,9 @@ class Matrix:
 
     def __iter__(self):
         return iter(aslist(self))
+
+    def __repr__(self):
+        return f"Matrix(array={self.array}, aug={self.augmented}, mod={self.mod})"
 
     def __str__(self):
         str_array = []
@@ -215,14 +234,22 @@ class Matrix:
         return formatted + "]"
 
     def __eq__(self, other):
+
+        # if other is nested list i.e. 2-dimensional array, return False if values at each corresponding row, col
+        # are not similar, True otherwise (returning True if all values within 0.1 of each other because numpy
+        # rounding /dealing with long floats can result in the solution to Ax = B for some x might be correct
+        # solution but slightly off float values
         if isinstance(other, (list, numpy.ndarray, Matrix)) and isinstance(other[0], (list, numpy.ndarray, Matrix)):
             if len(other) != len(self) or len(other[0]) != len(self[0]):
                 raise ValueError("Both matrices must have the same number of rows and columns!")
             for i in range(len(self)):
                 for j in range(len(self[0])):
-                    if abs(self[i][j] - other[i][j]) > 0.5:
+                    if abs(self[i][j] - other[i][j]) > 0.1:
                         return False
             return True
+
+        # if not nested list, two objects will not be compared as arrays, but will return a binary matrix
+        # with truth values wherever self's values are in the list
         if isinstance(other, list):
             binary_matrix = Matrix(rows=len(self), cols=len(self[0]))
             for i, row in enumerate(self):
@@ -230,9 +257,15 @@ class Matrix:
                     e = row[j]
                     if e in other:
                         binary_matrix[i][j] = 1
+
+            # pivot keyword allows user to search for pivots in matrix
             if 'pivot' in other:
+
+                # returns the union of searching for pivot
                 return Matrix.union(binary_matrix, self == 'pivot')
             return binary_matrix
+
+        # if comparing to a number, return binary matrix with values = 1 wherever matrix values = number
         if isnumber(other):
             binary_matrix = []
             for i, row in enumerate(self):
@@ -240,29 +273,46 @@ class Matrix:
                 for e in row:
                     binary_matrix[i].append(1 if e == other else 0)
             return Matrix(binary_matrix)
+
+        # if user searching for pivots, return binary matrix with values = 1 wherever an entry = 1
+        # that is not in a row with a preceding value != 0 or 1 (first non-zero entry in row should be pivot)
+        # also checks if entry = 1 is in same column as already identified pivot
         if other == 'pivot':
             binary_matrix = Matrix(rows=len(self), cols=len(self[0]))
             adj = 1 if self.augmented else 0
-            pivot_columns = []
+
+            # the reason pivot_column is kept track of but not used as a starting point for row iteration is
+            # because if there are non-zero entries in front of a possible pivot, it becomes an invalid location
+            pivot_column = -1
             for i in range(len(self)):
                 for j in range(len(self[0]) - adj):
                     e = self[i][j]
                     if e not in [0, 1]:
                         break
-                    if e == 1 and j not in pivot_columns:
+                    if e == 1 and j > pivot_column:
                         binary_matrix[i][j] = 1
-                        pivot_columns.append(j)
+                        pivot_column = j
                         break
             return binary_matrix
+
+        # if didn't identify valid type to compare with, error thrown
         raise TypeError(f"Cannot compare objects of type Matrix and type {type(other)}")
 
     def __ne__(self, other):
+
+        # not equal in all currently considered cases, is the inverse of equal
         result = self.__eq__(other)
+
+        # if returned is a matrix, this is assumed to be a binary matrix and it is inverted
         if isinstance(result, Matrix):
             return result.binary_inverse()
+
+        # if matrix not returned, assumed to be bool value and is returned as not value
         return not result
 
     def __lt__(self, other):
+
+        # uses numpy's built in array comparison methods to evaluate
         if isinstance(other, (int, float, numpy.int, numpy.float, numpy.ndarray)):
             return Matrix(self.array < other)
         if isinstance(other, Matrix):
@@ -270,6 +320,8 @@ class Matrix:
         raise TypeError(f"Cannot compare between type Matrix and type {type(other)}")
 
     def __le__(self, other):
+
+        # uses numpy's built in array comparison methods to evaluate
         if isinstance(other, (int, float, numpy.int, numpy.float, numpy.ndarray)):
             return Matrix(self.array <= other)
         if isinstance(other, Matrix):
@@ -277,6 +329,8 @@ class Matrix:
         raise TypeError(f"Cannot compare between type Matrix and type {type(other)}")
 
     def __gt__(self, other):
+
+        # uses numpy's built in array comparison methods to evaluate
         if isinstance(other, (int, float, numpy.int, numpy.float, numpy.ndarray)):
             return Matrix(self.array > other)
         if isinstance(other, Matrix):
@@ -284,6 +338,8 @@ class Matrix:
         raise TypeError(f"Cannot compare between type Matrix and type {type(other)}")
 
     def __ge__(self, other):
+
+        # uses numpy's built in array comparison methods to evaluate
         if isinstance(other, (int, float, numpy.int, numpy.float, numpy.ndarray)):
             return Matrix(self.array >= other)
         if isinstance(other, Matrix):
@@ -291,17 +347,22 @@ class Matrix:
         raise TypeError(f"Cannot compare between type Matrix and type {type(other)}")
 
     def __mul__(self, other):
+
+        # checks to see if dimensions of both objects are compatible with matrix multiplication
         if isinstance(other, (Matrix, numpy.ndarray, list)):
             if len(self[0]) != len(other):
                 raise ValueError("Number of columns in first matrix must equal number of rows in second")
+
+        # uses numpy's matmul for all matrix multiplication
         if isinstance(other, Matrix):
             return Matrix(numpy.matmul(self.array, other.array))
         if isinstance(other, numpy.ndarray):
             return Matrix(numpy.matmul(self.array, other))
         if isinstance(other, list):
-            return Matrix(numpy.matmul(self.array, numpy.array(other, dtype=object)))
+            return Matrix(numpy.matmul(self.array, numpy.array(other, dtype=object)))\
+
+        # if number * matrix, return each element of matrix *= number
         if isnumber(other):
-            warn("Proper syntax assumes scalar comes before matrix in scalar-matrix multiplication", SyntaxWarning)
             matrix = self.copy()
             for i in range(len(self.array)):
                 for j in range(len(self.array[0])):
@@ -310,6 +371,8 @@ class Matrix:
         raise TypeError("Matrix multiplication must be done between two matrices or a matrix and a scalar")
 
     def __rmul__(self, other):
+
+        # refer to __mul__ for documentation
         if isinstance(other, (Matrix, numpy.ndarray, list)):
             if len(other[0]) != len(self):
                 raise ValueError("Number of columns in first matrix must equal number of rows in second")
@@ -328,6 +391,8 @@ class Matrix:
         raise TypeError("Matrix multiplication must be done between two matrices or a matrix and a scalar")
 
     def __add__(self, other):
+
+        # validates input as matrix that can be added if list-type
         if isinstance(other, (list, numpy.ndarray, Matrix)):
             if len(other) != len(self) or len(other[0]) != len(self[0]):
                 raise ValueError("Both matrices must have the same number of rows and columns!")
@@ -379,8 +444,9 @@ class Matrix:
 
     def __floordiv__(self, other):
         if isnumber(other):
-            self.array //= other
-            return self
+            matrix = self.copy()
+            matrix.array //= other
+            return matrix
         raise TypeError("Matrix division only accepts number divisors")
 
     def __truediv__(self, other):
@@ -391,6 +457,9 @@ class Matrix:
         raise TypeError("Matrix division only accepts number divisors")
 
     def __pow__(self, power, modulo=None):
+
+        # powers currently supported are positive integers (referring to the number of times a matrix will
+        # be multiplied against itself) and -1 (inverse)
         if not isinstance(power, int) or (power < 1 and power != -1):
             raise TypeError("Power must be real positive integer")
         if len(self) != len(self[0]):
@@ -402,7 +471,8 @@ class Matrix:
             product = self * product
             if modulo is not None:
                 product %= modulo
-        return product.reset_type()
+        product.reset_type()
+        return product
 
     def __mod__(self, other):
         if not isnumber(other):
@@ -410,71 +480,7 @@ class Matrix:
         result = self.array.copy() % other
         return Matrix(result, aug=self.augmented)
 
-    def union(self, other):
-        """Returns the logical union of two binary matrices.
-
-        If this operation is needed with non-Matrix objects, use set.union(A, B)"""
-
-        if not is_binary_matrix(self) and not is_binary_matrix(other):
-            raise AttributeError("Union valid function only for binary matrices")
-
-        if len(self) != len(other) or len(self[0]) != len(other[0]):
-            raise AttributeError("Matrices are different dimensions. Union impossible")
-        matrix = self.copy()
-        for i in range(len(self)):
-            for j in range(len(self[0])):
-                matrix[i][j] = max((self[i][j], other[i][j]))
-        return matrix
-
-    def intersection(self, other):
-        """Returns the logical intersection of two binary matrices.
-
-        If this operation is needed with non-Matrix objects, use set.intersection(A, B)"""
-
-        if isinstance(other, list) and not isinstance(other[0], list) and isinstance(self, list) and not isinstance(self[0], list):
-            result = []
-            for e in other:
-                result.append(e)
-            for e in self:
-                result.append(e)
-            return result
-
-        if not is_binary_matrix(self) and not is_binary_matrix(other):
-            raise AttributeError("Intersection valid function only for binary matrices")
-
-        if len(self) != len(other) or len(self[0]) != len(other[0]):
-            raise AttributeError("Matrices are different dimensions. Intersection impossible")
-        matrix = self.copy()
-        for i in range(len(self)):
-            for j in range(len(self[0])):
-                matrix[i][j] = 1 if self[i][j] == 1 and other[i][j] == 1 else 0
-        return matrix
-
-    def disjunction(self, other):
-        """Returns the logical intersection of two binary matrices.
-
-        If this operation is needed with non-Matrix objects, use set(A) - set(B)"""
-
-        if not is_binary_matrix(self) and not is_binary_matrix(other):
-            raise AttributeError("Disjunction valid function only for binary matrices")
-
-        if len(self) != len(other) or len(self[0]) != len(other[0]):
-            raise AttributeError("Matrices are different dimensions. Disjunction impossible")
-        matrix = self.copy()
-        for i in range(len(self)):
-            for j in range(len(self[0])):
-                matrix[i][j] = 1 if self[i][j] == 1 or other[i][j] == 1 else 0
-        return matrix
-
-    def binary_inverse(self):
-        """Returns the negative image of a binary matrix"""
-        obj = self.array
-
-        if not is_binary_matrix(self):
-            raise AttributeError("Binary inverse requires object to be binary matrix")
-
-        return (self.copy() + 1) % 2
-
+    # pseudo-constructor class methods that return a new instance of Matrix specified by the method
     @classmethod
     def make(cls, rows, cols, aug=False, by_row=True):
         """
@@ -568,36 +574,73 @@ class Matrix:
             raise ValueError("Bases must be square matrix")
         return out_basis.invert() * in_basis
 
-    def make_pivot(self, row, col=None):
-        """Converts first non-zero entry of a row into a pivot, by dividing the entire row by the entry.
-        If column is provided, converts entry at index = column into a pivot. Does not return anything.
+    # methods reserved for binary matrices
+    def union(self, other):
+        """Returns the logical union of two binary matrices.
 
-        :param row: index of row to be operated on
-        :param col: column index for pivot location
-        """
-        if row >= len(self):
-            raise IndexError(f"Row index {row} out of bounds for Matrix with {len(self)} rows")
-        array = self[row].copy()
-        if col is None:
-            for i in range(len(array)):
-                if array[i] != 0:
-                    col = i
-                    break
+        If this operation is needed with non-Matrix objects, use set.union(A, B)"""
 
-        e = array[col]
-        # if any elements are not 0 mod e, then use float division, otherwise use integer division
-        divisible = array % e
-        if divisible.any():
-            array = array.astype(numpy.float64)
-            self.array = self.array.astype(numpy.float64)
-            array /= e
-        else:
-            array //= e
-            array[col] = 1
-        array[col] = 1
-        self[row] = array
-        self.reset_type()
+        if not is_binary_matrix(self) and not is_binary_matrix(other):
+            raise AttributeError("Union valid function only for binary matrices")
 
+        if len(self) != len(other) or len(self[0]) != len(other[0]):
+            raise AttributeError("Matrices are different dimensions. Union impossible")
+        matrix = self.copy()
+        for i in range(len(self)):
+            for j in range(len(self[0])):
+                matrix[i][j] = max((self[i][j], other[i][j]))
+        return matrix
+
+    def intersection(self, other):
+        """Returns the logical intersection of two binary matrices.
+
+        If this operation is needed with non-Matrix objects, use set.intersection(A, B)"""
+
+        if isinstance(other, list) and not isinstance(other[0], list) and isinstance(self, list) and not isinstance(self[0], list):
+            result = []
+            for e in other:
+                result.append(e)
+            for e in self:
+                result.append(e)
+            return result
+
+        if not is_binary_matrix(self) and not is_binary_matrix(other):
+            raise AttributeError("Intersection valid function only for binary matrices")
+
+        if len(self) != len(other) or len(self[0]) != len(other[0]):
+            raise AttributeError("Matrices are different dimensions. Intersection impossible")
+        matrix = self.copy()
+        for i in range(len(self)):
+            for j in range(len(self[0])):
+                matrix[i][j] = 1 if self[i][j] == 1 and other[i][j] == 1 else 0
+        return matrix
+
+    def disjunction(self, other):
+        """Returns the logical intersection of two binary matrices.
+
+        If this operation is needed with non-Matrix objects, use set(A) - set(B)"""
+
+        if not is_binary_matrix(self) and not is_binary_matrix(other):
+            raise AttributeError("Disjunction valid function only for binary matrices")
+
+        if len(self) != len(other) or len(self[0]) != len(other[0]):
+            raise AttributeError("Matrices are different dimensions. Disjunction impossible")
+        matrix = self.copy()
+        for i in range(len(self)):
+            for j in range(len(self[0])):
+                matrix[i][j] = 1 if self[i][j] == 1 or other[i][j] == 1 else 0
+        return matrix
+
+    def binary_inverse(self):
+        """Returns the negative image of a binary matrix"""
+        obj = self.array
+
+        if not is_binary_matrix(self):
+            raise AttributeError("Binary inverse requires object to be binary matrix")
+
+        return (self.copy() + 1) % 2
+
+    # methods reserved for matrices with a specific modulus
     def make_pivot_mod(self, row, col=None):
         """
         Converts the first non-zero element from a row of matrix at given index into a pivot, attempting to divide
@@ -669,7 +712,7 @@ class Matrix:
         return pivot_matrix
 
     @deprecated
-    def choose_pivots_mod(self):
+    def __choose_pivots_mod(self):
         """
         Function no longer has use.
 
@@ -791,9 +834,74 @@ class Matrix:
         return False
 
     def reduce_mod(self):
-        if self.mode is None:
+        if self.mod is None:
             raise AttributeError("Given matrix cannot be reduced by a modulus because it does not have one")
+        print(self.array, self.mod)
         self.array %= self.mod
+
+    def rref_mod(self):
+        """Uses Guassian elimination to row reduce matrix, returning a new instance of a matrix in reduced row
+        echelon form. Currently nearly works, produces matrix in near-rref, only failing when an element is
+        attempted to be made into a pivot but fails because it does not have a modular inverse with its modulus."""
+
+        matrix = self.copy().astype(numpy.float64)
+        matrix.reduce_mod()
+
+        # if augmented don't reduce last column
+        adj = 1 if self.augmented else 0
+
+        pivot_row = 0
+        for j in range(len(matrix[0]) - adj):
+            for i in range(pivot_row, len(matrix)):
+
+                # if non-zero element, this row can become pivot row
+                if gcd(matrix[i][j], self.mod) == 1:
+
+                    # make j'th element the pivot, reducing rest of row as well
+                    matrix.make_pivot_mod(i, col=j)
+
+                    # if pivot row not already in correct position, swap
+                    if i > pivot_row:
+                        matrix.swap(i, pivot_row)
+
+                    # row reduce everything else
+                    matrix.row_reduce(pivot_row, j)
+                    pivot_row += 1
+
+        matrix.reduce_mod()
+        return matrix
+
+    # standard matrix methods
+    def make_pivot(self, row, col=None):
+        """Converts first non-zero entry of a row into a pivot, by dividing the entire row by the entry.
+        If column is provided, converts entry at index = column into a pivot. Does not return anything.
+
+        :param row: index of row to be operated on
+        :param col: column index for pivot location"""
+
+        if row >= len(self):
+            raise IndexError(f"Row index {row} out of bounds for Matrix with {len(self)} rows")
+        array = self[row].copy()
+        if col is None:
+            for i in range(len(array)):
+                if array[i] != 0:
+                    col = i
+                    break
+
+        e = array[col]
+
+        # if any elements are not 0 mod e, then use float division, otherwise use integer division
+        divisible = array % e
+        if divisible.any():
+            array = array.astype(numpy.float64)
+            self.array = self.array.astype(numpy.float64)
+            array /= e
+        else:
+            array //= e
+            array[col] = 1
+        array[col] = 1
+        self[row] = array
+        self.reset_type()
 
     def append(self, row):
         def assert_len(obj):
@@ -823,7 +931,8 @@ class Matrix:
     def invert(self):
         """Inverts Matrix object using numpy.linalg.inv function."""
 
-        return Matrix(numpy.linalg.inv(self.array))
+        array = self.array.astype(numpy.float64)
+        return Matrix(numpy.linalg.inv(array), aug=self.augmented, mod=self.mod)
 
     def transpose(self):
         """Returns transpose of Matrix object."""
@@ -947,7 +1056,7 @@ class Matrix:
                 self[i] -= self[row] * self[i][col]
 
     @deprecated
-    def rref_old(self):
+    def __rref_old(self):
         """Function that puts matrix in reduced row echelon form"""
 
         matrix = aslist(self.array.astype(numpy.float64))
@@ -1021,38 +1130,6 @@ class Matrix:
                     matrix.row_reduce(pivot_row, j)
                     pivot_row += 1
 
-        return matrix
-
-    def rref_mod(self):
-        """Uses Guassian elimination to row reduce matrix, returning a new instance of a matrix in reduced row
-        echelon form. Currently nearly works, produces matrix in near-rref, only failing when an element is
-        attempted to be made into a pivot but fails because it does not have a modular inverse with its modulus."""
-
-        matrix = self.copy().astype(numpy.float64)
-        matrix.reduce_mod()
-
-        # if augmented don't reduce last column
-        adj = 1 if self.augmented else 0
-
-        pivot_row = 0
-        for j in range(len(matrix[0]) - adj):
-            for i in range(pivot_row, len(matrix)):
-
-                # if non-zero element, this row can become pivot row
-                if gcd(matrix[i][j], self.mod) == 1:
-
-                    # make j'th element the pivot, reducing rest of row as well
-                    matrix.make_pivot_mod(i, col=j)
-
-                    # if pivot row not already in correct position, swap
-                    if i > pivot_row:
-                        matrix.swap(i, pivot_row)
-
-                    # row reduce everything else
-                    matrix.row_reduce(pivot_row, j)
-                    pivot_row += 1
-
-        matrix.reduce_mod()
         return matrix
 
     def ref(self):
@@ -1181,7 +1258,8 @@ class Matrix:
                 pivots += 1
         return pivots
 
-    def is_solvable_old(self):
+    @deprecated
+    def __is_solvable_old(self):
         """is_solvable returns True if object is (with null rows removed) a square matrix with
         no free variables, and False otherwise. If matrix is augmented, the column of solutions
         is not counted towards object being square."""
@@ -1234,7 +1312,8 @@ class Matrix:
                     break
         return solutions
 
-    def solve_old(self):
+    @deprecated
+    def __solve_old(self):
         """
         Solve is a function that attempts to solve a given system of linear equations.
 
@@ -1249,7 +1328,7 @@ class Matrix:
 
         # result could either be False, empty list, or list of solutions
         matrix = self.copy().remove_null_row()
-        result = self._solve_system(matrix)
+        result = self.__solve_system(matrix)
         if not result:
             return result
 
@@ -1261,7 +1340,8 @@ class Matrix:
 
         return Matrix(solution)
 
-    def _solve_system(self, matrix):
+    @deprecated
+    def __solve_system(self, matrix):
         """
         _solveSystem is a private helper function for public Solve that recursively
         determines solution for each variable in system of linear equations. Function
@@ -1289,7 +1369,7 @@ class Matrix:
                 _vars[x] = matrix[0][r] / _vars[x]
             return _vars
 
-        result = self._solve_system(matrix[1:])
+        result = self.__solve_system(matrix[1:])
         if result is False:
             return False
 
@@ -1360,11 +1440,40 @@ class Matrix:
 
 class LinearMap(Matrix):
     def __init__(self, array):
+
+        # allows LinearMap to accept Matrix object as argument
         if isinstance(array, Matrix):
             super().__init__(array=array.array)
         else:
             super().__init__(array=array)
 
+    # all binary matrix methods reserved for Matrix not LinearMap
+    def union(self, other):
+        pass
+
+    def intersection(self, other):
+        pass
+
+    def disjunction(self, other):
+        pass
+
+    def binary_inverse(self):
+        pass
+
+    # all methods over field of integers reserved for Matrix not LinearMap
+    def make_pivot_mod(self, row, col=None):
+        pass
+
+    def find_invertible(self):
+        pass
+
+    def reduce_mod(self):
+        pass
+
+    def rref_mod(self):
+        pass
+
+    # all methods involving augmented coefficient matrices for Matrix not LinearMap
     def is_solvable(self):
         """Method only applies to augmented coefficient matrices. Does not apply to linear maps."""
 
@@ -1376,11 +1485,6 @@ class LinearMap(Matrix):
         pass
 
     def solve(self):
-        """Method only applies to augmented coefficient matrices. Does not apply to linear maps."""
-
-        pass
-
-    def _solve_system(self, matrix):
         """Method only applies to augmented coefficient matrices. Does not apply to linear maps."""
 
         pass
@@ -1402,6 +1506,7 @@ class LinearMap(Matrix):
 
         pass
 
+    # LinearMap methods not inherited or different than super class
     def dimension(self):
         """Dimension for a linear map is split into the dimension of the domain and
         dimension of the codomain, this functions serves no purpose."""
@@ -1521,5 +1626,7 @@ class LinearMap(Matrix):
         if len(self) != len(self[0]):
             raise AttributeError("This function only works with square maps")
 
+        # returns the determinant of M - xI where x is the potential eigenvalue
         matrix = self - Matrix(rows=len(self), cols=len(self), identity=value)
-        return numpy.linalg.det(matrix.array) == 0
+        array = matrix.array.astype(numpy.float64)
+        return numpy.linalg.det(array) == 0
