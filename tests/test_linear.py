@@ -9,6 +9,40 @@ import numpy, random, pytest
 
 
 @pytest.mark.skip
+def test_change_basis():
+    S = LinearMap([[1, 0],
+                   [0, -1]])
+    B = Matrix([[1, -2],
+                [2, 1]]).invert()
+    T = Matrix([[-.6, .8],
+                [.8, .6]])
+    assert S.in_basis(B) == T
+
+
+@pytest.mark.skip
+def test_ranknull(it=500):
+    for _ in range(it):
+        x = random.randrange(2, 10)
+        m = Matrix(rows=x, cols=x, rand=True)
+        assert m.rank() + m.null() == m.dimension()
+
+
+@pytest.mark.skip
+def test_rref(it=500):
+    for _ in range(it):
+        x = random.randrange(2, 10)
+        m = Matrix(rows=x, cols=x, rand=True)
+        assert m.rref().is_rref()
+
+
+@pytest.mark.skip
+def test_basis():
+    A = LinearMap([[2, 2],
+                   [1, 3]])
+    print(A.is_eigen_value(1))
+
+
+@pytest.mark.skip
 def test_linear_solve(it=500):
     for _ in range(it):
         m = Matrix(rand=True, aug=True)
@@ -32,23 +66,9 @@ def test_rref(it=500):
 
 @pytest.mark.skip
 def testAllTests():
-    # test_rref(50)
+    test_rref(50)
     test_linear_solve(1)
 
 
 if __name__ == '__main__':
-    # testAllTests()
-    mat = Matrix(rows=3, cols=2)
-    mat[1][0] = 1
-    arr = numpy.array([[1, 0, 2]]).astype(numpy.float64)
-
-    m = array_mod([15, 6, 9, 15], mod=18)
-    a = numpy.array([[1, 5, 7, 3, 4]])
-    x = [1, 2, 3, 5, 3]
-    c = [1, 2, 3]
-    d = [1, 0, 2]
-    print(m, m.mod)
-    m = m - 10
-    print(m, m.mod)
-
-
+    testAllTests()

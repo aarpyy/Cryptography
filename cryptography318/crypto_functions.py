@@ -1,8 +1,95 @@
 import operator
-from math import gcd, isqrt
+from math import gcd, isqrt, sqrt
 from .prime import IsPrime, NextPrime
 from .tools import deprecated
-from .linear_algebra import Matrix
+
+
+class EllipticCurve:
+    def __init__(self, a, b, p):
+        self.a = a
+        self.b = b
+        self.mod = p
+
+    def point(self, x=None, y=None):
+        return Elliptic(self, x, y)
+
+    def string(self, s):
+        return StringToElliptic(self, s)
+
+
+class Elliptic:
+    def __init__(self, E, x=None, y=None):
+        self.E = E
+        if x is not None and y is not None:
+            self.point = (x, y)
+        else:
+            self.point = None
+
+    def __neg__(self):
+        return Elliptic(self.E, self.point[0], -self.point[1])
+
+    def __hash__(self):
+        return hash(self.point)
+
+    def __getitem__(self, item):
+        return self.point[item]
+
+    def __add__(self, other):
+        if other.point is None:
+            return self
+        if self.point is None:
+            return other
+        x1, y1 = self.point
+        x2, y2 = other.point
+        if (x1 - x2) % self.E.mod == 0 and (y1 + y2) % self.E.mod == 0:
+            return None
+        if (x1 - x2) % self.E.mod == 0 and (y1 - y2) % self.E.mod == 0:
+            slope = ((3 * pow(x1, 2) + self.E.a) * pow(2 * y1, -1, self.E.mod)) % self.E.mod
+        else:
+            slope = ((y2 - y1) * pow(x2 - x1, -1, self.E.mod)) % self.E.mod
+        x3 = (pow(slope, 2) - x1 - x2) % self.E.mod
+        y3 = (slope * (x1 - x3) - y1) % self.E.mod
+        return Elliptic(self.E, x3, y3)
+
+    def __radd__(self, other):
+        return self.__add__(other)
+
+    def __sub__(self, other):
+        return self.__add__(-other)
+
+    def __rsub__(self, other):
+        P = -self
+        return P.__add__(other)
+
+    def __mul__(self, other):
+        return self.__rmul__(other)
+
+    def __rmul__(self, other):
+        if isinstance(other, float):
+            other = int(other)
+        P = self
+        if other < 0:
+            other = abs(other)
+            P = -self
+        Q = P
+        R = Elliptic(self.E)
+        while other > 0:
+            if other & 1:
+                R += Q
+            Q += Q
+            other //= 2
+        return R
+
+    def __str__(self):
+        return str(self.point)
+
+    def __eq__(self, other):
+        if isinstance(other, Elliptic):
+            return self.point == other.point
+        return self.point == other
+
+    def to_string(self):
+        return EllipticToString(self)
 
 
 def apply(proc, lst):
@@ -12,7 +99,16 @@ def apply(proc, lst):
         for e in lst[1:]:
             acc = lst_proc[proc](acc, e)
         return acc
-    return proc(lst[:])
+    return proc(*lst)
+
+
+def sqrt_safe(n):
+    try:
+        result = sqrt(n)
+    except OverflowError:
+        result = isqrt(n)
+    finally:
+        return result
 
 
 def toBase(n, base):
@@ -56,6 +152,19 @@ def NumToString(n, base=128):
     for c in chars:
         string += chr(c)
     return string
+
+
+def StringToElliptic(E, s):
+    for i in range(100):
+        x = StringToNum(s) * 100 + i
+        y = sqrt_safe(pow(x, 3, E.mod) + E.a * x + E.b) % E.mod
+        if isinstance(y, int):
+            return E.point(x, y)
+    return None
+
+
+def EllipticToString(n):
+    return NumToString(n[0] // 100)
 
 
 @deprecated
@@ -207,6 +316,37 @@ def baby_step_giant_step(g, h, p, prog=False, N=None):
     return None
 
 
+def elliptic_bsgs(P, Q, N=None):
+    if N is None:
+        N = P.E.mod + 1 + 2 * isqrt(P.E.mod)
+
+    n = isqrt(N)
+
+    # creates baby-step table, P * i for i from 0 to n
+    a = list(map(lambda i: P * i, range(n)))
+    # creates giant-step table, Q - P * jn for j from 0 to n
+    b = list(map(lambda j: Q + (P * (-j * n)), range(n)))
+
+    # creates sets out of lists
+    A, B = set(a), set(b)
+
+    U = A.intersection(B)
+    if not U:
+        return None
+    point = U.pop()
+
+    # uses lists to find index of intersection
+    index_a, index_b = -1, -1
+    for i, pair in enumerate(zip(a, b)):
+        if pair[0] == point:
+            index_a = i
+        if pair[1] == point:
+            index_b = i
+        if -1 not in (index_a, index_b):
+            return index_a + n * index_b
+    return None
+
+
 def solve_DLP(g, h, p):
     """Function attempts to solve DLP by solving other smaller DLP's and combining into system of equations."""
 
@@ -218,6 +358,7 @@ def solve_DLP(g, h, p):
 
     primes = PrimesLT(B)
 
+    # currently brute forces solutions to log_g_x with x for each prime <= B
     logs = {}
     for n in primes:
         logs[n] = baby_step_giant_step(g, n, p)

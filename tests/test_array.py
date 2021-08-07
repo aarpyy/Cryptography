@@ -1,7 +1,9 @@
 import pytest
 from cryptography318.linear_algebra import *
+from cryptography318.array_mod import *
 
 
+@pytest.mark.skip
 def test_constructor():
     # create object
     m = array_mod([2, 3, 5], mod=5)
@@ -34,6 +36,7 @@ def test_constructor():
     assert isinstance(a, array_mod)
 
 
+@pytest.mark.skip
 def test_get_item():
     m = array_mod([2, 3, 5], mod=5)
     assert m[0] == 2
@@ -41,6 +44,7 @@ def test_get_item():
         var = m[3]
 
 
+@pytest.mark.skip
 def test_set_item():
     m = array_mod([2, 3, 5], mod=5)
     assert m[0] == 2
@@ -57,11 +61,13 @@ def test_set_item():
     assert m[0] == 3
 
 
+@pytest.mark.skip
 def test_len():
     m = array_mod([2, 3, 5], mod=5)
     assert len(m) == 3
 
 
+@pytest.mark.skip
 def test_iter():
     m = array_mod([2, 3, 5], mod=5)
     for n in m:
@@ -71,6 +77,7 @@ def test_iter():
     assert isinstance(list(m), list)
 
 
+@pytest.mark.skip
 def test_str():
     m = array_mod([2, 3, 5], mod=5)
     assert isinstance(str(m), str)
@@ -78,6 +85,7 @@ def test_str():
     assert '2' in str(m)
 
 
+@pytest.mark.skip
 def test_add():
     m = array_mod([2, 3, 5], mod=5)
     a = array_mod([7, 5, 2], mod=6)
@@ -109,3 +117,52 @@ def test_add():
         m += numpy.array([[1, 2], [3, 4]])
     assert "multi-dimensional array is unsupported" in str(exc_info.value)
 
+
+@pytest.mark.skip
+def test_sub():
+    m = array_mod([2, 3, 5], mod=5)
+    a = array_mod([3, 3, 1], mod=5)
+
+    # test subtraction mod
+    b = m - a
+    c = a - m
+    for e in b:
+        assert e in [0, 4]
+    for e in c:
+        assert e in [0, 1]
+
+    # test subtraction with integer
+    b = m - 4
+    for e in b:
+        assert e in [1, 3, 4]
+
+    # test can't subtract from integer
+    with pytest.raises(TypeError) as exc_info:
+        b = 4 - m
+    assert "incompatible for the given operation" in str(exc_info.value)
+
+    # test can't subtract with multi-dimensional array
+    with pytest.raises(AttributeError) as exc_info:
+        b = m - numpy.array([[1, 2], [3, 4]])
+    assert "multi-dimensional array is unsupported" in str(exc_info.value)
+
+
+@pytest.mark.skip
+def test_mul():
+    m = array_mod([2, 3, 5], mod=5)
+    a = array_mod([1, 2, 5], mod=9)
+
+    # test multiplication via dot product
+    b = m * a
+    c = a * m
+    assert b[0] == 3
+    assert c[0] == 6
+
+    # test inheritance of modulus
+    assert b.mod == m.mod
+    assert c.mod == a.mod
+
+    # test can't multiply with multi-dimensional array
+    with pytest.raises(AttributeError) as exc_info:
+        b = m * numpy.array([[1, 2], [3, 4]])
+    assert "multi-dimensional array is unsupported" in str(exc_info.value)
