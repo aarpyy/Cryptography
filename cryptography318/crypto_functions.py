@@ -374,7 +374,9 @@ def index_calculus_dlp(g, h, p):
             return reduce(lambda a, b: a + b, list(map(lambda i, n: i * logs[n], exponents, logs))) + k
 
 
-def pollard_rho_dlp(g, h, p, q=None):
+def SolveDLP(g, h, p, q=None):
+    """Uses Pollard's Rho algorithm for logarithms to solve given discrete log problem."""
+
     xstate = (1, 0, 0)
     ystate = (1, 0, 0)
 
@@ -487,7 +489,7 @@ def DSA(D, S1, S2, g, p, q, A):
     return False
 
 
-def PollardP1(n, limit=pow(10, 6), first_n=4):
+def pollard_p1(n, limit=pow(10, 6), first_n=4):
     """Pollard's p - 1 algorithm for factoring large composites.
     Returns one non-trivial factor if factor-able, False if otherwise."""
 
@@ -547,7 +549,7 @@ def FactorInt(n):
             n //= p
 
     while not IsPrime(n):
-        k = PollardP1(n)
+        k = pollard_p1(n)
         # if Pollard p-1 returns False, try using sympy.factorint
         if not k:
             from sympy import factorint

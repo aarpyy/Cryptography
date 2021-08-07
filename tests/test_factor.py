@@ -1,4 +1,4 @@
-from cryptography318.crypto_functions import _factorPerfectSquare, pollard_rho_dlp
+from cryptography318.crypto_functions import _factorPerfectSquare, SolveDLP
 from cryptography318.prime import *
 from cryptography318.crypto_functions import *
 from math import prod
@@ -48,7 +48,7 @@ def test_pollard_rho(it=50):
         p = RandomPrime(pow(2, 30))
         e = randrange(p - 1)
         h = pow(g, e, p)
-        r = pollard_rho_dlp(g, h, p)
+        r = SolveDLP(g, h, p)
         assert pow(g, r, p) == h
 
 

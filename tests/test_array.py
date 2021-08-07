@@ -1,6 +1,5 @@
 import pytest
-from cryptography318.linear_algebra import *
-from cryptography318.array_mod import *
+from cryptography318.deprecated.array_mod import *
 
 
 @pytest.mark.skip

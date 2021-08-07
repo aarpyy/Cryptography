@@ -1,13 +1,13 @@
 Metadata-Version: 2.1
 Name: cryptography318
-Version: 0.1.6
+Version: 0.1.7
 Summary: A set of functions useful in cryptography and linear algebra
 Home-page: https://github.com/aarpyy/Cryptography
 Author: Andrew Carpenter
 Author-email: acarpent@oberlin.edu
 License: UNKNOWN
 Platform: UNKNOWN
-Classifier: Development Status :: 1 - Planning
+Classifier: Development Status :: 2 - Pre-Alpha
 Classifier: Intended Audience :: Education
 Classifier: License :: Public Domain
 Classifier: Operating System :: MacOS
@@ -16,12 +16,23 @@ Classifier: Programming Language :: Python :: 3.8
 Classifier: Programming Language :: Python :: 3.9
 Description-Content-Type: text/markdown
 
+# Cryptography318
 Cryptography318 is a package intended for students of the MATH318 class
 at Oberlin College. This package includes functions for generating primes,
 testing composite numbers, and solving DLP's. This package also includes functions
 useful in linear algebra, including Matrix and LinearMap objects that have 
 functionality including finding RREF, solving system of equations, 
-finding eigenvalues/eigenvectors, changes bases, etc.
+finding eigenvalues/eigenvectors, change-of-basis, etc.
 
+## Required Packages
+* numpy
+* sympy
+
+## Install
+```angular2html
+$ pip install cryptography318
+```
+
+### License
 This package is unlicensed and not intended for public use.
 

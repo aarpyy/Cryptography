@@ -4,8 +4,6 @@ cryptography318/__init__.py
 cryptography318/bailliepsw_helper.py
 cryptography318/crypto_functions.py
 cryptography318/linear_algebra.py
-cryptography318/linear_algebra_deprecated.py
-cryptography318/matrix_deprecated.py
 cryptography318/prime.py
 cryptography318/tools.py
 cryptography318.egg-info/PKG-INFO

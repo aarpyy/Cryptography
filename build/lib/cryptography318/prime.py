@@ -1,5 +1,7 @@
 from math import gcd, isqrt
 from random import randrange
+import ctypes
+import pathlib
 
 from cryptography318.bailliepsw_helper import LucasPseudoPrime, D_chooser
 
@@ -72,7 +74,7 @@ def IsPrime(n):
     if n < 3317044064679887385961981:
         return MillerRabin_bases([2, 3, 5, 7, 11, 13, 17, 19, 23, 29, 31, 37, 41], n)
 
-    return MillerRabinPrimality(n, k=20) and BailliePSW_Primality(n, mr=False)
+    return MillerRabinPrimality(n, k=40) and BailliePSW_Primality(n, mr=False)
 
 
 def MillerRabinPrimality(n, k=40):
@@ -256,89 +258,3 @@ def BailliePSW_Primality(candidate, mr=True):
         return False
 
     return True
-
-
-def PollardP1(n, limit=pow(10, 6), first_n=4):
-    """Pollard's p - 1 algorithm for factoring large composites.
-    Returns one non-trivial factor if factor-able, False if otherwise."""
-
-    if IsPrime(n):
-        raise ValueError("Make sure to enter a composite number")
-
-    if not 1 < first_n < 8:
-        first_n = 8
-
-    for a in [2, 3, 5, 7, 11, 13, 17, 19][:first_n]:
-        m = a
-        for j in range(2, limit):
-            m = pow(m, j, n)
-            k = gcd(m - 1, n)
-            if 1 < k < n:
-                return k
-
-    return False
-
-
-def FactorInt(n):
-    """
-    Function that checks if number has small prime factors, then attempts Pollards p-1 algorithm for
-    factoring large composite numbers in the form N = p * q, returning one non-trivial factor of N. If neither
-    of these methods factor N, sympy.factorint function is used to further factor N, if possible.
-
-    Returns a Python dictionary with each key being a prime factor and the associated value being the power of
-    that prime factor.
-    """
-
-    assert n > 3 and not IsPrime(n)
-
-    known_primes = [2, 3, 5, 7, 11, 13, 17, 19, 23, 29, 31, 37, 41, 43, 47, 53, 59, 61, 67, 71, 73, 79, 83, 89, 97, 101,
-                    103, 107, 109, 113, 127, 131, 137, 139, 149, 151, 157, 163, 167, 173, 179, 181, 191, 193, 197, 199,
-                    211, 223, 227, 229, 233, 239, 241, 251, 257, 263, 269, 271, 277, 281, 283, 293, 307, 311, 313, 317,
-                    331, 337, 347, 349, 353, 359, 367, 373, 379, 383, 389, 397, 401, 409, 419, 421, 431, 433, 439, 443,
-                    449, 457, 461, 463, 467, 479, 487, 491, 499, 503, 509, 521, 523, 541, 547, 557, 563, 569, 571, 577,
-                    587, 593, 599, 601, 607, 613, 617, 619, 631, 641, 643, 647, 653, 659, 661, 673, 677, 683, 691, 701,
-                    709, 719, 727, 733, 739, 743, 751, 757, 761, 769, 773, 787, 797, 809, 811, 821, 823, 827, 829, 839,
-                    853, 857, 859, 863, 877, 881, 883, 887, 907, 911, 919, 929, 937, 941, 947, 953, 967, 971, 977, 983,
-                    991, 997]
-
-    factors = {}
-    for p in known_primes:
-        while n % p == 0:
-            if IsPrime(n):
-                if n not in factors:
-                    factors[n] = 1
-                else:
-                    factors[n] += 1
-                return factors
-            if p not in factors:
-                factors[p] = 1
-            else:
-                factors[p] += 1
-            n //= p
-
-    while not IsPrime(n):
-        k = PollardP1(n)
-        # if Pollard p-1 returns False, try using sympy.factorint
-        if not k:
-            from sympy import factorint
-            sy_factors = factorint(n)
-            for e in sy_factors:
-                if e not in factors:
-                    factors[e] = sy_factors[e]
-                else:
-                    factors[e] += sy_factors[e]
-            return factors
-
-        n //= k
-        if k not in factors:
-            factors[k] = 1
-        else:
-            factors[k] += 1
-
-    if n != 1:
-        if n not in factors:
-            factors[n] = 1
-        else:
-            factors[n] += 1
-
-    return factors

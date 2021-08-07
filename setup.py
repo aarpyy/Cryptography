@@ -11,7 +11,7 @@ setup(
     name='cryptography318',
     long_description=long_description,
     long_description_content_type='text/markdown',
-    version='0.1.6',
+    version='0.1.7',
     description='A set of functions useful in cryptography and linear algebra',
     url='https://github.com/aarpyy/Cryptography',
     author='Andrew Carpenter',
