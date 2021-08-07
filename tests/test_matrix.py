@@ -112,6 +112,7 @@ def test_mod():
     print(pivots)
 
 
+@pytest.mark.skip
 def test_mod2():
     mods = [20] * 6
     mods[0] = 13
@@ -132,26 +133,6 @@ def test_mod2():
                 [0, 0, 0, 0, 0, 0, 0, 1, 8417856],
                 [0, 0, 0, 0, 0, 0, 0, 0, 0],
                 [0, 0, 0, 0, 0, 0, 0, 0, 0]], aug=True, mod=717994966)
-    print(a.is_rref())
-    print(a.solve())
-
-    def test_for_error():
-        b_count = 0
-        while True:
-            b = Matrix(rows=6, rand=True, mod=mods, aug=True)
-            if len(b) < len(b[0]) - 1:
-                continue
-            try:
-                if b.choose_pivots_mod() is None:
-                    if b_count == 0:
-                        print("valid b to test")
-                        print(b)
-                    break
-            except:
-                print("error happened")
-                print(b)
-                print(mods)
-                break
 
 
 if __name__ == '__main__':

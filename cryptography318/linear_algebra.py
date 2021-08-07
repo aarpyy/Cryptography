@@ -3,7 +3,7 @@ from random import randint, randrange
 from warnings import warn
 from math import gcd
 from functools import reduce
-from .tools import string_reduce
+from .tools import string_reduce, deprecated
 
 
 def where(array, if_exp=None, else_exp=None):
@@ -411,7 +411,9 @@ class Matrix:
         return Matrix(result, aug=self.augmented)
 
     def union(self, other):
-        """Returns the logical union of two binary matrices"""
+        """Returns the logical union of two binary matrices.
+
+        If this operation is needed with non-Matrix objects, use set.union(A, B)"""
 
         if not is_binary_matrix(self) and not is_binary_matrix(other):
             raise AttributeError("Union valid function only for binary matrices")
@@ -425,7 +427,10 @@ class Matrix:
         return matrix
 
     def intersection(self, other):
-        """Returns the logical intersection of two binary matrices"""
+        """Returns the logical intersection of two binary matrices.
+
+        If this operation is needed with non-Matrix objects, use set.intersection(A, B)"""
+
         if isinstance(other, list) and not isinstance(other[0], list) and isinstance(self, list) and not isinstance(self[0], list):
             result = []
             for e in other:
@@ -446,7 +451,9 @@ class Matrix:
         return matrix
 
     def disjunction(self, other):
-        """Returns the logical intersection of two binary matrices"""
+        """Returns the logical intersection of two binary matrices.
+
+        If this operation is needed with non-Matrix objects, use set(A) - set(B)"""
 
         if not is_binary_matrix(self) and not is_binary_matrix(other):
             raise AttributeError("Disjunction valid function only for binary matrices")
@@ -593,7 +600,6 @@ class Matrix:
 
     def make_pivot_mod(self, row, col=None):
         """
-        THIS METHOD IS SLOW -- OPTIMIZE
         Converts the first non-zero element from a row of matrix at given index into a pivot, attempting to divide
         entire row to reduce, unless division would result in float values in row, in which case a modular inverse
         is found. If column value is given, attempts to convert specific column value of given row into pivot.
@@ -603,6 +609,8 @@ class Matrix:
         """
 
         def mod_inv(array, e, mod):
+            """Attempts to multiply entire row by modular inverse of e, if one exists. Returns True
+            iff operation succeeded, else False."""
             if gcd(e, mod) == 1:
                 array *= pow(int(e), -1, mod)
                 array %= mod
@@ -625,42 +633,21 @@ class Matrix:
                     break
 
         e = array[col]
-        if isinstance(self.mod, int):
-            res = mod_inv(array, e, self.mod)
-            if res:
-                return
-            # if elements and mod are all 0 mod e then use integer division
-            elements = all_elements(self.array) + [self.mod]
-            r = gcd(*elements)
-            if r > 1:
-                self.mod //= r
-                array //= r
-                self[row] = array
-                e //= r
-            if e > 1:
-                res = mod_inv(array, e, self.mod)
-                if res:
-                    return
-
-        if isinstance(self.mod, list):
-            mod = self.mod[row]
-            res = mod_inv(array, e, mod)
-            if res:
-                return
-            elements = all_elements(array) + [mod]
-            r = gcd(*elements)
-            # if elements and mod are all 0 mod e then use integer division
-            if r > 1:
-                mod //= r
-                array //= r
-                array[col] = 1
-                self[row] = array
-                self.mod[row] = mod
-                e //= r
-            if e > 1:
-                res = mod_inv(array, e, mod)
-                if res:
-                    return
+        if self.mod is None:
+            raise AttributeError("This function is reserved for matrices with a specific modulus")
+        res = mod_inv(array, e, self.mod)
+        if res:
+            return
+        # if elements and mod are all 0 mod e then use integer division
+        elements = all_elements(self.array) + [self.mod]
+        r = gcd(*elements)
+        if r > 1:
+            self.mod //= r
+            array //= r
+            self[row] = array
+            e //= r
+        if e > 1:
+            mod_inv(array, e, self.mod)
 
     def find_invertible(self):
         """Iterates through matrix over field of integers, finding values in each row that are invertible
@@ -674,17 +661,20 @@ class Matrix:
         self.reduce_mod()
         pivot_matrix = Matrix(rows=len(self), cols=len(self[0]))
         for i in range(len(self)):
-            mod = self.mod[i] if isinstance(self.mod, list) else self.mod
             for j in range(len(self[0]) - adj):
 
                 # if element is invertible, mark it as a possible pivot
-                if gcd(self[i][j], mod) == 1:
+                if gcd(self[i][j], self.mod) == 1:
                     pivot_matrix[i][j] = 1
         return pivot_matrix
 
+    @deprecated
     def choose_pivots_mod(self):
         """
-        Calls find_pivots_mod() to find all possible values that have modular inverse with row modulus,
+        Function no longer has use.
+
+
+        Calls find_invertible() to find all possible values that have modular inverse with row modulus,
         then decides, first through process of elimination (choosing only valid pivot in given row/column) then
         through recursion, which possible pivots would make a valid configuration of pivots in order to reduce original
         matrix into rref for solving.
@@ -801,17 +791,9 @@ class Matrix:
         return False
 
     def reduce_mod(self):
-        if isinstance(self.mod, int):
-            self.array %= self.mod
-            return
-        if isinstance(self.mod, list):
-            for i in range(len(self)):
-                try:
-                    self[i] %= self.mod[i]
-                except IndexError:
-                    print(self)
-                    print(self.mod)
-            return
+        if self.mode is None:
+            raise AttributeError("Given matrix cannot be reduced by a modulus because it does not have one")
+        self.array %= self.mod
 
     def append(self, row):
         def assert_len(obj):
@@ -964,6 +946,7 @@ class Matrix:
             if i != row:
                 self[i] -= self[row] * self[i][col]
 
+    @deprecated
     def rref_old(self):
         """Function that puts matrix in reduced row echelon form"""
 
@@ -1054,11 +1037,13 @@ class Matrix:
         pivot_row = 0
         for j in range(len(matrix[0]) - adj):
             for i in range(pivot_row, len(matrix)):
-                mod = self.mod[i] if isinstance(self.mod, list) else self.mod
+
                 # if non-zero element, this row can become pivot row
-                if gcd(matrix[i][j], mod) == 1:
+                if gcd(matrix[i][j], self.mod) == 1:
+
                     # make j'th element the pivot, reducing rest of row as well
                     matrix.make_pivot_mod(i, col=j)
+
                     # if pivot row not already in correct position, swap
                     if i > pivot_row:
                         matrix.swap(i, pivot_row)
@@ -1069,7 +1054,6 @@ class Matrix:
 
         matrix.reduce_mod()
         return matrix
-
 
     def ref(self):
         """Function that puts matrix in row echelon form."""
