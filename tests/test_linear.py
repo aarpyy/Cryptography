@@ -41,11 +41,42 @@ def test_linear_solve(it=50):
             assert m.solve()
 
 
+def test_inner_product():
+
+    # works with two column vectors
+    m = Matrix([[1, 2, 3]]).transpose()
+    a = numpy.array([[1, 2, 3]]).transpose()
+    r = m.inner_prod(a)
+    assert isinstance(r, list) and r[0] == 14
+
+    # works with one column vector and one row vector
+    m = Matrix([[1, 2, 3]])
+    a = numpy.array([[1, 2, 3]]).transpose()
+    r = m.inner_prod(a)
+    assert isinstance(r, list) and r[0] == 14
+
+    # works with two non-nested row vectors
+    m = Matrix([1, 2, 3])
+    a = numpy.array([1, 2, 3])
+    r = m.inner_prod(a)
+    assert isinstance(r, list) and r[0] == 14
+
+
+def test_orthogonal():
+    m = Matrix([[1, 1, 1, 1],
+                [1, 1, -1, -1],
+                [1, -1, 1, -1],
+                [1, -1, -1, 1]])
+
+    print(m.orthogonal())
+
+
 if __name__ == '__main__':
     test_change_basis()
     test_ranknull()
     test_rref()
     test_basis()
     test_linear_solve()
-
+    test_inner_product()
+    test_orthogonal()
 

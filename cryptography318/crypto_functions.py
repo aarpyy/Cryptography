@@ -331,6 +331,7 @@ def elliptic_bsgs(P, Q, N=None):
     A, B = set(a), set(b)
 
     U = A.intersection(B)
+
     if not U:
         return None
     point = U.pop()
@@ -342,7 +343,7 @@ def elliptic_bsgs(P, Q, N=None):
             index_a = i
         if pair[1] == point:
             index_b = i
-        if -1 not in (index_a, index_b):
+        if index_a != -1 and index_b != -1:
             return index_a + n * index_b
     return None
 

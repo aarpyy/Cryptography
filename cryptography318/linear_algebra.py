@@ -1,8 +1,8 @@
 import numpy
 from random import randint, randrange
-from warnings import warn
-from math import gcd
+from math import gcd, sqrt
 from functools import reduce
+from itertools import combinations
 from .tools import string_reduce, deprecated
 
 
@@ -1436,6 +1436,76 @@ class Matrix:
                 vector.append([self[i][j]])
             columns.append(Matrix(vector))
         return columns
+
+    def trace(self):
+        """Calculates the tracer (diagonal sum) of a Matrix."""
+
+        i = 0
+        trace_sum = 0
+        while i < len(self) and i < len(self[0]):
+            trace_sum += self[i][i]
+        return trace_sum
+
+    def inner_prod(self, other):
+        """Calculates the inner product (dot product) of two column vectors."""
+
+        if isinstance(other, list):
+            other = numpy.array(other, dtype=object)
+
+        if not isinstance(other, (Matrix, numpy.ndarray)):
+            raise AttributeError("Can only calculate inner product of two Matrices")
+
+        # converts column vectors to row vectors in form of python list, row vectors as python list
+        obj1 = aslist(self) if len(self) == 1 else aslist(self.transpose())
+        obj2 = aslist(other) if len(other) == 1 else aslist(other.transpose())
+
+        # if nested vectors, un-nest
+        if isinstance(obj1[0], list):
+            obj1 = obj1[0]
+        if isinstance(obj2[0], list):
+            obj2 = obj2[0]
+
+        if len(obj1) != len(obj2):
+            raise ValueError("Dot product impossible with vectors of different lengths")
+
+        return dot(obj1, obj2, self.mod)
+
+    def norm(self):
+        """Calculates the norm [sqrt of inner_prod(v,v)] of a vector"""
+
+        obj = aslist(self) if len(self) == 1 else aslist(self.transpose())
+
+        if isinstance(obj[0], list):
+            if len(obj) > 1:
+                raise ValueError("Matrix must be row or column vector to calculate the norm")
+            obj = obj[0]
+
+        obj = Matrix(obj)
+
+        return sqrt(Matrix.inner_prod(obj, obj)[0])
+
+    def orthogonal(self, others=None):
+        """Determines if a list of vectors are orthogonal to each other, returning True only if
+        all given vectors are orthogonal to all other given vectors.
+
+        :params self: Matrix object, can be multi-dimensional or column vector
+        :params others: list-type, containing column vectors of same length as self, can be Matrix, list, or numpy array
+        """
+
+        vectors = self.to_vector()
+
+        if isinstance(others, (list, numpy.ndarray)):
+            others = Matrix(others)
+
+        if isinstance(others, Matrix):
+            vectors += others.to_vector()
+
+        vector_pairs = combinations(vectors, 2)
+
+        for pair in vector_pairs:
+            if Matrix.inner_prod(pair[0], pair[1])[0] != 0:
+                return False
+        return True
 
 
 class LinearMap(Matrix):
