@@ -3,10 +3,8 @@ import numpy
 from math import gcd, isqrt, sqrt, log, prod
 from .prime import IsPrime, NextPrime
 from .tools import deprecated
-from functools import reduce
-from scipy.linalg import null_space
 from itertools import combinations
-from .linear_algebra import Matrix, aslist
+from .linear_algebra import Matrix
 
 
 class EllipticCurve:
@@ -617,11 +615,20 @@ def FactorInt(n):
 
 
 def quadratic_sieve(n, B=None):
+    """Attempts to factor given integer n through finding B-smooth perfect square solutions to the
+    quadratic function a^2 - n for √n < a with the goal of finding a solution that allows a multiple
+    of a factor n to be found, thus allowing the gcd(solution, n) to yield a non-trivial solution.
+
+    :param n: integer to be factored
+    :param B: required smoothness of solution (all factors of solution have to be <= B), it is recommended to leave
+    this value at its default
+    :return: dictionary of all prime factors of n and their powers, or None if n not-factorable"""
+
     from math import e
 
     if B is None:
         L = pow(e, sqrt(log(n) * log(log(n))))
-        B = int(pow(L, 1 / sqrt(2))) + 10
+        B = int(pow(L, 1 / sqrt(2)))
 
     primes = PrimesLT(B)
 

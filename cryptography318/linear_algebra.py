@@ -10,9 +10,7 @@ def where(array, if_exp=None, else_exp=None):
     """Equivalent of numpy.where, accepts Matrix object as argument."""
 
     if isinstance(array, Matrix):
-        if if_exp is None and else_exp is None:
-            return numpy.where(array.array)
-        return numpy.where(array.array, if_exp, else_exp)
+        array = array.array
     if isinstance(array, numpy.ndarray):
         if if_exp is None and else_exp is None:
             return numpy.where(array)

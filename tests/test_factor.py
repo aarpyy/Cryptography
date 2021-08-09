@@ -41,7 +41,7 @@ def test_factor_int(power=1):
     p = RandomPrime(pow(10, power), pow(10, power + 1)) * RandomPrime(pow(10, power + 1), pow(10, power + 2))
     # factors = FactorInt(p)
     # assert p == prod(map(lambda b, e: pow(b, e), factors.keys(), factors.values()))
-    print(timeit.timeit(lambda: __QuadraticSieve(p), number=100))
+    print(timeit.timeit(lambda: quadratic_sieve(p), number=100))
     print(timeit.timeit(lambda: FactorInt(p), number=100))
 
 
@@ -87,81 +87,21 @@ def ps9():
     print(EllipticToString(M))
 
 
-def test_value():
-    exp = [2, 1, 5]
-    p = 5
-    assert exp_value(exp, p) == 37500
-
-    primes = [2, 3, 5]
-    assert exp_value(exp, primes=primes) == 37500
-
-    m = Matrix([[1, 0, 1, 0, 0],
-                [0, 1, 0, 1, 0],
-                [1, 1, 1, 0, 1],
-                [0, 1, 0, 0, 1],
-                [1, 1, 1, 1, 0]])
-    s = numpy.array([0] * len(m[0]))
-    for row in gen_choice([0, 1, 4], m):
-        s = (s + numpy.array(row)) % 2
-    print(s)
-    print(numpy.where(s == 1)[0])
-
-
-def test_index_gen():
-    def all_index(indices, length):
-        i = len(indices)
-        indices[-1] += 1
-        for index in range(len(indices) - 1, 0, -1):
-            j = indices[index]
-
-            # if reached max index or at last index and incrementing would reach max index, reset
-            if j == length:
-                indices[index - 1] += 1
-                indices[index] = 0
-
-        if indices[0] == length:
-            return None
-
-        return indices
-
-    for i in range(2, 4):
-        x = [0] * i
-        while x is not None:
-            x = all_index(x, 3)
-            print(x)
-
-
 def test_factor_if_smooth():
     n = 5 * 7 * 7 * pow(3, 4)
     print(factor_if_smooth(n, [3, 5, 7]))
 
 
-def test_qs():
-    # test 43, 131 works only if find_perf_sq doesn't increment x and finds + 100 combinations, any other attempt
-    # fails to factor and returns None
-
-    a = RandomPrime(2000, 5000)
-    b = RandomPrime(2000, 5000)
-    print(a, b)
-    n = a * pow(b, 2)
-    print(quadratic_sieve(n))
-
-
-def test_exp_value():
-    exp = [0, 0, 13, 13, 0, 0, 0, 13, 0, 0, 0, 0, 0, 0, 0, 0, 0]
-    base = [2, 3, 5, 7, 11, 13, 17, 19, 23, 29, 31, 37, 41, 43, 47, 53, 59]
-    powers = [pow(p, e) for p, e in zip(base, exp)]
-    result = 1
-    for i, b in enumerate(base):
-        result *= pow(b, exp[i])
-    print(f"result after multiplying pow function: {result}")
-    result = 1
-    for n in powers:
-        result *= n
-    print(f"result after multiplying powers: {result}")
-    result = prod(powers)
-    print(f"result after prod powers: {result}")
-    print(exp_value(exp, primes=base))
+def test_qs(it=50):
+    for _ in range(it):
+        a = RandomPrime(900, 1000)
+        b = RandomPrime(400, 500)
+        n = a * pow(b, 2)
+        factors = quadratic_sieve(n)
+        result = 1
+        for f in factors:
+            result *= pow(f, factors[f])
+        assert result == n
 
 
 def test_find_perfect_squares():

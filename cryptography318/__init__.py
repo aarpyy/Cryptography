@@ -1,7 +1,7 @@
 from .crypto_functions import (toBase, fromBase, StringToNum, NumToString, ExtendedGCD, makeChineseRemainder,
                                ChineseRemainder, baby_step_giant_step, pohlig_hellman, DSA,
                                pollard_p1, FactorInt, index_calculus_dlp, StringToElliptic, EllipticToString, Elliptic,
-                               EllipticCurve, SolveDLP, elliptic_bsgs, calculate_state)
+                               EllipticCurve, SolveDLP, elliptic_bsgs, calculate_state, quadratic_sieve, sqrt_safe)
 from .bailliepsw_helper import Jacobi
 from .prime import IsPrime, MillerRabin_bases, RandomPrime, ConfirmPrime, NextPrime, PrevPrime, BailliePSW_Primality
 from .linear_algebra import Matrix, LinearMap, where, aslist, isnumber, all_elements
