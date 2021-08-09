@@ -89,3 +89,4 @@ if __name__ == '__main__':
     test_inner_product()
     test_orthogonal()
     test_change()
+    
