@@ -240,7 +240,7 @@ def PrevPrime(n):
 
 
 def BailliePSW_Primality(candidate, mr=True):
-    """Perform the Baillie-PSW probabilistic primality test on candidate"""
+    """Perform the Baillie-PSW probabilistic primality test on candidate."""
 
     # Check divisibility by a short list of primes less than 50
     if KnownPrime(candidate) is not None:

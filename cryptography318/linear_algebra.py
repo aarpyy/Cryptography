@@ -81,7 +81,8 @@ def all_elements(obj):
 
 
 class Matrix:
-    def __init__(self, array=None, rows=None, cols=None, rand=False, identity=False, aug=False, solution=None, mod=None):
+    def __init__(self, array=None, rows=None, cols=None, rand=False, identity=False, aug=False, solution=None,
+                 mod=None, dtype=None):
         self.mod = mod
         self.augmented = False
 
@@ -167,6 +168,9 @@ class Matrix:
 
         if self.mod is not None:
             self.array %= self.mod
+
+        if dtype is not None:
+            self.array = self.array.astype(dtype=dtype)
 
     def __setitem__(self, key, value):
         self.array[key] = value

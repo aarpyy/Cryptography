@@ -1,10 +1,12 @@
 import operator
 import numpy
-from math import gcd, isqrt, sqrt, log
+from math import gcd, isqrt, sqrt, log, prod
 from .prime import IsPrime, NextPrime
 from .tools import deprecated
 from functools import reduce
-from .linear_algebra import Matrix
+from scipy.linalg import null_space
+from itertools import combinations
+from .linear_algebra import Matrix, aslist
 
 
 class EllipticCurve:
@@ -267,16 +269,20 @@ def factor_base_exp(n, factors):
 
 
 def exp_value(exp, p=None, primes=None):
-    """Calculates the value of a list of powers of primes. Assumes input list of primes includes all primes
-    from 2 to largest prime included. If list of primes is discrete this will return an incorrect value."""
+    """Calculates the value of a list of powers of primes. If only p is given, assumes list of primes to be
+    from 2 to largest prime <= p. If list of exponents does not match the powers of the continuous ascending
+    list of primes, this will compute incorrectly."""
 
     if p is None and primes is None:
         raise ValueError("Either a limit or a list of primes must be given")
 
     primes = PrimesLT_gen(p) if primes is None else primes
 
+    # use this to convert all numpy.int64 into python int to avoid overflow
+    exp = list(map(int, exp))
+
     # raises each prime to the corresponding power in list exp, then reduces that list with multiplication
-    return reduce(lambda a, b: a * b, [pow(p, e) for p, e in zip(primes, exp)])
+    return prod([pow(p, e) for p, e in zip(primes, list(exp))])
 
 
 def makeChineseRemainder():
@@ -296,7 +302,7 @@ def makeChineseRemainder():
 
 def ChineseRemainder(nums, mods):
     # initializes lists of moduli, M = product of all moduli
-    M = ApplyMult(mods)
+    M = prod(mods)
 
     # maps list of moduli and their inverses to x and y respectively
     x, y = [], []
@@ -533,32 +539,17 @@ def DSA(D, S1, S2, g, p, q, A):
     return False
 
 
-def pollard_p1(n, limit=pow(10, 6)):
-    """Pollard's p - 1 algorithm for factoring large composites.
-    Returns one non-trivial factor if factor-able, False if otherwise."""
-
-    if IsPrime(n):
-        raise ValueError("Make sure to enter a composite number")
-
-    for a in [2, 3, 5]:
-        m = a
-        for j in range(2, limit):
-            m = pow(m, j, n)
-            k = gcd(m - 1, n)
-            if 1 < k < n:
-                return k
-
-    return False
-
-
 def FactorInt(n):
     """
-    Function that checks if number has small prime factors, then attempts Pollards p-1 algorithm for
-    factoring large composite numbers in the form N = p * q, returning one non-trivial factor of N. If neither
-    of these methods factor N, sympy.factorint function is used to further factor N, if possible.
+    Attempts to factor given integer with four methods, returning None if un-factorable.
+    Function first checks if number is prime, then iterates through all primes < 1000 attempting
+    to divide n. Function then tries Pollard's P-1 algorithm to find one non-trivial factor of n.
+    If it succeeds, adds factor to solution set. If n is still factorable, tries quadratic sieve method
+    to return all remaining factors. If this returns None, uses sympy's factorint() method and returns result.
 
-    Returns a Python dictionary with each key being a prime factor and the associated value being the power of
-    that prime factor."""
+    :param n: int number to be factored
+    :return: dictionary of all primes factors and their powers, or None if not factorable
+    """
 
     if n == 1:
         return {}
@@ -591,24 +582,25 @@ def FactorInt(n):
                 factors[p] += 1
             n //= p
 
-    while not IsPrime(n):
-        k = pollard_p1(n)
-        # if Pollard p-1 returns False, try using sympy.factorint
-        if not k:
+    k = pollard_p1(n)
+
+    # if Pollard p-1 returns False, try other methods
+    if not k:
+        factors_qs = quadratic_sieve(n)
+
+        # if quadratic sieve and pollard p-1 fail, try sympy but prob not going to work
+        if factors_qs is None:
             from sympy import factorint
-            sy_factors = factorint(n)
-            for e in sy_factors:
-                if e not in factors:
-                    factors[e] = sy_factors[e]
-                else:
-                    factors[e] += sy_factors[e]
+            factors.update(factorint(n))
             return factors
 
-        n //= k
-        if k not in factors:
-            factors[k] = 1
-        else:
-            factors[k] += 1
+        return factors_qs
+
+    n //= k
+    if k not in factors:
+        factors[k] = 1
+    else:
+        factors[k] += 1
 
     if n != 1 and IsPrime(n):
         if n not in factors:
@@ -617,17 +609,79 @@ def FactorInt(n):
             factors[n] += 1
         return factors
 
-    return QuadraticSieve(n)
+    factors_qs = quadratic_sieve(n)
+    if factors_qs is None:
+        return factors
+    factors.update(factors_qs)
+    return factors
 
 
-def factor_with_known(p: int, q: int, n: int) -> dict:
+def quadratic_sieve(n, B=None):
+    from math import e
+
+    if B is None:
+        L = pow(e, sqrt(log(n) * log(log(n))))
+        B = int(pow(L, 1 / sqrt(2))) + 10
+
+    primes = PrimesLT(B)
+
+    bases, squares, exp = find_perfect_squares(n, primes)
+
+    matrix = Matrix(exp, mod=2).astype(numpy.int64)
+
+    # transposed matrix in rref mod 2
+    m = gaussian_elimination_mod(matrix)
+
+    # basis for kernel, given as dictionary with keys as column indices of free variables, values as
+    # basis (or iterations of basis depending on null columns) for the given variable
+    basis = kernel(m)
+
+    for c in basis:
+        for vector in basis[c]:
+            a, h = 1, 1
+            for j in range(len(vector)):
+
+                # at all locations where this vector is 1, signifies adding that row to the total
+                if vector[j] == 1:
+                    a *= bases[j]
+                    h *= squares[j]
+
+            # h is guaranteed to have square root, so isqrt won't change actual value
+            b = isqrt(h)
+            p, q = gcd(a + b, n), gcd(a - b, n)
+            if 1 < p < n or 1 < q < n:
+                return _factor_with_known(p, q, n)
+
+    # this return statement should never hit, if it does consider adding more rows to matrix in function find_perf_sq
+    return None
+
+
+def pollard_p1(n, limit=pow(10, 6)):
+    """Pollard's p - 1 algorithm for factoring large composites.
+    Returns one non-trivial factor if factor-able, False if otherwise."""
+
+    if IsPrime(n):
+        raise ValueError("Make sure to enter a composite number")
+
+    for a in [2, 3]:
+        m = a
+        for j in range(2, limit):
+            m = pow(m, j, n)
+            k = gcd(m - 1, n)
+            if 1 < k < n:
+                return k
+
+    return False
+
+
+def _factor_with_known(p: int, q: int, n: int) -> dict:
     """Helper function for all integer factoring functions, which further factors integer given known factors.
 
     :param p: integer that divides n, not necessarily prime
     :param q: same as p
     :param n: integer to be factored
-    :return: dictionary. keys: all primes factors of n, values: powers of prime factors
-    """
+    :return: dictionary. keys: all primes factors of n, values: powers of prime factors"""
+
     factors = {}
     factors_known = FactorInt(p)
     factors_known.update(FactorInt(q))
@@ -649,15 +703,308 @@ def factor_with_known(p: int, q: int, n: int) -> dict:
     return factors
 
 
-def _factorPerfectSquare(N, B=7):
+def combinations_cumulative(combinations, source):
+    """Function takes in set of combinations of k-choices without replacement and returns a new
+    set of combinations of k + 1 choices without replacement."""
+
+    new_combination = []
+    for choice in combinations:
+        for e in source:
+            if e not in choice:
+                temp = choice[:]
+                temp.append(e)
+                add = True
+                for c in new_combination:
+                    different = False
+                    i = 0
+                    while i < len(temp) and not different:
+                        t = temp[i]
+                        i += 1
+                        if t not in c:
+                            different = True
+                            continue
+                    if not different:
+                        add = False
+                        break
+                if add:
+                    new_combination.append(temp)
+
+    return new_combination
+
+
+def find_perfect_squares(n, primes):
+    """Helper function for Quadratic Sieve that generates N integers that minus p are perfect squares
+    and are also B-smooth.
+
+    :return: tuple consisting of list of x s.t. x^2 - p is perfect square and B-smooth, list of result of x^2 - p, and
+    list of powers of perfect square when B-smooth
+    """
+
+    x = isqrt(n) + 1
+
+    i = 0
+    perfect_sq_base = []
+    perfect_sq = []
+    perfect_sq_exp = []
+    while i < len(primes) + 10:
+        a = pow(x, 2) - n
+        factors = factor_if_smooth(a, primes)
+        if factors is not None:
+            perfect_sq_base.append(x)
+            perfect_sq.append(a)
+            perfect_sq_exp.append(factors)
+            i += 1
+        x += 1
+
+    return perfect_sq_base, perfect_sq, perfect_sq_exp
+
+
+def gen_choice(indices, matrix):
+    """Generator for choosing elements from matrix."""
+
+    for i in indices:
+        yield matrix[i]
+
+
+def gaussian_elimination_mod(matrix):
+    """Performs Gaussian elimination mod 2 over a matrix.
+
+    Credit to https://github.com/mikolajsawicki/quadratic-sieve/tree/main/quadratic_sieve for technique of
+    performing gaussian elimination on the transpose of the binary matrix."""
+
+    m = matrix.copy().transpose()
+
+    pivot = 0
+    for j in range(len(m[0])):
+        for i in range(pivot, r := len(m)):
+            if pivot == r:
+                break
+            e = m[i, j]
+            if e == 1:
+                if i > pivot:
+                    temp = m[i].copy()
+                    m[i] = m[pivot].copy()
+                    m[pivot] = temp
+
+                for k in range(len(m)):
+                    if k == pivot:
+                        continue
+                    if m[k, j] == 1:
+                        m[k] = (m[k] + m[pivot]) % 2
+                pivot += 1
+
+    m.remove_null_row()
+
+    return m
+
+
+def kernel(matrix):
+    """Finds the basis of the kernel of a binary matrix. Intended as helper function for quadratic sieve algorithm.
+    Assumes input matrix is in rref, has no null-rows, and is over the field Z-2 (field of integers mod 2)."""
+
+    # dictionary with keys as index of column of each pivot, values as index of each non-zero entry in same
+    # row as pivot (ex. if pivot in col 2 of row 1, kernel = {2: [4, 5]}, this is stating that columns
+    # 4 and 5 in thw row of this pivot were non-zero and are therefore free variables
+    kernel = {}
+
+    # dictionary with keys as row indices of each pivot and values as column indices of each pivot, this is a
+    # helper dictionary to assist with construction of basis, has no other use, try to remove this if possible
+    pivots = {}
+
+    # set of column indices of all free variables
+    free_vars = set()
+
+    # set of column indices of all columns with entirely zero entries
+    null_vars = set({i for i in range(len(matrix[0]))})
+
+    # set of column indices of all pivot variables
+    pivot_set = set()
+
+    # iterate across matrix row-wise
+    for j in range(len(matrix[0])):
+
+        # iterate down columns
+        for i in range(len(matrix)):
+            e = matrix[i][j]
+
+            # if we hit a non-zero entry and are in a pivot row, add this entry as a free variable to kernel
+            # also add column index as index of free variable to set free_vars
+            if e == 1 and i in pivots:
+                free_vars.add(j)
+                kernel[pivots[i]].append(j)
+
+            # otherwise, a non-zero entry is indicative of a pivot, so add to pivot set, pivot dict, and initialize
+            # kernel entry to be empty list, which will be filled with indices of free variables
+            elif e == 1:
+                pivot_set.add(j)
+                pivots[i] = j
+                kernel[j] = []
+
+    # null_vars initialized to be indices of all columns, now removing indices of all non-zero free variables and
+    # indices of all pivots lets null_vars be set of columns with all-zero entries
+    null_vars -= free_vars
+    null_vars -= pivot_set
+
+    # constructs dictionary with keys as the index of each of the free variables, and values as each of the pivots
+    # that are dependent on the specific free variable (ex. {
+    kernel_vars = {}
+
+    # iterate through pivots
+    for row in pivots:
+        col = pivots[row]
+
+        # iterate through list of free variables of each pivot column
+        for v in kernel[col]:
+
+            # add to dictionary list of column indices of pivots that depend on the free variable v
+            if v in kernel_vars:
+                kernel_vars[v].append(col)
+            else:
+                kernel_vars[v] = [col]
+
+    # constructs basis vectors of kernel, not including null free variables (columns that were entirely null)
+    kernel_basis = {}
+    for v in kernel_vars:
+
+        # initialize column to be entirely null
+        column = [0] * len(matrix[0])
+        kernel_basis[v] = [column]
+
+        # make sure that each basis includes reference column (ex. basis [1, 0, 1] * x2 has to also include second row
+        # in basis so it should actually be [1, 1, 1])
+        kernel_basis[v][0][v] = 1
+
+        # adds list of column indices of pivots that depend on this free variable
+        for c in kernel_vars[v]:
+            kernel_basis[v][0][c] = 1
+
+    # all_represents a list of all combinations of fully null columns, which are free variables that do not change
+    # the list mod 2 (ex. if columns 2 and 5 were null, kernel basis should have its normal vector, a vector where
+    # the entry for column 2 is 1, where column 5 is 1, and where both are 1, since neither change the value of
+    # the vector mod 2, but when performing calculations in quadratic sieve function, adding these columns does
+    # change the result)
+    all_null = []
+    for i in range(1, len(null_vars) + 1):
+        all_null += list(combinations(null_vars, i))
+
+    # iterate through each free var, adding new instances of its basis vector to the list, each a slightly different
+    # iteration based off of which null column is present
+    for v in kernel_basis:
+        for tup in all_null:
+            for c in tup:
+                new_basis = kernel_basis[v][0][:]
+                new_basis[c] = 1
+                kernel_basis[v].append(new_basis)
+
+    return kernel_basis
+
+
+@deprecated
+def __quadratic_sieve1(n, B=None):
+    """Third attempt at quadratic sieve. Keeping around for debugging and learning purposes.
+    Don't use, wont work!"""
+
+    from math import e
+
+    if B is None:
+        L = pow(e, sqrt(log(n) * log(log(n))))
+        B = int(pow(L, 1 / sqrt(2))) + 10
+    print(f"B: {B}")
+    primes = PrimesLT(B)
+
+    bases, squares, exp = find_perfect_squares(n, primes)
+
+    # print(exp)
+    # print("matrix: ")
+
+    matrix = Matrix(exp, mod=2).astype(numpy.int64)
+
+    # print(matrix)
+    # print("break")
+    m = gaussian_elimination_mod(matrix)
+    basis = kernel(m)
+
+    print([basis[7][0]] * matrix)
+
+    def write():
+        with open("test.txt", "w") as f:
+            string = "{\n"
+            for v in basis:
+                string += " " + str(v) + ":"
+                for row in basis[v]:
+                    string += "\n   " + str(row)
+                string += "\n\n"
+            string += "}"
+            f.write(string)
+
+    return None
+    width = len(exp[0])
+    null_array = numpy.array([0] * width, dtype=object)
+    for i in range(2, length := len(exp)):
+        indices = [0] * i
+        choice = null_array.copy()
+
+        # adds each row of choice together mod 2, if zero vector, this solution possible
+        for row in gen_choice(indices, matrix):
+            choice = (choice + row) % 2
+
+        # finds all positions in row where value is one, returning positions in tuple containing list
+        ones = numpy.where(choice)
+
+        # if there are no instances of row having 1, this row vector represents a perfect square
+        if len(ones[0]) == 0:
+            a = 1
+
+            # if don't throw dtype=object numpy complains about adding object type to array of 0's
+            e = numpy.array([0] * width, dtype=object)
+            for j in indices:
+                a *= bases[j]
+                e += matrix[j]
+            # print(e // 2, primes, exp_value(e//2, primes=primes))
+            b = exp_value(e // 2, primes=primes)
+            if pow(isqrt(b), 2) != b:
+                print(a, b, pow(b, 2))
+                print(f"exponents: {e}")
+                print(f"a: {a}, a^2 - n = {pow(a, 2) - n}")
+                print(f"factors of result: {factor_if_smooth(pow(a, 2) - n, primes)}")
+                return None
+            p, q = gcd(a + b, n), gcd(a - b, n)
+            if 1 < p < n or 1 < q < n:
+                return _factor_with_known(p, q, n)
+            else:
+
+                # debugging step check if taking gcd correctly, if p, q wasn't between 1, n, one of them should be n
+                assert n in [p, q]
+
+        indices[-1] += 1
+
+        # calculates the index of rows to be chosen s.t. all possible combinations w/ replacement will be searched
+        for index in range(len(indices) - 1, 0, -1):
+            j = indices[index]
+
+            # if reached max index or at last index and incrementing would reach max index, reset
+            if j == length:
+                indices[index - 1] += 1
+                indices[index] = 0
+
+        if indices[0] == length:
+            return None
+
+
+@deprecated
+def __factor_perfect_square(n, B=7):
+    """Attempts a similar attack to quadratic sieve, finding B-smooth perfect squares in an attempt
+    to find a multiple of n. Function written for learning purposes, if trying to factor integer, using
+    FactorInt."""
+
     from itertools import combinations_with_replacement as _all
 
     m = PrimePi(B)
     b_smooth_nums = []
     squared_nums = {}
-    a = isqrt(N) - 1
+    a = isqrt(n) - 1
     while len(b_smooth_nums) < m:
-        ci = pow(a, 2, N)
+        ci = pow(a, 2, n)
         if BSmoothQ(ci, B):
             b_smooth_nums.append(ci)
             squared_nums[ci] = a
@@ -701,41 +1048,17 @@ def _factorPerfectSquare(N, B=7):
             for k in range(len(acc)):
                 b *= pow(factor_base[k], acc[k] // 2)
 
-            p, q = gcd(a - b, N), gcd(a + b, N)
-            if 1 < p < N and 1 < q < N:
-                if p * q == N:
-                    return {p: 1, q: 1}
-                return factor_with_known(p, q, N)
-            if 1 < p < N:
-                q = N // p
-                if IsPrime(q) and N == p * q:
-                    return {p: 1, q: 1}
-                if IsPrime(q):
-                    return factor_with_known(p, q, N)
-                q_factors = FactorInt(q)
-                if p in q_factors:
-                    q_factors[p] += 1
-                else:
-                    q_factors[p] = 1
-                return q_factors
-            if 1 < q < N:
-                p = N // q
-                if IsPrime(p) and N == p * q:
-                    return {p: 1, q: 1}
-                if IsPrime(p):
-                    return factor_with_known(p, q, N)
-                p_factors = FactorInt(p)
-                if q in p_factors:
-                    p_factors[q] += 1
-                else:
-                    p_factors[q] = 1
-                return p_factors
+            p, q = gcd(a - b, n), gcd(a + b, n)
+            if 1 < p < n or 1 < q < n:
+                return _factor_with_known(p, q, n)
 
     return False
 
 
-def QuadraticSieve1(N, B=None):
-    """Performs Quadratic Sieve Algorithm with a given Smoothness value B on a given composite N"""
+@deprecated
+def __QuadraticSieve1(N, B=None):
+    """First attempt at quadratic sieve. Function written for learning purposes, if trying to factor integer, using
+    FactorInt."""
 
     from itertools import combinations_with_replacement as _all
     from math import e, log, sqrt
@@ -797,21 +1120,23 @@ def QuadraticSieve1(N, B=None):
                     q = gcd(N, a - b)
 
                     if 1 < p < N and 1 < q < N:
-                        return factor_with_known(p, q, N)
+                        return _factor_with_known(p, q, N)
                     if 1 < p < N:
                         q = N // p
                         if IsPrime(q) and IsPrime(p):
                             return {p: 1, q: 1}
-                        return factor_with_known(p, q, N)
+                        return _factor_with_known(p, q, N)
                     if 1 < q < N:
                         p = N // q
                         if IsPrime(p) and IsPrime(q):
                             return {p: 1, q: 1}
-                        return factor_with_known(p, q, N)
+                        return _factor_with_known(p, q, N)
 
 
-def QuadraticSieve(N, B=None):
-    """Performs Quadratic Sieve Algorithm with a given Smoothness value B on a given composite N"""
+@deprecated
+def __QuadraticSieve(N, B=None):
+    """Second attempt at quadratic sieve. Function written for learning purposes, if trying to factor integer, using
+    FactorInt."""
 
     from itertools import combinations as _all
     from math import e, log, sqrt
@@ -871,129 +1196,18 @@ def QuadraticSieve(N, B=None):
             q = gcd(N, a - b)
 
             if 1 < p < N and 1 < q < N:
-                return factor_with_known(p, q, N)
+                return _factor_with_known(p, q, N)
             if 1 < p < N:
                 q = N // p
                 if IsPrime(q) and IsPrime(p):
                     return {p: 1, q: 1}
-                return factor_with_known(p, q, N)
+                return _factor_with_known(p, q, N)
             if 1 < q < N:
                 p = N // q
                 if IsPrime(p) and IsPrime(q):
                     return {p: 1, q: 1}
-                return factor_with_known(p, q, N)
+                return _factor_with_known(p, q, N)
 
         choices = combinations_cumulative(choices, b_smooth_nums)
 
     return {}
-
-
-def combinations_cumulative(combinations, source):
-    """Function takes in set of combinations of k-choices without replacement and returns a new
-    set of combinations of k + 1 choices without replacement."""
-
-    new_combination = []
-    for choice in combinations:
-        for e in source:
-            if e not in choice:
-                temp = choice[:]
-                temp.append(e)
-                add = True
-                for c in new_combination:
-                    different = False
-                    i = 0
-                    while i < len(temp) and not different:
-                        t = temp[i]
-                        i += 1
-                        if t not in c:
-                            different = True
-                            continue
-                    if not different:
-                        add = False
-                        break
-                if add:
-                    new_combination.append(temp)
-
-    return new_combination
-
-
-def find_perfect_squares(n, primes):
-    """Helper function for Quadratic Sieve that generates N integers that minus p are perfect squares
-    and are also B-smooth.
-
-    :return: tuple consisting of list of x s.t. x^2 - p is perfect square and B-smooth, list of result of x^2 - p, and
-    list of powers of perfect square when B-smooth
-    """
-
-    x = isqrt(n) + 1
-
-    i = 0
-    perfect_sq_base = []
-    perfect_sq = []
-    perfect_sq_exp = []
-    while i < len(primes) + 1:
-        a = pow(x, 2) - n
-        factors = factor_if_smooth(a, primes)
-        if factors is not None:
-            perfect_sq_base.append(x)
-            perfect_sq.append(a)
-            perfect_sq_exp.append(factors)
-            i += 1
-
-    return perfect_sq_base, perfect_sq, perfect_sq_exp
-
-
-def gen_choice(indices, matrix):
-    choice = []
-    for i in indices:
-        yield choice + matrix[i]
-
-
-def quadratic_sieve(n, B=None):
-    from math import e
-
-    if B is None:
-        L = pow(e, sqrt(log(n) * log(log(n))))
-        B = max(int(pow(L, 1 / sqrt(2))), 11)
-
-    primes = PrimesLT(B)
-
-    bases, squares, exp = find_perfect_squares(n, primes)
-
-    width = len(exp[0])
-    for i in range(2, length := len(exp)):
-        indices = [0] * i
-        choice = numpy.array([0] * width)
-
-        # adds each row of choice together mod 2, if zero vector, this solution possible
-        for row in gen_choice(indices, exp):
-            choice = (choice + numpy.array(row)) % 2
-
-        ones = numpy.where(choice == 1)
-
-        # if there are no instances of row having 1, this row vector represents a perfect square
-        if len(ones[0]) == 0:
-            a = 1
-            e = numpy.array([0] * width)
-            for j in indices:
-                a *= bases[j]
-                e += numpy.array(exp[j])
-
-            b = exp_value(e // 2, primes=primes)
-
-            p, q = gcd(a + b, n), gcd(a - b, n)
-            if 1 < p < n or 1 < q < n:
-                return factor_with_known(p, q, n)
-
-        for index in range(len(indices) - 1, 0, -1):
-            j = indices[index]
-
-            # if reached max index or at last index and incrementing would reach max index, reset
-            if j == length or (j == length - 1 and index == i - 1):
-                indices[index - 1] += 1
-                indices[index] = 0
-
-        if indices[0] == length:
-            return None
-
-        indices[-1] += 1
