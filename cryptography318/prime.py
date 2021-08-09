@@ -217,6 +217,9 @@ def ConfirmPrime(n):
 def NextPrime(n):
     """Returns first prime after number given"""
 
+    if n == 1:
+        return 2
+
     # ensures n is odd to start so that can increment by 2
     n = (n + 1) | 1
     while True:

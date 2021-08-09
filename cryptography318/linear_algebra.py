@@ -165,6 +165,9 @@ class Matrix:
             for i in range(len(self)):
                 self.array[i].append(solution[i][0])
 
+        if self.mod is not None:
+            self.array %= self.mod
+
     def __setitem__(self, key, value):
         self.array[key] = value
 
@@ -647,8 +650,8 @@ class Matrix:
         entire row to reduce, unless division would result in float values in row, in which case a modular inverse
         is found. If column value is given, attempts to convert specific column value of given row into pivot.
 
-        :params row: integer index of matrix corresponding to row to be operated on
-        :params col: integer index of matrix corresponding to specific element in row to be converted into pivot
+        :param row: integer index of matrix corresponding to row to be operated on
+        :param col: integer index of matrix corresponding to specific element in row to be converted into pivot
         """
 
         def mod_inv(array, e, mod):
@@ -1488,8 +1491,8 @@ class Matrix:
         """Determines if a list of vectors are orthogonal to each other, returning True only if
         all given vectors are orthogonal to all other given vectors.
 
-        :params self: Matrix object, can be multi-dimensional or column vector
-        :params others: list-type, containing column vectors of same length as self, can be Matrix, list, or numpy array
+        :param self: Matrix object, can be multi-dimensional or column vector
+        :param others: list-type, containing column vectors of same length as self, can be Matrix, list, or numpy array
         """
 
         vectors = self.to_vector()
@@ -1630,6 +1633,7 @@ class LinearMap(Matrix):
 
         if len(in_basis) != len(in_basis[0]) or len(out_basis) != len(out_basis[0]):
             raise ValueError("Bases must be square matrix")
+
         # order of operations here is very important, first convert Te,e -> Tb,e converting T so that it takes input
         # in base b and output in e, then Tb,e -> Tb,b, converting T output to base b also
         return LinearMap(out_basis.invert() * (self * in_basis))

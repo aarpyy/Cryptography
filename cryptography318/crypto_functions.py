@@ -1,7 +1,10 @@
 import operator
-from math import gcd, isqrt, sqrt
+import numpy
+from math import gcd, isqrt, sqrt, log
 from .prime import IsPrime, NextPrime
 from .tools import deprecated
+from functools import reduce
+from .linear_algebra import Matrix
 
 
 class EllipticCurve:
@@ -193,14 +196,27 @@ def ModularInverse(x, m):
     return pow(x, -1, m)
 
 
-def PrimesLT(p):
-    if p < 2:
+def PrimesLT(limit):
+    if limit < 2:
         raise ValueError("Must enter a number greater than the smallest prime (2)")
     primes = [2]
-    for n in range(3, ((p - 1) | 1) + 2, 2):
+
+    for n in range(3, limit + 1, 2):
         if IsPrime(n):
             primes.append(n)
     return primes
+
+
+def PrimesLT_gen(limit):
+    """Creates generator for all primes lte p"""
+
+    if limit < 2:
+        raise ValueError("Must enter a number greater than the smallest prime (2)")
+
+    n = 1
+    while n <= limit:
+        n = NextPrime(n)
+        yield n
 
 
 def PrimePi(p):
@@ -225,6 +241,20 @@ def BSmoothQ(n, B=None, factors=None):
     return n == 1
 
 
+def factor_if_smooth(n, primes):
+    """Helper function for quadratic sieve that returns factors of n if n can be factored
+    only by list of given primes, returning None otherwise."""
+
+    exp = [0] * len(primes)
+
+    for i, p in enumerate(primes):
+        while n % p == 0:
+            n //= p
+            exp[i] += 1
+
+    return exp if n == 1 else None
+
+
 def factor_base_exp(n, factors):
     """Function that takes in number and list of factors and returns a list of each of the powers of each factor."""
 
@@ -234,6 +264,19 @@ def factor_base_exp(n, factors):
             n //= f
             exp[i] += 1
     return exp
+
+
+def exp_value(exp, p=None, primes=None):
+    """Calculates the value of a list of powers of primes. Assumes input list of primes includes all primes
+    from 2 to largest prime included. If list of primes is discrete this will return an incorrect value."""
+
+    if p is None and primes is None:
+        raise ValueError("Either a limit or a list of primes must be given")
+
+    primes = PrimesLT_gen(p) if primes is None else primes
+
+    # raises each prime to the corresponding power in list exp, then reduces that list with multiplication
+    return reduce(lambda a, b: a * b, [pow(p, e) for p, e in zip(primes, exp)])
 
 
 def makeChineseRemainder():
@@ -425,7 +468,7 @@ def calculate_state(state, g, h, p):
 
     x, alpha, beta = state[0], state[1], state[2]
 
-    if 0 <= x < p//3:
+    if 0 <= x < p // 3:
         x *= g
         if x >= p:
             x %= p
@@ -433,7 +476,7 @@ def calculate_state(state, g, h, p):
         if alpha >= p - 1:
             alpha %= (p - 1)
         return x, alpha, beta
-    elif p//3 <= x < 2 * p//3:
+    elif p // 3 <= x < 2 * p // 3:
         x = pow(x, 2, p)
         alpha *= 2
         beta *= 2
@@ -444,7 +487,7 @@ def calculate_state(state, g, h, p):
         if beta >= p - 1:
             beta %= (p - 1)
         return x, alpha, beta
-    elif 2 * p//3 <= x < p:
+    elif 2 * p // 3 <= x < p:
         x *= h
         if x >= p:
             x %= p
@@ -490,17 +533,14 @@ def DSA(D, S1, S2, g, p, q, A):
     return False
 
 
-def pollard_p1(n, limit=pow(10, 6), first_n=4):
+def pollard_p1(n, limit=pow(10, 6)):
     """Pollard's p - 1 algorithm for factoring large composites.
     Returns one non-trivial factor if factor-able, False if otherwise."""
 
     if IsPrime(n):
         raise ValueError("Make sure to enter a composite number")
 
-    if not 1 < first_n < 8:
-        first_n = 8
-
-    for a in [2, 3, 5, 7, 11, 13, 17, 19][:first_n]:
+    for a in [2, 3, 5]:
         m = a
         for j in range(2, limit):
             m = pow(m, j, n)
@@ -518,8 +558,10 @@ def FactorInt(n):
     of these methods factor N, sympy.factorint function is used to further factor N, if possible.
 
     Returns a Python dictionary with each key being a prime factor and the associated value being the power of
-    that prime factor.
-    """
+    that prime factor."""
+
+    if n == 1:
+        return {}
 
     if IsPrime(n):
         return {n: 1}
@@ -578,29 +620,32 @@ def FactorInt(n):
     return QuadraticSieve(n)
 
 
-def _factorWithKnown(p, q, N):
-    factors = {}
-    factor_p = FactorInt(p)
-    for n in factor_p:
-        factors[n] = factor_p[n]
-    factor_q = FactorInt(q)
-    for n in factor_q:
-        factors[n] = factor_q[n]
+def factor_with_known(p: int, q: int, n: int) -> dict:
+    """Helper function for all integer factoring functions, which further factors integer given known factors.
 
-    while N % p != 0:
-        factors[p] += 1
-        N //= p
-    while N % q != 0:
-        factors[q] += 1
-        N //= q
-    if N == 1:
+    :param p: integer that divides n, not necessarily prime
+    :param q: same as p
+    :param n: integer to be factored
+    :return: dictionary. keys: all primes factors of n, values: powers of prime factors
+    """
+    factors = {}
+    factors_known = FactorInt(p)
+    factors_known.update(FactorInt(q))
+    for f in factors_known:
+        factors[f] = 0
+
+    for f in factors:
+        while n % f == 0:
+            n //= f
+            factors[f] += 1
+
+    if n == 1:
         return factors
-    if IsPrime(N):
-        factors[N] = 1
+    if IsPrime(n):
+        factors[n] = 1
         return factors
-    more_factors = FactorInt(N)
-    for f in more_factors:
-        factors[f] = more_factors[f]
+    more_factors = FactorInt(n)
+    factors.update(more_factors)
     return factors
 
 
@@ -660,13 +705,13 @@ def _factorPerfectSquare(N, B=7):
             if 1 < p < N and 1 < q < N:
                 if p * q == N:
                     return {p: 1, q: 1}
-                return _factorWithKnown(p, q, N)
+                return factor_with_known(p, q, N)
             if 1 < p < N:
                 q = N // p
                 if IsPrime(q) and N == p * q:
                     return {p: 1, q: 1}
                 if IsPrime(q):
-                    return _factorWithKnown(p, q, N)
+                    return factor_with_known(p, q, N)
                 q_factors = FactorInt(q)
                 if p in q_factors:
                     q_factors[p] += 1
@@ -678,7 +723,7 @@ def _factorPerfectSquare(N, B=7):
                 if IsPrime(p) and N == p * q:
                     return {p: 1, q: 1}
                 if IsPrime(p):
-                    return _factorWithKnown(p, q, N)
+                    return factor_with_known(p, q, N)
                 p_factors = FactorInt(p)
                 if q in p_factors:
                     p_factors[q] += 1
@@ -752,17 +797,17 @@ def QuadraticSieve1(N, B=None):
                     q = gcd(N, a - b)
 
                     if 1 < p < N and 1 < q < N:
-                        return _factorWithKnown(p, q, N)
+                        return factor_with_known(p, q, N)
                     if 1 < p < N:
                         q = N // p
                         if IsPrime(q) and IsPrime(p):
                             return {p: 1, q: 1}
-                        return _factorWithKnown(p, q, N)
+                        return factor_with_known(p, q, N)
                     if 1 < q < N:
                         p = N // q
                         if IsPrime(p) and IsPrime(q):
                             return {p: 1, q: 1}
-                        return _factorWithKnown(p, q, N)
+                        return factor_with_known(p, q, N)
 
 
 def QuadraticSieve(N, B=None):
@@ -826,17 +871,17 @@ def QuadraticSieve(N, B=None):
             q = gcd(N, a - b)
 
             if 1 < p < N and 1 < q < N:
-                return _factorWithKnown(p, q, N)
+                return factor_with_known(p, q, N)
             if 1 < p < N:
                 q = N // p
                 if IsPrime(q) and IsPrime(p):
                     return {p: 1, q: 1}
-                return _factorWithKnown(p, q, N)
+                return factor_with_known(p, q, N)
             if 1 < q < N:
                 p = N // q
                 if IsPrime(p) and IsPrime(q):
                     return {p: 1, q: 1}
-                return _factorWithKnown(p, q, N)
+                return factor_with_known(p, q, N)
 
         choices = combinations_cumulative(choices, b_smooth_nums)
 
@@ -870,3 +915,85 @@ def combinations_cumulative(combinations, source):
                     new_combination.append(temp)
 
     return new_combination
+
+
+def find_perfect_squares(n, primes):
+    """Helper function for Quadratic Sieve that generates N integers that minus p are perfect squares
+    and are also B-smooth.
+
+    :return: tuple consisting of list of x s.t. x^2 - p is perfect square and B-smooth, list of result of x^2 - p, and
+    list of powers of perfect square when B-smooth
+    """
+
+    x = isqrt(n) + 1
+
+    i = 0
+    perfect_sq_base = []
+    perfect_sq = []
+    perfect_sq_exp = []
+    while i < len(primes) + 1:
+        a = pow(x, 2) - n
+        factors = factor_if_smooth(a, primes)
+        if factors is not None:
+            perfect_sq_base.append(x)
+            perfect_sq.append(a)
+            perfect_sq_exp.append(factors)
+            i += 1
+
+    return perfect_sq_base, perfect_sq, perfect_sq_exp
+
+
+def gen_choice(indices, matrix):
+    choice = []
+    for i in indices:
+        yield choice + matrix[i]
+
+
+def quadratic_sieve(n, B=None):
+    from math import e
+
+    if B is None:
+        L = pow(e, sqrt(log(n) * log(log(n))))
+        B = max(int(pow(L, 1 / sqrt(2))), 11)
+
+    primes = PrimesLT(B)
+
+    bases, squares, exp = find_perfect_squares(n, primes)
+
+    width = len(exp[0])
+    for i in range(2, length := len(exp)):
+        indices = [0] * i
+        choice = numpy.array([0] * width)
+
+        # adds each row of choice together mod 2, if zero vector, this solution possible
+        for row in gen_choice(indices, exp):
+            choice = (choice + numpy.array(row)) % 2
+
+        ones = numpy.where(choice == 1)
+
+        # if there are no instances of row having 1, this row vector represents a perfect square
+        if len(ones[0]) == 0:
+            a = 1
+            e = numpy.array([0] * width)
+            for j in indices:
+                a *= bases[j]
+                e += numpy.array(exp[j])
+
+            b = exp_value(e // 2, primes=primes)
+
+            p, q = gcd(a + b, n), gcd(a - b, n)
+            if 1 < p < n or 1 < q < n:
+                return factor_with_known(p, q, n)
+
+        for index in range(len(indices) - 1, 0, -1):
+            j = indices[index]
+
+            # if reached max index or at last index and incrementing would reach max index, reset
+            if j == length or (j == length - 1 and index == i - 1):
+                indices[index - 1] += 1
+                indices[index] = 0
+
+        if indices[0] == length:
+            return None
+
+        indices[-1] += 1

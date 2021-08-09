@@ -3,6 +3,7 @@ from cryptography318.prime import *
 from cryptography318.crypto_functions import *
 from math import prod
 import pytest
+import numpy
 
 
 @pytest.mark.skip
@@ -82,6 +83,62 @@ def ps9():
     print(EllipticToString(M))
 
 
+def test_value():
+    exp = [2, 1, 5]
+    p = 5
+    assert exp_value(exp, p) == 37500
+
+    primes = [2, 3, 5]
+    assert exp_value(exp, primes=primes) == 37500
+
+    m = Matrix([[1, 0, 1, 0, 0],
+                [0, 1, 0, 1, 0],
+                [1, 1, 1, 0, 1],
+                [0, 1, 0, 0, 1],
+                [1, 1, 1, 1, 0]])
+    s = numpy.array([0] * len(m[0]))
+    for row in gen_choice([0, 1, 4], m):
+        s = (s + numpy.array(row)) % 2
+    print(s)
+    print(numpy.where(s == 1)[0])
+
+
+def test_index_gen():
+    def all_index(indices, length):
+        i = len(indices)
+        for index in range(len(indices) - 1, 0, -1):
+            j = indices[index]
+
+            # if reached max index or at last index and incrementing would reach max index, reset
+            if j == length or (j == length - 1 and index == i - 1):
+                indices[index - 1] += 1
+                indices[index] = 0
+
+        if indices[0] == length:
+            return None
+
+        indices[-1] += 1
+        return indices
+
+    for i in range(2, 4):
+        x = [0] * i
+        while x is not None:
+            x = all_index(x, 3)
+            if x is not None:
+                assert 4 not in x
+
+
+def test_qs():
+    a = RandomPrime(200)
+    b = RandomPrime(200)
+    a = 43
+    b = 131
+    n = a * b
+    print(a, b, n)
+    print(quadratic_sieve(n))
+
+
+
 @pytest.mark.skip
 def test_all_tests():
     test_factor_perfect_square()
@@ -89,4 +146,4 @@ def test_all_tests():
 
 
 if __name__ == '__main__':
-    ps9()
+    test_qs()

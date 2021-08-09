@@ -71,6 +71,15 @@ def test_orthogonal():
     print(m.orthogonal())
 
 
+def test_change():
+    T = LinearMap([[4, -1, 1],
+                   [3, -1, 1]])
+    C = Matrix([[1, 0, 1],
+                [3, 2, 0],
+                [0, 3, -4]])
+    print(C[0, 0])
+
+
 if __name__ == '__main__':
     test_change_basis()
     test_ranknull()
@@ -79,4 +88,4 @@ if __name__ == '__main__':
     test_linear_solve()
     test_inner_product()
     test_orthogonal()
-
+    test_change()
