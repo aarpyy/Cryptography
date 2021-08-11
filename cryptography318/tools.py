@@ -1,8 +1,8 @@
-"""The purpose of this file is to easily provide tools for use in this package that are not
-related to the content."""
+# The purpose of this file is to easily provide tools for use in this package that are not
+# related to the mathematical content
 
 from warnings import warn, simplefilter
-from functools import wraps
+from functools import wraps, reduce
 from numpy import round
 
 
@@ -33,3 +33,22 @@ def string_reduce(n):
     if len(s) == 1 or s[1] != '0':
         return str(round(n, decimals=3))
     return s[0]
+
+
+def join_dict(*args: dict) -> dict:
+    """Joins multiple dictionaries in a way that sums values of shared keys. Assumes all values
+    support + method."""
+
+    def join(dict1, dict2):
+        for key in dict2:
+            if key in dict1:
+                dict1[key] += dict2[key]
+            else:
+                dict1[key] = dict2[key]
+        return dict1
+
+    def update(dict1, dict2):
+        dict1.update(dict2)
+        return dict1
+
+    return reduce(lambda a, b: update(a, b) if not any(k in b for k in a) else join(a, b), args)

@@ -79,14 +79,26 @@ def all_elements(obj):
 
 
 class Matrix:
-    def __init__(self, array=None, rows=None, cols=None, rand=False, identity=False, aug=False, solution=None,
-                 mod=None, dtype=None):
+    def __init__(self, array: list[list[int]] = None, rows=None, cols=None, rand=False, identity=False, aug=False,
+                 solution=None, mod=None, dtype: type = None):
         self.mod = mod
         self.augmented = False
 
         # if augmented is True or solution provided, matrix is augmented
         if aug or solution is not None:
             self.augmented = True
+
+        # dtype allows for faster creation of matrix, assumes input is reliable and correct type
+        if dtype is not None:
+            if dtype not in (list, numpy.ndarray):
+                raise TypeError(f"dtype given not recognized: {dtype}")
+            if dtype == list:
+                self.array = numpy.array(array, dtype=object)
+            else:
+                self.array = array
+            if self.mod is not None:
+                self.array %= self.mod
+            return
 
         # if array given, check if list or numpy array (cannot inherit a Matrix object)
         if array is not None:
@@ -167,14 +179,14 @@ class Matrix:
         if self.mod is not None:
             self.array %= self.mod
 
-        if dtype is not None:
-            self.array = self.array.astype(dtype=dtype)
-
     def __setitem__(self, key, value):
         self.array[key] = value
 
     def __getitem__(self, item):
         return self.array[item]
+
+    def __contains__(self, item):
+        return self.array.__contains__(item)
 
     def __len__(self):
         return len(self.array)
@@ -480,8 +492,8 @@ class Matrix:
         return product
 
     def __mod__(self, other):
-        if not isnumber(other):
-            raise ValueError(f"modulus must be done with number. given: {type(other)}")
+
+        # left this method without validating input, for efficiency, numpy also validates so no need to do twice
         result = self.array.copy() % other
         return Matrix(result, aug=self.augmented)
 
@@ -943,7 +955,14 @@ class Matrix:
         """Returns transpose of Matrix object."""
 
         transpose = self.array.transpose()
-        return Matrix(transpose, aug=self.augmented)
+        return Matrix(transpose, aug=self.augmented, mod=self.mod)
+
+    def T(self):
+        """Computes and returns the transpose of a matrix. Returns above method self.transpose()
+        as this method only exists for the convenient syntax of A.T being easily visually recognized
+        as the transpose of A."""
+
+        return self.transpose()
 
     def copy(self):
         """Returns exact copy of values of matrix in a new Matrix object."""
@@ -1014,24 +1033,25 @@ class Matrix:
         """Removes rows consisting of just zeros. Does not return."""
 
         matrix = []
-        for i in range(len(self)):
+        array = aslist(self)
+        for i in range(len(array)):
 
-            # self[i].any() returns true if any element in the numpy array is non-zero, returning false if all
+            # any(array) returns true if any element in the array is non-zero, returning false if all
             # elements are zero means that this statement will run true if row has any non-zero element (is not null)
-            if self[i].any():
-                matrix.append(aslist(self[i]))
+            if any(array[i]):
+                matrix.append(array[i])
         self.array = numpy.array(matrix, dtype=object)
 
     def remove_null_column(self):
         """Removes columns consisting of just zeros. Does not return."""
 
         matrix = []
-        array = self.array.transpose()
+        array = aslist(self.array.transpose())
         for i in range(len(array)):
 
             # see above function remove_null_row for explanation of this statement
-            if array[i].any():
-                matrix.append(aslist(array[i]))
+            if any(array[i]):
+                matrix.append(array[i])
         self.array = numpy.array(matrix, dtype=object).transpose()
 
     def remove_row(self, row):
