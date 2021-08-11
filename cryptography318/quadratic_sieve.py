@@ -18,6 +18,15 @@ def quadratic_sieve(n, B=None):
 
     from math import e
 
+    if n == 1:
+        return {}
+
+    if IsPrime(n):
+        return {n: 1}
+
+    if pow(isqrt(n), 2) == n:
+        return {isqrt(n): 2}
+
     if B is None:
         L = pow(e, sqrt(log(n) * log(log(n))))
         B = int(pow(L, 1 / sqrt(2)))
@@ -54,7 +63,7 @@ def quadratic_sieve(n, B=None):
             b = exp_value(e, primes=primes)
             p, q = gcd(a + b, n), gcd(a - b, n)
 
-            # if one solution is non-trivial factor, factor_with_known will take care of the rest
+            # if one solution is non-trivial factor, _factor_with_known will take care of the rest
             if 1 < p < n or 1 < q < n:
                 return _factor_with_known(p, q, n)
 
@@ -99,7 +108,7 @@ def find_perfect_squares(n, primes):
     :return: tuple of perfect squares"""
 
     # attempt to not have to generate a lot of extra rows for smaller n, tweak this
-    extra_rows = 1 + len(primes) // 10 if len(primes) > 6 else 0
+    extra_rows = 1 + len(primes) // 10 if len(primes) > 8 else 0
 
     a = isqrt(n) + 1
 
@@ -225,7 +234,18 @@ def _factor_with_known(p, q, n):
     :param n: integer to be factored
     :return: dictionary. keys: all primes factors of n, values: powers of prime factors"""
 
-    factors_known = join_dict(quadratic_sieve(p), quadratic_sieve(q))
+    # if inputs are non-trivial, try to factor more, if trivial, ignore
+    fact_p = quadratic_sieve(p) if p not in [1, n] else {}
+    fact_q = quadratic_sieve(q) if q not in [1, n] else {}
+
+    # if failed to factor p or q further, add them to dictionary as non-prime factors
+    if fact_q is None:
+        fact_q = {q: 1}
+    if fact_p is None:
+        fact_p = {p: 1}
+
+    factors_known = join_dict(fact_q, fact_p)
+
     factors = {}
     for f in factors_known:
         factors[f] = 0

@@ -52,3 +52,30 @@ def join_dict(*args: dict) -> dict:
         return dict1
 
     return reduce(lambda a, b: update(a, b) if not any(k in b for k in a) else join(a, b), args)
+
+
+def read_mm_int(fname='mathematica_numbers.txt'):
+    """Reads file containing integer in syntax of mathematica's integer notation. Returns actual value."""
+
+    with open(fname, "r") as f:
+        lines = f.readlines()
+        f.close()
+
+    integers = {}
+    var = None
+    for i, line in enumerate(lines):
+        if i == len(lines) - 1:
+            integers[var] += line[:-1]
+        elif '=' in line:
+            var_info = line.split('=')
+            var = var_info[0][:-1]
+            num = var_info[1]
+            integers[var] = num[:-2]
+            continue
+        else:
+            integers[var] += line[:-2]
+
+    for var in integers:
+        integers[var] = int(integers[var])
+
+    return integers

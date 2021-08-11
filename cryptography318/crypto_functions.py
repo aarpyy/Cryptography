@@ -354,6 +354,7 @@ def pollard_rho_dlp(g, h, p, q=None):
 
                 # try to return result right away, fails if beta value is not invertible mod q
                 result = (xstate[1] - ystate[1]) * pow(ystate[2] - xstate[2], -1, q)
+                return result
             except ValueError:
 
                 # try to reduce entire equation by gcd, then try to invert again
@@ -456,7 +457,8 @@ def lenstra_elliptic(n, limit=pow(10, 6)):
 
     # choose random point and elliptic curve, unless curve meets conditions not suitable, use it
     while True:
-        a = randrange(n)
+        # a = randrange(n)
+        a = 0
         x = randrange(n)
         y = randrange(n)
         b = (pow(y, 2, n) - pow(x, 3, n) - a * x) % n

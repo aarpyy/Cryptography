@@ -38,8 +38,11 @@ def IsPrime(n):
     probably prime.
     """
 
-    if res := KnownPrime(n) is not None:
+    if (res := KnownPrime(n)) is not None:
         return res
+
+    if pow(isqrt(n), 2) == n:
+        return False
 
     if n < 2047:
         return MillerRabin_bases([2], n)
