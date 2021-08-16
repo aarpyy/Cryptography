@@ -20,15 +20,26 @@
   </component>
   <component name="ChangeListManager">
     <list default="true" id="6ea76c49-18d8-4974-9f94-c2171563dd51" name="Default Changelist" comment="working on primality test, miller-rabin">
-      <change afterPath="$PROJECT_DIR$/mathematica_numbers.txt" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/tests/ps9.py" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/tests/test_dlp.py" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/tests/test_tools.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/.idea/cryptography318.iml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/cryptography318.iml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/misc.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/misc.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/.idea/modules.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/modules.xml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/README.md" beforeDir="false" afterPath="$PROJECT_DIR$/README.md" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/cryptography318/__init__.py" beforeDir="false" afterPath="$PROJECT_DIR$/cryptography318/__init__.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/cryptography318/crypto_functions.py" beforeDir="false" afterPath="$PROJECT_DIR$/cryptography318/crypto_functions.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/cryptography318/prime.py" beforeDir="false" afterPath="$PROJECT_DIR$/cryptography318/prime.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/cryptography318/quadratic_sieve.py" beforeDir="false" afterPath="$PROJECT_DIR$/cryptography318/quadratic_sieve.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/cryptography318/linear_algebra.py" beforeDir="false" afterPath="$PROJECT_DIR$/cryptography318/linear_algebra.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/cryptography318/tools.py" beforeDir="false" afterPath="$PROJECT_DIR$/cryptography318/tools.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/mathematica_numbers.txt" beforeDir="false" afterPath="$PROJECT_DIR$/mathematica_numbers.txt" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/matrix.txt" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/setup.py" beforeDir="false" afterPath="$PROJECT_DIR$/setup.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/test.txt" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/tests/ps9.py" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/tests/test_elliptic.py" beforeDir="false" afterPath="$PROJECT_DIR$/tests/test_elliptic.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/tests/test_factor.py" beforeDir="false" afterPath="$PROJECT_DIR$/tests/test_factor.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/tests/test_linear.py" beforeDir="false" afterPath="$PROJECT_DIR$/tests/test_linear.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/times.txt" beforeDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -71,7 +82,7 @@
     </file-type-list>
   </component>
   <component name="ProblemsViewState">
-    <option name="selectedIndex" value="4" />
+    <option name="selectedIndex" value="3" />
   </component>
   <component name="ProjectId" id="1u36NPVAANkMvTilFg3SGn0Z84R" />
   <component name="ProjectLevelVcsManager" settingsEditedManually="true">
@@ -232,6 +243,9 @@
       <module name="cryptography318" />
       <option name="INTERPRETER_OPTIONS" value="" />
       <option name="PARENT_ENVS" value="true" />
+      <envs>
+        <env name="PYTHONUNBUFFERED" value="1" />
+      </envs>
       <option name="SDK_HOME" value="" />
       <option name="WORKING_DIRECTORY" value="$PROJECT_DIR$/cryptography318/tests" />
       <option name="IS_MODULE_SDK" value="true" />
@@ -286,6 +300,8 @@
       <workItem from="1628383686279" duration="1742000" />
       <workItem from="1628440171070" duration="3058000" />
       <workItem from="1628547805048" duration="2980000" />
+      <workItem from="1628705520065" duration="14505000" />
+      <workItem from="1629059685327" duration="8502000" />
     </task>
     <task id="LOCAL-00001" summary="wrote some stuff for ps4.5, figured out problem with pohlig-hellman, bsgs in work">
       <created>1624923163169</created>

@@ -1,3 +1,6 @@
+# Credit to https://github.com/smllmn/baillie-psw for everything in this file except Jacobi function
+
+
 def D_chooser(candidate):
     """Choose a D value suitable for the Baillie-PSW test - from internet"""
 

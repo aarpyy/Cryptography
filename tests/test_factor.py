@@ -42,11 +42,11 @@ def test_factor_if_smooth():
     assert factor_if_smooth(n, [2, 3, 5]) is None
 
 
-def test_qs(it=500):
+def test_qs(it=10):
     for _ in range(it):
-        a = RandomPrime(pow(10, 5))
-        b = RandomPrime(pow(10, 3))
-        n = a * pow(b, 2)
+        a = RandomPrime(pow(10, 4), pow(10, 5))
+        b = RandomPrime(pow(10, 4), pow(10, 5))
+        n = a * b
         factors = quadratic_sieve(n)
         if factors is None:
             print(a, b, n)
@@ -56,7 +56,11 @@ def test_qs(it=500):
         assert result == n
 
 
+@pytest.mark.skip
 def test_max_qs():
+
+    # this test shouldn't be run with pytest, it just purely for finding largest integer than can be factored
+    # in a short amount of time by quadratic sieve
     start = time.time()
     a = RandomPrime(pow(10, 9))
     b = RandomPrime(pow(10, 5))
@@ -112,12 +116,4 @@ def test_lenstra():
 
 
 if __name__ == '__main__':
-    a = RandomPrime(pow(10, 5))
-    b = RandomPrime(pow(10, 3))
-    n = a * pow(b, 3)
-    print(a, b, n)
-    print(factors := quadratic_sieve(n))
-    result = 1
-    for f in factors:
-        result *= pow(f, factors[f])
-    print(result == n)
+    test_qs()

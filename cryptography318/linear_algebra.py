@@ -23,8 +23,8 @@ def dot(obj, other, mod=None):
     if len(obj) != len(other):
         raise ValueError(f"Unable to take product of two arrays of different length")
     if mod is not None:
-        return [reduce(lambda a, b: (a + b) % mod, map(lambda x, y: (x * y) % mod, obj, other))]
-    return [sum(map(lambda x, y: x * y, obj, other))]
+        return reduce(lambda a, b: (a + b) % mod, map(lambda x, y: (x * y) % mod, obj, other))
+    return sum(map(lambda x, y: x * y, obj, other))
 
 
 def aslist(obj):
@@ -48,6 +48,17 @@ def isnumber(obj):
     types = (int, float, numpy.int16, numpy.int32, numpy.int64, numpy.float16,
              numpy.float32, numpy.float64)
     return isinstance(obj, types)
+
+
+def python_number(number):
+    """Returns Python version of given number, instead of numpy's version. Useful in ensuring correct
+    operations are performed with matrices (numpy.int64 * Matrix -> numpy.ndarray, not Matrix)."""
+
+    if isinstance(number, (numpy.float16, numpy.float32, numpy.float64)):
+        return float(number)
+    if isinstance(number, (numpy.int16, numpy.int32, numpy.int64)):
+        return int(number)
+    return number
 
 
 def is_binary_matrix(obj):
@@ -79,7 +90,7 @@ def all_elements(obj):
 
 
 class Matrix:
-    def __init__(self, array: list[list[int]] = None, rows=None, cols=None, rand=False, identity=False, aug=False,
+    def __init__(self, array=None, rows=None, cols=None, rand=False, identity=False, aug=False,
                  solution=None, mod=None, dtype: type = None):
         self.mod = mod
         self.augmented = False
@@ -372,18 +383,17 @@ class Matrix:
 
         # uses numpy's matmul for all matrix multiplication
         if isinstance(other, Matrix):
-            return Matrix(numpy.matmul(self.array, other.array))
+            return Matrix(numpy.matmul(self.array, other.array), aug=self.augmented, mod=self.mod)
         if isinstance(other, numpy.ndarray):
-            return Matrix(numpy.matmul(self.array, other))
+            return Matrix(numpy.matmul(self.array, other), aug=self.augmented, mod=self.mod)
         if isinstance(other, list):
-            return Matrix(numpy.matmul(self.array, numpy.array(other, dtype=object)))\
+            return Matrix(numpy.matmul(self.array, numpy.array(other, dtype=object)), aug=self.augmented, mod=self.mod)
 
         # if number * matrix, return each element of matrix *= number
         if isnumber(other):
             matrix = self.copy()
             for i in range(len(self.array)):
-                for j in range(len(self.array[0])):
-                    matrix.array[i][j] *= other
+                matrix.array[i] *= other
             return matrix
         raise TypeError("Matrix multiplication must be done between two matrices or a matrix and a scalar")
 
@@ -394,7 +404,7 @@ class Matrix:
             if len(other[0]) != len(self):
                 raise ValueError("Number of columns in first matrix must equal number of rows in second")
         if isinstance(other, Matrix):
-            return Matrix(numpy.matmul(other.array, self.array))
+            return Matrix(numpy.matmul(other.array, self.array), aug=other.augmented, mod=other.mod)
         if isinstance(other, numpy.ndarray):
             return Matrix(numpy.matmul(other, self.array))
         if isinstance(other, list):
@@ -402,8 +412,7 @@ class Matrix:
         if isnumber(other):
             matrix = self.copy()
             for i in range(len(self)):
-                for j in range(len(self[0])):
-                    matrix.array[i][j] *= other
+                matrix.array[i] *= other
             return matrix
         raise TypeError("Matrix multiplication must be done between two matrices or a matrix and a scalar")
 
@@ -1493,10 +1502,10 @@ class Matrix:
         if len(obj1) != len(obj2):
             raise ValueError("Dot product impossible with vectors of different lengths")
 
-        return dot(obj1, obj2, self.mod)
+        return python_number(dot(obj1, obj2, self.mod))
 
     def norm(self):
-        """Calculates the norm [sqrt of inner_prod(v,v)] of a vector"""
+        """Calculates the norm (distance from origin) of a vector"""
 
         obj = aslist(self) if len(self) == 1 else aslist(self.transpose())
 
@@ -1505,9 +1514,7 @@ class Matrix:
                 raise ValueError("Matrix must be row or column vector to calculate the norm")
             obj = obj[0]
 
-        obj = Matrix(obj)
-
-        return sqrt(Matrix.inner_prod(obj, obj)[0])
+        return sqrt(reduce(lambda a, b: pow(a, 2) + pow(b, 2), obj))
 
     def orthogonal(self, others=None):
         """Determines if a list of vectors are orthogonal to each other, returning True only if
@@ -1525,10 +1532,11 @@ class Matrix:
         if isinstance(others, Matrix):
             vectors += others.to_vector()
 
+        # finds all two-element combinations of vectors w/o replacement
         vector_pairs = combinations(vectors, 2)
 
         for pair in vector_pairs:
-            if Matrix.inner_prod(pair[0], pair[1])[0] != 0:
+            if Matrix.inner_prod(pair[0], pair[1]) != 0:
                 return False
         return True
 

@@ -1,8 +1,8 @@
 import numpy
 from random import randint, randrange
-from warnings import warn
-from math import gcd
+from math import gcd, sqrt
 from functools import reduce
+from itertools import combinations
 from .tools import string_reduce, deprecated
 
 
@@ -10,9 +10,7 @@ def where(array, if_exp=None, else_exp=None):
     """Equivalent of numpy.where, accepts Matrix object as argument."""
 
     if isinstance(array, Matrix):
-        if if_exp is None and else_exp is None:
-            return numpy.where(array.array)
-        return numpy.where(array.array, if_exp, else_exp)
+        array = array.array
     if isinstance(array, numpy.ndarray):
         if if_exp is None and else_exp is None:
             return numpy.where(array)
@@ -25,8 +23,8 @@ def dot(obj, other, mod=None):
     if len(obj) != len(other):
         raise ValueError(f"Unable to take product of two arrays of different length")
     if mod is not None:
-        return [reduce(lambda a, b: (a + b) % mod, map(lambda x, y: (x * y) % mod, obj, other))]
-    return [sum(map(lambda x, y: x * y, obj, other))]
+        return reduce(lambda a, b: (a + b) % mod, map(lambda x, y: (x * y) % mod, obj, other))
+    return sum(map(lambda x, y: x * y, obj, other))
 
 
 def aslist(obj):
@@ -50,6 +48,17 @@ def isnumber(obj):
     types = (int, float, numpy.int16, numpy.int32, numpy.int64, numpy.float16,
              numpy.float32, numpy.float64)
     return isinstance(obj, types)
+
+
+def python_number(number):
+    """Returns Python version of given number, instead of numpy's version. Useful in ensuring correct
+    operations are performed with matrices (numpy.int64 * Matrix -> numpy.ndarray, not Matrix)."""
+
+    if isinstance(number, (numpy.float16, numpy.float32, numpy.float64)):
+        return float(number)
+    if isinstance(number, (numpy.int16, numpy.int32, numpy.int64)):
+        return int(number)
+    return number
 
 
 def is_binary_matrix(obj):
@@ -81,13 +90,26 @@ def all_elements(obj):
 
 
 class Matrix:
-    def __init__(self, array=None, rows=None, cols=None, rand=False, identity=False, aug=False, solution=None, mod=None):
+    def __init__(self, array=None, rows=None, cols=None, rand=False, identity=False, aug=False,
+                 solution=None, mod=None, dtype: type = None):
         self.mod = mod
         self.augmented = False
 
         # if augmented is True or solution provided, matrix is augmented
         if aug or solution is not None:
             self.augmented = True
+
+        # dtype allows for faster creation of matrix, assumes input is reliable and correct type
+        if dtype is not None:
+            if dtype not in (list, numpy.ndarray):
+                raise TypeError(f"dtype given not recognized: {dtype}")
+            if dtype == list:
+                self.array = numpy.array(array, dtype=object)
+            else:
+                self.array = array
+            if self.mod is not None:
+                self.array %= self.mod
+            return
 
         # if array given, check if list or numpy array (cannot inherit a Matrix object)
         if array is not None:
@@ -165,11 +187,17 @@ class Matrix:
             for i in range(len(self)):
                 self.array[i].append(solution[i][0])
 
+        if self.mod is not None:
+            self.array %= self.mod
+
     def __setitem__(self, key, value):
         self.array[key] = value
 
     def __getitem__(self, item):
         return self.array[item]
+
+    def __contains__(self, item):
+        return self.array.__contains__(item)
 
     def __len__(self):
         return len(self.array)
@@ -355,18 +383,17 @@ class Matrix:
 
         # uses numpy's matmul for all matrix multiplication
         if isinstance(other, Matrix):
-            return Matrix(numpy.matmul(self.array, other.array))
+            return Matrix(numpy.matmul(self.array, other.array), aug=self.augmented, mod=self.mod)
         if isinstance(other, numpy.ndarray):
-            return Matrix(numpy.matmul(self.array, other))
+            return Matrix(numpy.matmul(self.array, other), aug=self.augmented, mod=self.mod)
         if isinstance(other, list):
-            return Matrix(numpy.matmul(self.array, numpy.array(other, dtype=object)))\
+            return Matrix(numpy.matmul(self.array, numpy.array(other, dtype=object)), aug=self.augmented, mod=self.mod)
 
         # if number * matrix, return each element of matrix *= number
         if isnumber(other):
             matrix = self.copy()
             for i in range(len(self.array)):
-                for j in range(len(self.array[0])):
-                    matrix.array[i][j] *= other
+                matrix.array[i] *= other
             return matrix
         raise TypeError("Matrix multiplication must be done between two matrices or a matrix and a scalar")
 
@@ -377,7 +404,7 @@ class Matrix:
             if len(other[0]) != len(self):
                 raise ValueError("Number of columns in first matrix must equal number of rows in second")
         if isinstance(other, Matrix):
-            return Matrix(numpy.matmul(other.array, self.array))
+            return Matrix(numpy.matmul(other.array, self.array), aug=other.augmented, mod=other.mod)
         if isinstance(other, numpy.ndarray):
             return Matrix(numpy.matmul(other, self.array))
         if isinstance(other, list):
@@ -385,8 +412,7 @@ class Matrix:
         if isnumber(other):
             matrix = self.copy()
             for i in range(len(self)):
-                for j in range(len(self[0])):
-                    matrix.array[i][j] *= other
+                matrix.array[i] *= other
             return matrix
         raise TypeError("Matrix multiplication must be done between two matrices or a matrix and a scalar")
 
@@ -475,8 +501,8 @@ class Matrix:
         return product
 
     def __mod__(self, other):
-        if not isnumber(other):
-            raise ValueError(f"modulus must be done with number. given: {type(other)}")
+
+        # left this method without validating input, for efficiency, numpy also validates so no need to do twice
         result = self.array.copy() % other
         return Matrix(result, aug=self.augmented)
 
@@ -647,8 +673,8 @@ class Matrix:
         entire row to reduce, unless division would result in float values in row, in which case a modular inverse
         is found. If column value is given, attempts to convert specific column value of given row into pivot.
 
-        :params row: integer index of matrix corresponding to row to be operated on
-        :params col: integer index of matrix corresponding to specific element in row to be converted into pivot
+        :param row: integer index of matrix corresponding to row to be operated on
+        :param col: integer index of matrix corresponding to specific element in row to be converted into pivot
         """
 
         def mod_inv(array, e, mod):
@@ -938,7 +964,14 @@ class Matrix:
         """Returns transpose of Matrix object."""
 
         transpose = self.array.transpose()
-        return Matrix(transpose, aug=self.augmented)
+        return Matrix(transpose, aug=self.augmented, mod=self.mod)
+
+    def T(self):
+        """Computes and returns the transpose of a matrix. Returns above method self.transpose()
+        as this method only exists for the convenient syntax of A.T being easily visually recognized
+        as the transpose of A."""
+
+        return self.transpose()
 
     def copy(self):
         """Returns exact copy of values of matrix in a new Matrix object."""
@@ -1009,24 +1042,25 @@ class Matrix:
         """Removes rows consisting of just zeros. Does not return."""
 
         matrix = []
-        for i in range(len(self)):
+        array = aslist(self)
+        for i in range(len(array)):
 
-            # self[i].any() returns true if any element in the numpy array is non-zero, returning false if all
+            # any(array) returns true if any element in the array is non-zero, returning false if all
             # elements are zero means that this statement will run true if row has any non-zero element (is not null)
-            if self[i].any():
-                matrix.append(aslist(self[i]))
+            if any(array[i]):
+                matrix.append(array[i])
         self.array = numpy.array(matrix, dtype=object)
 
     def remove_null_column(self):
         """Removes columns consisting of just zeros. Does not return."""
 
         matrix = []
-        array = self.array.transpose()
+        array = aslist(self.array.transpose())
         for i in range(len(array)):
 
             # see above function remove_null_row for explanation of this statement
-            if array[i].any():
-                matrix.append(aslist(array[i]))
+            if any(array[i]):
+                matrix.append(array[i])
         self.array = numpy.array(matrix, dtype=object).transpose()
 
     def remove_row(self, row):
@@ -1437,6 +1471,75 @@ class Matrix:
             columns.append(Matrix(vector))
         return columns
 
+    def trace(self):
+        """Calculates the tracer (diagonal sum) of a Matrix."""
+
+        i = 0
+        trace_sum = 0
+        while i < len(self) and i < len(self[0]):
+            trace_sum += self[i][i]
+        return trace_sum
+
+    def inner_prod(self, other):
+        """Calculates the inner product (dot product) of two column vectors."""
+
+        if isinstance(other, list):
+            other = numpy.array(other, dtype=object)
+
+        if not isinstance(other, (Matrix, numpy.ndarray)):
+            raise AttributeError("Can only calculate inner product of two Matrices")
+
+        # converts column vectors to row vectors in form of python list, row vectors as python list
+        obj1 = aslist(self) if len(self) == 1 else aslist(self.transpose())
+        obj2 = aslist(other) if len(other) == 1 else aslist(other.transpose())
+
+        # if nested vectors, un-nest
+        if isinstance(obj1[0], list):
+            obj1 = obj1[0]
+        if isinstance(obj2[0], list):
+            obj2 = obj2[0]
+
+        if len(obj1) != len(obj2):
+            raise ValueError("Dot product impossible with vectors of different lengths")
+
+        return python_number(dot(obj1, obj2, self.mod))
+
+    def norm(self):
+        """Calculates the norm (distance from origin) of a vector"""
+
+        obj = aslist(self) if len(self) == 1 else aslist(self.transpose())
+
+        if isinstance(obj[0], list):
+            if len(obj) > 1:
+                raise ValueError("Matrix must be row or column vector to calculate the norm")
+            obj = obj[0]
+
+        return sqrt(reduce(lambda a, b: pow(a, 2) + pow(b, 2), obj))
+
+    def orthogonal(self, others=None):
+        """Determines if a list of vectors are orthogonal to each other, returning True only if
+        all given vectors are orthogonal to all other given vectors.
+
+        :param self: Matrix object, can be multi-dimensional or column vector
+        :param others: list-type, containing column vectors of same length as self, can be Matrix, list, or numpy array
+        """
+
+        vectors = self.to_vector()
+
+        if isinstance(others, (list, numpy.ndarray)):
+            others = Matrix(others)
+
+        if isinstance(others, Matrix):
+            vectors += others.to_vector()
+
+        # finds all two-element combinations of vectors w/o replacement
+        vector_pairs = combinations(vectors, 2)
+
+        for pair in vector_pairs:
+            if Matrix.inner_prod(pair[0], pair[1]) != 0:
+                return False
+        return True
+
 
 class LinearMap(Matrix):
     def __init__(self, array):
@@ -1560,6 +1663,7 @@ class LinearMap(Matrix):
 
         if len(in_basis) != len(in_basis[0]) or len(out_basis) != len(out_basis[0]):
             raise ValueError("Bases must be square matrix")
+
         # order of operations here is very important, first convert Te,e -> Tb,e converting T so that it takes input
         # in base b and output in e, then Tb,e -> Tb,b, converting T output to base b also
         return LinearMap(out_basis.invert() * (self * in_basis))

@@ -48,19 +48,19 @@ def test_inner_product():
     m = Matrix([[1, 2, 3]]).transpose()
     a = numpy.array([[1, 2, 3]]).transpose()
     r = m.inner_prod(a)
-    assert isinstance(r, list) and r[0] == 14
+    assert r == 14
 
     # works with one column vector and one row vector
     m = Matrix([[1, 2, 3]])
     a = numpy.array([[1, 2, 3]]).transpose()
     r = m.inner_prod(a)
-    assert isinstance(r, list) and r[0] == 14
+    assert r == 14
 
     # works with two non-nested row vectors
     m = Matrix([1, 2, 3])
     a = numpy.array([1, 2, 3])
     r = m.inner_prod(a)
-    assert isinstance(r, list) and r[0] == 14
+    assert r == 14
 
 
 def test_orthogonal():
@@ -151,4 +151,3 @@ if __name__ == '__main__':
     test_remove_null_row()
     test_remove_null_col()
     # test_optimal_array_addition_mod()
-    

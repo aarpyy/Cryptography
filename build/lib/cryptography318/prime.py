@@ -1,12 +1,9 @@
-from math import gcd, isqrt
+from math import isqrt
 from random import randrange
-import ctypes
-import pathlib
-
-from cryptography318.bailliepsw_helper import LucasPseudoPrime, D_chooser
+from .bailliepsw_helper import LucasPseudoPrime, D_chooser
 
 
-def KnownPrime(n, first_n=50):
+def KnownPrime(n):
     """Helper function, confirming prime candidate is not easily known"""
 
     known_primes = [2, 3, 5, 7, 11, 13, 17, 19, 23, 29, 31, 37, 41, 43, 47, 53, 59, 61, 67, 71, 73, 79, 83, 89, 97, 101,
@@ -19,12 +16,7 @@ def KnownPrime(n, first_n=50):
                     853, 857, 859, 863, 877, 881, 883, 887, 907, 911, 919, 929, 937, 941, 947, 953, 967, 971, 977, 983,
                     991, 997]
 
-    if not 2 < first_n < 167:
-        first_n = known_primes
-    else:
-        first_n = known_primes[:first_n]
-
-    for p in first_n:
+    for p in known_primes:
         if n == p:
             return True
         elif n % p == 0:
@@ -46,8 +38,11 @@ def IsPrime(n):
     probably prime.
     """
 
-    if KnownPrime(n, first_n=20) is not None:
-        return KnownPrime(n)
+    if (res := KnownPrime(n)) is not None:
+        return res
+
+    if pow(isqrt(n), 2) == n:
+        return False
 
     if n < 2047:
         return MillerRabin_bases([2], n)
@@ -187,9 +182,8 @@ def AllFactors(n):
     if res := KnownPrime(n) is not None:
         return res
 
-    for num in range(3, (isqrt(n) + 1) | 1, 2):
-        witness = list(map(lambda x: MillerRabin_base_a(x, n), [2, 3, 5, 7, 11, 13]))
-        if False not in witness and n % num == 0:
+    for num in range(3, isqrt(n) + 2, 2):
+        if n % num == 0:
             return False
     return True
 
@@ -202,11 +196,11 @@ def ConfirmPrime(n):
         return res
 
     # generates the n-th row of Pascal's triangle, if any of the coefficients != 0 mod n, n is not prime
-    for k in range(1, (n+1)//2):
+    for k in range(1, (n + 1) // 2):
         res = 1
         if k > (n - k):
             k = n - k
-        for i in range(0, k):
+        for i in range(k):
             res = res * (n - i)
             res = res // (i + 1)
         if res % n != 0:
@@ -216,6 +210,9 @@ def ConfirmPrime(n):
 
 def NextPrime(n):
     """Returns first prime after number given"""
+
+    if n == 1:
+        return 2
 
     # ensures n is odd to start so that can increment by 2
     n = (n + 1) | 1
@@ -228,6 +225,12 @@ def NextPrime(n):
 def PrevPrime(n):
     """Returns first prime before number given"""
 
+    if n < 3:
+        return None
+
+    if n == 3:
+        return 2
+
     # ensures n is odd to start so that can decrement by 2
     n = (n - 2) | 1
     while True:
@@ -236,8 +239,46 @@ def PrevPrime(n):
         n -= 2
 
 
+def PrimesLT(limit):
+    if limit < 2:
+        raise ValueError("Must enter a number greater than the smallest prime (2)")
+    primes = []
+
+    n = NextPrime(1)
+    while n <= limit:
+        primes.append(n)
+        n = NextPrime(n)
+    return primes
+
+
+def PrimesLT_gen(limit):
+    """Creates generator for all primes lte p"""
+
+    if limit < 2:
+        raise ValueError("Must enter a number greater than the smallest prime (2)")
+
+    n = NextPrime(1)
+    while n <= limit:
+        yield n
+        n = NextPrime(n)
+
+
+def PrimePi(limit):
+    """Returns number of primes <= given number"""
+
+    if limit < 2:
+        raise ValueError("Must enter a number greater than the smallest prime (2)")
+
+    count = 0
+    n = NextPrime(1)
+    while n <= limit:
+        count += 1
+        n = NextPrime(n)
+    return count
+
+
 def BailliePSW_Primality(candidate, mr=True):
-    """Perform the Baillie-PSW probabilistic primality test on candidate"""
+    """Perform the Baillie-PSW probabilistic primality test on candidate."""
 
     # Check divisibility by a short list of primes less than 50
     if KnownPrime(candidate) is not None:

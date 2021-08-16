@@ -11,8 +11,49 @@ class EllipticCurve:
         self.b = b
         self.mod = p
 
+    def __str__(self):
+        return self.__repr__()
+
+    def __repr__(self):
+        return f'EllipticCurve({self.a}, {self.b}, {self.mod})'
+
+    @classmethod
+    def safe_curve(cls, p):
+        """Constructs a random curve mod p that is not singular."""
+
+        while True:
+            a = randrange(p)
+            b = randrange(p)
+            if 4 * pow(a, 3) + 27 * pow(b, 2) != 0:
+                return cls(a, b, p)
+
+    @classmethod
+    def safe_curve_and_point(cls, p):
+        """Constructs a random curve mod p that is not singular, and a point that exists
+        on that curve."""
+
+        while True:
+            a = randrange(p)
+            x = randrange(p)
+            y = randrange(p)
+            b = (pow(y, 2, p) - pow(x, 3, p) - a * x) % p
+            if 4 * pow(a, 3) + 27 * pow(b, 2) == 0:
+                continue
+            curve = cls(a, b, p)
+            return curve, curve.point(x, y)
+
     def point(self, x=None, y=None):
-        return Elliptic(self, x, y)
+
+        # identity element
+        if x is None and y is None:
+            return Elliptic(self)
+
+        # checks if point given is on curve
+        if pow(y, 2) % self.mod == (pow(x, 3) + self.a * x + self.b) % self.mod:
+            return Elliptic(self, x, y)
+
+        # if neither identity or point on curve, this point doesn't exist
+        raise ValueError("Argument values incompatible with this curve")
 
     def string(self, s):
         return StringToElliptic(self, s)
@@ -43,8 +84,10 @@ class Elliptic:
 
         x1, y1 = self.point
         x2, y2 = other.point
+
+        # if points add to identity, return identity (Elliptic with point = None)
         if (x1 - x2) % self.E.mod == 0 and (y1 + y2) % self.E.mod == 0:
-            return None
+            return Elliptic(self.E)
 
         # two try/catch clauses allow for information to be obtained if crash occurs, mostly useful in
         # lenstra's elliptic curve factorization algorithm
@@ -52,12 +95,12 @@ class Elliptic:
             try:
                 slope = ((3 * pow(x1, 2) + self.E.a) * pow(2 * y1, -1, self.E.mod)) % self.E.mod
             except ValueError as e:
-                raise ValueError(str(e) + f"base: {2 * y1}")
+                raise ValueError(str(e) + f" base: {2 * y1}")
         else:
             try:
                 slope = ((y2 - y1) * pow(x2 - x1, -1, self.E.mod)) % self.E.mod
             except ValueError as e:
-                raise ValueError(str(e) + f"base: {x2 - x1}")
+                raise ValueError(str(e) + f" base: {x2 - x1}")
 
         x3 = (pow(slope, 2) - x1 - x2) % self.E.mod
         y3 = (slope * (x1 - x3) - y1) % self.E.mod
@@ -77,8 +120,15 @@ class Elliptic:
         return self.__rmul__(other)
 
     def __rmul__(self, other):
+
+        # if point is identity, return point
+        if self.point is None:
+            return self
+
+        # only work with integers in field
         if isinstance(other, float):
             other = int(other)
+
         P = self
         if other < 0:
             other = abs(other)
@@ -102,6 +152,9 @@ class Elliptic:
 
     def to_string(self):
         return EllipticToString(self)
+
+    def copy(self):
+        return Elliptic(self.E, self.point[0], self.point[1])
 
 
 def sqrt_safe(n):
@@ -159,14 +212,17 @@ def NumToString(n, base=128):
 def StringToElliptic(E, s):
     for i in range(100):
         x = StringToNum(s) * 100 + i
-        y = sqrt_safe(pow(x, 3, E.mod) + E.a * x + E.b) % E.mod
-        if isinstance(y, int):
+        x_term = pow(x, 3, E.mod) + E.a * x + E.b
+        if quadratic_residue(x_term, E.mod):
+            y = 1
+            while pow(y, 2, E.mod) != x_term:
+                y += 1
             return E.point(x, y)
     return None
 
 
-def EllipticToString(n):
-    return NumToString(n[0] // 100)
+def EllipticToString(point):
+    return NumToString(point[0] // 100)
 
 
 def ExtendedGCD(a, b):
@@ -177,17 +233,22 @@ def ExtendedGCD(a, b):
     return g, y - (b // a) * x, x
 
 
+def quadratic_residue(a, p):
+    """Returns True if n is a quadratic residue mod p, False otherwise. Uses Euler's criterion to assess values.
+    Assumes p is odd prime."""
+
+    return pow(a, (p - 1) // 2, p) == 1
+
+
 def BSmoothQ(n, B=None, factors=None):
     """Returns True if all prime factors of given number are <= given B"""
 
     if factors is None:
-        factor_base = [p := 2]
-        while len(factor_base) < PrimePi(B):
-            factor_base.append(p := NextPrime(p))
-    else:
-        factor_base = factors
+        factors = [p := 2]
+        while len(factors) < PrimePi(B):
+            factors.append(p := NextPrime(p))
 
-    for p in factor_base:
+    for p in factors:
         while n % p == 0:
             n //= p
 
@@ -224,57 +285,36 @@ def ChineseRemainder(nums, mods):
     return acc
 
 
-def baby_step_giant_step(g, h, p, prog=False, N=None):
+def baby_step_giant_step(g, h, p, order=None):
     """Function attempts to solve DLP using classic baby-step-giant-step algorithm."""
-    if N is None:
-        N = p - 1
-    n = isqrt(N) + 1
+    if order is None:
+        order = p - 1
 
-    if prog:
-        increment = n // 25
-        print("Starting Part 1: Creating Lists")
-        A, B = {}, {}
-        count = 0
-        for i in range(n):
-            if count >= increment:
-                count = 0
-                print("-", end="")
-            count += 1
-            j = i * n
-            A[pow(g, i, p)] = i
-            B[(h * pow(g, -1 * j, p)) % p] = j
+    n = isqrt(order) + 1
 
-        print("\nDone With Part 1. Starting Part 2: Finding Matches")
+    # find lists A = g^i B = h * g^-jn s.t. A[i] == B[j] for some indices i, j, this collision allows us to solve
+    A = list(map(lambda e: pow(g, e, p), range(n)))
+    B = list(map(lambda e: (h * pow(g, -e * n, p)) % p, range(n)))
 
-        count = 0
-        for e in A:
-            if count >= increment:
-                count = 0
-                print("-", end="")
-            count += 1
-            if e in B:
-                print()
-                return A[e] + B[e]
-        print()
+    # convert to set for intersection calculation
+    a, b = set(A), set(B)
+    U = a.intersection(b)
 
-    else:
-        A, B = {}, {}
-        for i in range(n):
-            j = i * n
-            A[pow(g, i, p)] = i
-            B[(h * pow(g, -1 * j, p)) % p] = j
+    # if empty set, no collisions found
+    if not U:
+        return None
 
-        for e in A:
-            if e in B:
-                return A[e] + B[e]
-    return None
+    # otherwise, find first indices of match and use to solve
+    match = U.pop()
+    i, j = A.index(match), B.index(match)
+    return i + (j * n)
 
 
-def elliptic_bsgs(P, Q, N=None):
-    if N is None:
-        N = P.E.mod + 1 + 2 * isqrt(P.E.mod)
+def elliptic_bsgs(P, Q, order=None):
+    if order is None:
+        order = P.E.mod + 1 + 2 * isqrt(P.E.mod)
 
-    n = isqrt(N)
+    n = isqrt(order)
 
     # creates baby-step table, P * i for i from 0 to n
     a = list(map(lambda i: P * i, range(n)))
@@ -291,15 +331,8 @@ def elliptic_bsgs(P, Q, N=None):
     point = U.pop()
 
     # uses lists to find index of intersection
-    index_a, index_b = -1, -1
-    for i, pair in enumerate(zip(a, b)):
-        if pair[0] == point:
-            index_a = i
-        if pair[1] == point:
-            index_b = i
-        if index_a != -1 and index_b != -1:
-            return index_a + n * index_b
-    return None
+    i, j = a.index(point), b.index(point)
+    return i + j * n
 
 
 def index_calculus_dlp(g, h, p):
@@ -353,8 +386,7 @@ def pollard_rho_dlp(g, h, p, q=None):
             try:
 
                 # try to return result right away, fails if beta value is not invertible mod q
-                result = (xstate[1] - ystate[1]) * pow(ystate[2] - xstate[2], -1, q)
-                return result
+                return (xstate[1] - ystate[1]) * pow(ystate[2] - xstate[2], -1, q)
             except ValueError:
 
                 # try to reduce entire equation by gcd, then try to invert again
@@ -372,14 +404,11 @@ def pollard_rho_dlp(g, h, p, q=None):
 
                         # current solution is mod q // e, but real solution could be mod any increment of
                         # q up until its original value, find real solution by checking
-                        for i in range(e):
+                        for i in range(e - 1):
                             if pow(g, log_g_h, p) == h % p:
                                 return log_g_h
                             log_g_h += mod
                 continue
-            else:
-                if pow(g, result, p) == h % p:
-                    return result
 
 
 def calculate_state(state, g, h, p):
@@ -457,8 +486,7 @@ def lenstra_elliptic(n, limit=pow(10, 6)):
 
     # choose random point and elliptic curve, unless curve meets conditions not suitable, use it
     while True:
-        # a = randrange(n)
-        a = 0
+        a = randrange(n)
         x = randrange(n)
         y = randrange(n)
         b = (pow(y, 2, n) - pow(x, 3, n) - a * x) % n

@@ -1,7 +1,8 @@
-import operator
-from math import gcd, isqrt, sqrt
-from .prime import IsPrime, NextPrime
-from .tools import deprecated
+from random import randrange
+from math import gcd, isqrt, sqrt, prod
+from .prime import IsPrime, NextPrime, PrimesLT, PrimePi
+from .tools import deprecated, join_dict
+from .quadratic_sieve import quadratic_sieve, _factor_with_known
 
 
 class EllipticCurve:
@@ -10,8 +11,49 @@ class EllipticCurve:
         self.b = b
         self.mod = p
 
+    def __str__(self):
+        return self.__repr__()
+
+    def __repr__(self):
+        return f'EllipticCurve({self.a}, {self.b}, {self.mod})'
+
+    @classmethod
+    def safe_curve(cls, p):
+        """Constructs a random curve mod p that is not singular."""
+
+        while True:
+            a = randrange(p)
+            b = randrange(p)
+            if 4 * pow(a, 3) + 27 * pow(b, 2) != 0:
+                return cls(a, b, p)
+
+    @classmethod
+    def safe_curve_and_point(cls, p):
+        """Constructs a random curve mod p that is not singular, and a point that exists
+        on that curve."""
+
+        while True:
+            a = randrange(p)
+            x = randrange(p)
+            y = randrange(p)
+            b = (pow(y, 2, p) - pow(x, 3, p) - a * x) % p
+            if 4 * pow(a, 3) + 27 * pow(b, 2) == 0:
+                continue
+            curve = cls(a, b, p)
+            return curve, curve.point(x, y)
+
     def point(self, x=None, y=None):
-        return Elliptic(self, x, y)
+
+        # identity element
+        if x is None and y is None:
+            return Elliptic(self)
+
+        # checks if point given is on curve
+        if pow(y, 2) % self.mod == (pow(x, 3) + self.a * x + self.b) % self.mod:
+            return Elliptic(self, x, y)
+
+        # if neither identity or point on curve, this point doesn't exist
+        raise ValueError("Argument values incompatible with this curve")
 
     def string(self, s):
         return StringToElliptic(self, s)
@@ -39,14 +81,27 @@ class Elliptic:
             return self
         if self.point is None:
             return other
+
         x1, y1 = self.point
         x2, y2 = other.point
+
+        # if points add to identity, return identity (Elliptic with point = None)
         if (x1 - x2) % self.E.mod == 0 and (y1 + y2) % self.E.mod == 0:
-            return None
+            return Elliptic(self.E)
+
+        # two try/catch clauses allow for information to be obtained if crash occurs, mostly useful in
+        # lenstra's elliptic curve factorization algorithm
         if (x1 - x2) % self.E.mod == 0 and (y1 - y2) % self.E.mod == 0:
-            slope = ((3 * pow(x1, 2) + self.E.a) * pow(2 * y1, -1, self.E.mod)) % self.E.mod
+            try:
+                slope = ((3 * pow(x1, 2) + self.E.a) * pow(2 * y1, -1, self.E.mod)) % self.E.mod
+            except ValueError as e:
+                raise ValueError(str(e) + f" base: {2 * y1}")
         else:
-            slope = ((y2 - y1) * pow(x2 - x1, -1, self.E.mod)) % self.E.mod
+            try:
+                slope = ((y2 - y1) * pow(x2 - x1, -1, self.E.mod)) % self.E.mod
+            except ValueError as e:
+                raise ValueError(str(e) + f" base: {x2 - x1}")
+
         x3 = (pow(slope, 2) - x1 - x2) % self.E.mod
         y3 = (slope * (x1 - x3) - y1) % self.E.mod
         return Elliptic(self.E, x3, y3)
@@ -65,8 +120,15 @@ class Elliptic:
         return self.__rmul__(other)
 
     def __rmul__(self, other):
+
+        # if point is identity, return point
+        if self.point is None:
+            return self
+
+        # only work with integers in field
         if isinstance(other, float):
             other = int(other)
+
         P = self
         if other < 0:
             other = abs(other)
@@ -91,24 +153,17 @@ class Elliptic:
     def to_string(self):
         return EllipticToString(self)
 
-
-def apply(proc, lst):
-    lst_proc = {'*': operator.mul, '+': operator.add, '-': operator.sub, '/': operator.truediv}
-    if proc in lst_proc:
-        acc = lst[0]
-        for e in lst[1:]:
-            acc = lst_proc[proc](acc, e)
-        return acc
-    return proc(*lst)
+    def copy(self):
+        return Elliptic(self.E, self.point[0], self.point[1])
 
 
 def sqrt_safe(n):
     try:
-        result = sqrt(n)
+        return sqrt(n)
     except OverflowError:
-        result = isqrt(n)
+        pass
     finally:
-        return result
+        return isqrt(n)
 
 
 def toBase(n, base):
@@ -157,22 +212,17 @@ def NumToString(n, base=128):
 def StringToElliptic(E, s):
     for i in range(100):
         x = StringToNum(s) * 100 + i
-        y = sqrt_safe(pow(x, 3, E.mod) + E.a * x + E.b) % E.mod
-        if isinstance(y, int):
+        x_term = pow(x, 3, E.mod) + E.a * x + E.b
+        if quadratic_residue(x_term, E.mod):
+            y = 1
+            while pow(y, 2, E.mod) != x_term:
+                y += 1
             return E.point(x, y)
     return None
 
 
-def EllipticToString(n):
-    return NumToString(n[0] // 100)
-
-
-@deprecated
-def ApplyMult(lst):
-    acc = 1
-    for e in lst:
-        acc *= e
-    return acc
+def EllipticToString(point):
+    return NumToString(point[0] // 100)
 
 
 def ExtendedGCD(a, b):
@@ -183,42 +233,22 @@ def ExtendedGCD(a, b):
     return g, y - (b // a) * x, x
 
 
-@deprecated
-def GCD(a, b):
-    return gcd(a, b)
+def quadratic_residue(a, p):
+    """Returns True if n is a quadratic residue mod p, False otherwise. Uses Euler's criterion to assess values.
+    Assumes p is odd prime."""
 
-
-@deprecated
-def ModularInverse(x, m):
-    return pow(x, -1, m)
-
-
-def PrimesLT(p):
-    if p < 2:
-        raise ValueError("Must enter a number greater than the smallest prime (2)")
-    primes = [2]
-    for n in range(3, ((p - 1) | 1) + 2, 2):
-        if IsPrime(n):
-            primes.append(n)
-    return primes
-
-
-def PrimePi(p):
-    """Returns number of primes <= given number"""
-
-    return len(PrimesLT(p))
+    return pow(a, (p - 1) // 2, p) == 1
 
 
 def BSmoothQ(n, B=None, factors=None):
     """Returns True if all prime factors of given number are <= given B"""
-    if factors is None:
-        factor_base = [p := 2]
-        while len(factor_base) < PrimePi(B):
-            factor_base.append(p := NextPrime(p))
-    else:
-        factor_base = factors
 
-    for p in factor_base:
+    if factors is None:
+        factors = [p := 2]
+        while len(factors) < PrimePi(B):
+            factors.append(p := NextPrime(p))
+
+    for p in factors:
         while n % p == 0:
             n //= p
 
@@ -236,24 +266,9 @@ def factor_base_exp(n, factors):
     return exp
 
 
-def makeChineseRemainder():
-    # gets lists of solutions and moduli from user for chinese remainder
-    nums, mods = [], []
-    equations = int(input("How many equations: "))
-    for i in range(equations):
-        print("x = ", end="")
-        x = int(input())
-        print("mod ", end="")
-        m = int(input())
-        print()
-        nums.append(x)
-        mods.append(m)
-    return nums, mods
-
-
 def ChineseRemainder(nums, mods):
     # initializes lists of moduli, M = product of all moduli
-    M = ApplyMult(mods)
+    M = prod(mods)
 
     # maps list of moduli and their inverses to x and y respectively
     x, y = [], []
@@ -270,57 +285,36 @@ def ChineseRemainder(nums, mods):
     return acc
 
 
-def baby_step_giant_step(g, h, p, prog=False, N=None):
+def baby_step_giant_step(g, h, p, order=None):
     """Function attempts to solve DLP using classic baby-step-giant-step algorithm."""
-    if N is None:
-        N = p - 1
-    n = isqrt(N) + 1
+    if order is None:
+        order = p - 1
 
-    if prog:
-        increment = n // 25
-        print("Starting Part 1: Creating Lists")
-        A, B = {}, {}
-        count = 0
-        for i in range(n):
-            if count >= increment:
-                count = 0
-                print("-", end="")
-            count += 1
-            j = i * n
-            A[pow(g, i, p)] = i
-            B[(h * pow(g, -1 * j, p)) % p] = j
+    n = isqrt(order) + 1
 
-        print("\nDone With Part 1. Starting Part 2: Finding Matches")
+    # find lists A = g^i B = h * g^-jn s.t. A[i] == B[j] for some indices i, j, this collision allows us to solve
+    A = list(map(lambda e: pow(g, e, p), range(n)))
+    B = list(map(lambda e: (h * pow(g, -e * n, p)) % p, range(n)))
 
-        count = 0
-        for e in A:
-            if count >= increment:
-                count = 0
-                print("-", end="")
-            count += 1
-            if e in B:
-                print()
-                return A[e] + B[e]
-        print()
+    # convert to set for intersection calculation
+    a, b = set(A), set(B)
+    U = a.intersection(b)
 
-    else:
-        A, B = {}, {}
-        for i in range(n):
-            j = i * n
-            A[pow(g, i, p)] = i
-            B[(h * pow(g, -1 * j, p)) % p] = j
+    # if empty set, no collisions found
+    if not U:
+        return None
 
-        for e in A:
-            if e in B:
-                return A[e] + B[e]
-    return None
+    # otherwise, find first indices of match and use to solve
+    match = U.pop()
+    i, j = A.index(match), B.index(match)
+    return i + (j * n)
 
 
-def elliptic_bsgs(P, Q, N=None):
-    if N is None:
-        N = P.E.mod + 1 + 2 * isqrt(P.E.mod)
+def elliptic_bsgs(P, Q, order=None):
+    if order is None:
+        order = P.E.mod + 1 + 2 * isqrt(P.E.mod)
 
-    n = isqrt(N)
+    n = isqrt(order)
 
     # creates baby-step table, P * i for i from 0 to n
     a = list(map(lambda i: P * i, range(n)))
@@ -331,20 +325,14 @@ def elliptic_bsgs(P, Q, N=None):
     A, B = set(a), set(b)
 
     U = A.intersection(B)
+
     if not U:
         return None
     point = U.pop()
 
     # uses lists to find index of intersection
-    index_a, index_b = -1, -1
-    for i, pair in enumerate(zip(a, b)):
-        if pair[0] == point:
-            index_a = i
-        if pair[1] == point:
-            index_b = i
-        if -1 not in (index_a, index_b):
-            return index_a + n * index_b
-    return None
+    i, j = a.index(point), b.index(point)
+    return i + j * n
 
 
 def index_calculus_dlp(g, h, p):
@@ -374,8 +362,15 @@ def index_calculus_dlp(g, h, p):
             return reduce(lambda a, b: a + b, list(map(lambda i, n: i * logs[n], exponents, logs))) + k
 
 
-def SolveDLP(g, h, p, q=None):
-    """Uses Pollard's Rho algorithm for logarithms to solve given discrete log problem."""
+def pollard_rho_dlp(g, h, p, q=None):
+    """Uses Pollard's Rho algorithm for logarithms to solve given discrete log problem. Function will run
+    indefinitely until a solution is found.
+
+    :param g: integer base
+    :param h: integer solution to g^x for some x
+    :param p: integer prime modulus
+    :param q: integer order of g (smallest integer s.t. pow(g, q, p) == 1
+    :return: solution to g^x = h for integer x"""
 
     xstate = (1, 0, 0)
     ystate = (1, 0, 0)
@@ -391,7 +386,7 @@ def SolveDLP(g, h, p, q=None):
             try:
 
                 # try to return result right away, fails if beta value is not invertible mod q
-                result = (xstate[1] - ystate[1]) * pow(ystate[2] - xstate[2], -1, q)
+                return (xstate[1] - ystate[1]) * pow(ystate[2] - xstate[2], -1, q)
             except ValueError:
 
                 # try to reduce entire equation by gcd, then try to invert again
@@ -409,14 +404,11 @@ def SolveDLP(g, h, p, q=None):
 
                         # current solution is mod q // e, but real solution could be mod any increment of
                         # q up until its original value, find real solution by checking
-                        for i in range(e):
+                        for i in range(e - 1):
                             if pow(g, log_g_h, p) == h % p:
                                 return log_g_h
                             log_g_h += mod
                 continue
-            else:
-                if pow(g, result, p) == h % p:
-                    return result
 
 
 def calculate_state(state, g, h, p):
@@ -424,7 +416,7 @@ def calculate_state(state, g, h, p):
 
     x, alpha, beta = state[0], state[1], state[2]
 
-    if 0 <= x < p//3:
+    if 0 <= x < p // 3:
         x *= g
         if x >= p:
             x %= p
@@ -432,7 +424,7 @@ def calculate_state(state, g, h, p):
         if alpha >= p - 1:
             alpha %= (p - 1)
         return x, alpha, beta
-    elif p//3 <= x < 2 * p//3:
+    elif p // 3 <= x < 2 * p // 3:
         x = pow(x, 2, p)
         alpha *= 2
         beta *= 2
@@ -443,7 +435,7 @@ def calculate_state(state, g, h, p):
         if beta >= p - 1:
             beta %= (p - 1)
         return x, alpha, beta
-    elif 2 * p//3 <= x < p:
+    elif 2 * p // 3 <= x < p:
         x *= h
         if x >= p:
             x %= p
@@ -489,36 +481,51 @@ def DSA(D, S1, S2, g, p, q, A):
     return False
 
 
-def pollard_p1(n, limit=pow(10, 6), first_n=4):
-    """Pollard's p - 1 algorithm for factoring large composites.
-    Returns one non-trivial factor if factor-able, False if otherwise."""
+def lenstra_elliptic(n, limit=pow(10, 6)):
+    """Performs Lenstra's Elliptic Curve Factorization algorithm on integer n."""
 
-    if IsPrime(n):
-        raise ValueError("Make sure to enter a composite number")
+    # choose random point and elliptic curve, unless curve meets conditions not suitable, use it
+    while True:
+        a = randrange(n)
+        x = randrange(n)
+        y = randrange(n)
+        b = (pow(y, 2, n) - pow(x, 3, n) - a * x) % n
+        if 4 * pow(a, 3) + 27 * pow(b, 2) == 0:
+            continue
+        break
 
-    if not 1 < first_n < 8:
-        first_n = 8
+    E = EllipticCurve(a, b, n)
+    P = E.point(x, y)
 
-    for a in [2, 3, 5, 7, 11, 13, 17, 19][:first_n]:
-        m = a
-        for j in range(2, limit):
-            m = pow(m, j, n)
-            k = gcd(m - 1, n)
-            if 1 < k < n:
-                return k
+    try:
+        for j in range(1, limit):
+            P *= j
 
-    return False
+    # if there was a crash, it is because pow(x, -1, n) not invertible, so gcd(x, n) is a factor
+    except ValueError as e:
+
+        # gets the number not invertible from the value error thrown
+        k = int(str(e).split('base: ')[1])
+        return gcd(k, n)
+
+    return None
 
 
 def FactorInt(n):
     """
-    Function that checks if number has small prime factors, then attempts Pollards p-1 algorithm for
-    factoring large composite numbers in the form N = p * q, returning one non-trivial factor of N. If neither
-    of these methods factor N, sympy.factorint function is used to further factor N, if possible.
+    Attempts to factor given integer with four methods, returning None if un-factorable.
+    Function first checks if number is prime, then iterates through all primes < 1000 attempting
+    to divide n. Function then Lenstra's Elliptic Curve factorization algorithm to try finding small
+    factors, then tries Pollard's P-1 algorithm to find one non-trivial factor of n.
+    If it succeeds, adds factor to solution set. If n is still factorable, tries quadratic sieve method
+    to return all remaining factors. If this returns None, uses sympy's factorint() method and returns result.
 
-    Returns a Python dictionary with each key being a prime factor and the associated value being the power of
-    that prime factor.
+    :param n: int number to be factored
+    :return: dictionary of all primes factors and their powers, or None if not factorable
     """
+
+    if n == 1:
+        return {}
 
     if IsPrime(n):
         return {n: 1}
@@ -536,82 +543,108 @@ def FactorInt(n):
     factors = {}
     for p in known_primes:
         while n % p == 0:
-            if IsPrime(n):
-                if n not in factors:
-                    factors[n] = 1
-                else:
-                    factors[n] += 1
-                return factors
             if p not in factors:
                 factors[p] = 1
             else:
                 factors[p] += 1
             n //= p
 
-    while not IsPrime(n):
-        k = pollard_p1(n)
-        # if Pollard p-1 returns False, try using sympy.factorint
-        if not k:
-            from sympy import factorint
-            sy_factors = factorint(n)
-            for e in sy_factors:
-                if e not in factors:
-                    factors[e] = sy_factors[e]
-                else:
-                    factors[e] += sy_factors[e]
-            return factors
+    if n == 1:
+        return factors
 
+    if IsPrime(n):
+        return join_dict(factors, {n: 1})
+
+    k = pollard_p1(n)
+    if k is not None:
+        factors_k = {k: 1} if IsPrime(k) else FactorInt(k)
+        factors = join_dict(factors, factors_k)
         n //= k
-        if k not in factors:
-            factors[k] = 1
-        else:
-            factors[k] += 1
 
-    if n != 1 and IsPrime(n):
-        if n not in factors:
-            factors[n] = 1
-        else:
-            factors[n] += 1
-        return factors
+    k = lenstra_elliptic(n)
+    if k is not None:
+        factors_k = {k: 1} if IsPrime(k) else FactorInt(k)
+        factors = join_dict(factors, factors_k)
+        n //= k
 
-    return QuadraticSieve(n)
+    factors_qs = quadratic_sieve(n)
+    if factors_qs is None:
+        return join_dict(factors, {n: 1})
 
-
-def _factorWithKnown(p, q, N):
-    factors = {}
-    factor_p = FactorInt(p)
-    for n in factor_p:
-        factors[n] = factor_p[n]
-    factor_q = FactorInt(q)
-    for n in factor_q:
-        factors[n] = factor_q[n]
-
-    while N % p != 0:
-        factors[p] += 1
-        N //= p
-    while N % q != 0:
-        factors[q] += 1
-        N //= q
-    if N == 1:
-        return factors
-    if IsPrime(N):
-        factors[N] = 1
-        return factors
-    more_factors = FactorInt(N)
-    for f in more_factors:
-        factors[f] = more_factors[f]
-    return factors
+    return join_dict(factors, factors_qs)
 
 
-def _factorPerfectSquare(N, B=7):
+def pollard_p1(n, limit=pow(10, 6)):
+    """Pollard's p - 1 algorithm for factoring large composites.
+    Returns one non-trivial factor if factor-able, False if otherwise."""
+
+    if IsPrime(n):
+        return n
+
+    for a in [2, 3]:
+        m = a
+        for j in range(2, limit):
+            m = pow(m, j, n)
+            k = gcd(m - 1, n)
+            if 1 < k < n:
+                return k
+
+    return None
+
+
+def combinations_cumulative(found, source):
+    """Function takes in set of combinations of k-choices without replacement and returns a new
+    set of combinations of k + 1 choices without replacement.
+
+    :param found: list of already found combinations, cannot be empty
+    :param source: list of source for combinations"""
+
+    new_combination = []
+    for choice in found:
+        for e in source:
+            if e not in choice:
+                temp = choice[:]
+                temp.append(e)
+                add = True
+                for c in new_combination:
+                    different = False
+                    i = 0
+                    while i < len(temp) and not different:
+                        t = temp[i]
+                        i += 1
+                        if t not in c:
+                            different = True
+                            continue
+                    if not different:
+                        add = False
+                        break
+                if add:
+                    new_combination.append(temp)
+
+    return new_combination
+
+
+def gen_choice(indices, matrix):
+    """Generator for choosing elements from matrix."""
+
+    for i in indices:
+        yield matrix[i]
+
+
+@deprecated
+def __factor_perfect_square(n, B=7):
+    """Attempts a similar attack to quadratic sieve, finding B-smooth perfect squares in an attempt
+    to find a multiple of n. Function written for learning purposes, if trying to factor integer, using
+    FactorInt."""
+
     from itertools import combinations_with_replacement as _all
 
     m = PrimePi(B)
     b_smooth_nums = []
     squared_nums = {}
-    a = isqrt(N) - 1
+    a = isqrt(n) - 1
     while len(b_smooth_nums) < m:
-        ci = pow(a, 2, N)
+        ci = pow(a, 2, n)
         if BSmoothQ(ci, B):
             b_smooth_nums.append(ci)
             squared_nums[ci] = a
@@ -655,217 +688,8 @@ def _factorPerfectSquare(N, B=7):
             for k in range(len(acc)):
                 b *= pow(factor_base[k], acc[k] // 2)
 
-            p, q = gcd(a - b, N), gcd(a + b, N)
-            if 1 < p < N and 1 < q < N:
-                if p * q == N:
-                    return {p: 1, q: 1}
-                return _factorWithKnown(p, q, N)
-            if 1 < p < N:
-                q = N // p
-                if IsPrime(q) and N == p * q:
-                    return {p: 1, q: 1}
-                if IsPrime(q):
-                    return _factorWithKnown(p, q, N)
-                q_factors = FactorInt(q)
-                if p in q_factors:
-                    q_factors[p] += 1
-                else:
-                    q_factors[p] = 1
-                return q_factors
-            if 1 < q < N:
-                p = N // q
-                if IsPrime(p) and N == p * q:
-                    return {p: 1, q: 1}
-                if IsPrime(p):
-                    return _factorWithKnown(p, q, N)
-                p_factors = FactorInt(p)
-                if q in p_factors:
-                    p_factors[q] += 1
-                else:
-                    p_factors[q] = 1
-                return p_factors
+            p, q = gcd(a - b, n), gcd(a + b, n)
+            if 1 < p < n or 1 < q < n:
+                return _factor_with_known(p, q, n)
 
     return False
-
-
-def QuadraticSieve1(N, B=None):
-    """Performs Quadratic Sieve Algorithm with a given Smoothness value B on a given composite N"""
-
-    from itertools import combinations_with_replacement as _all
-    from math import e, log, sqrt
-
-    if B is None:
-        L = pow(e, sqrt(log(N) * log(log(N))))
-        B = int(pow(L, 1 / sqrt(2)))
-
-    m = PrimePi(B)
-    sq = isqrt(N)
-    while pow(sq, 2) < N:
-        sq += 1
-
-    b_smooth_nums = []
-    squared_nums = {}
-    factor_base = PrimesLT(B)
-    while True:
-        c_i = pow(sq, 2, N)
-        sq += 1
-        if BSmoothQ(c_i, B):
-            exp = [0 for _ in range(m)]
-            for i in range(m):
-                prime = factor_base[i]
-                while c_i % prime == 0:
-                    exp[i] += 1
-                    c_i //= prime
-            squared_nums[sq] = exp
-            b_smooth_nums.append(exp)
-            if len(b_smooth_nums) < 3:
-                continue
-
-            for c in range(2, len(b_smooth_nums)):
-                choices = list(map(list, list(_all(b_smooth_nums, c))))
-                for choice in choices:
-                    if exp not in choice:
-                        continue
-                    exp_sum = [0 for _ in range(m)]
-                    b = 1
-                    valid = True
-                    for power in choice:
-                        for i in range(m):
-                            exp_sum[i] += power[i]
-                    for i in range(m):
-                        n = exp_sum[i]
-                        if n > 2 and n % 2 != 0:
-                            valid = False
-                            break
-                        b *= pow(factor_base[i], n // 2)
-                    if not valid:
-                        continue
-
-                    a = 1
-                    for sq in squared_nums:
-                        if squared_nums[sq] in choice:
-                            a *= sq
-
-                    # checks to see if a + b or a - b is a multiple of a factor of N
-                    p = gcd(N, a + b)
-                    q = gcd(N, a - b)
-
-                    if 1 < p < N and 1 < q < N:
-                        return _factorWithKnown(p, q, N)
-                    if 1 < p < N:
-                        q = N // p
-                        if IsPrime(q) and IsPrime(p):
-                            return {p: 1, q: 1}
-                        return _factorWithKnown(p, q, N)
-                    if 1 < q < N:
-                        p = N // q
-                        if IsPrime(p) and IsPrime(q):
-                            return {p: 1, q: 1}
-                        return _factorWithKnown(p, q, N)
-
-
-def QuadraticSieve(N, B=None):
-    """Performs Quadratic Sieve Algorithm with a given Smoothness value B on a given composite N"""
-
-    from itertools import combinations as _all
-    from math import e, log, sqrt
-
-    if B is None:
-        L = pow(e, sqrt(log(N) * log(log(N))))
-        B = int(pow(L, 1 / sqrt(2)))
-
-    m = PrimePi(B)
-    sq = isqrt(N)
-    while pow(sq, 2) < N:
-        sq += 1
-
-    b_smooth_nums = []
-    squared_nums = {}
-    factor_base = PrimesLT(B)
-    nums_found = 0
-    while nums_found < m + 1:
-        c_i = pow(sq, 2, N)
-        sq += 1
-        if BSmoothQ(c_i, B):
-            exp = [0 for _ in range(m)]
-            for i in range(m):
-                prime = factor_base[i]
-                while c_i % prime == 0:
-                    exp[i] += 1
-                    c_i //= prime
-            squared_nums[sq] = exp
-            b_smooth_nums.append(exp)
-            nums_found += 1
-
-    choices = list(map(list, list(_all(b_smooth_nums, 2))))
-    for c in range(2, len(b_smooth_nums)):
-        for choice in choices:
-            exp_sum = [0 for _ in range(m)]
-            b = 1
-            valid = True
-            for power in choice:
-                for i in range(m):
-                    exp_sum[i] += power[i]
-            for i in range(m):
-                n = exp_sum[i]
-                if n > 2 and n % 2 != 0:
-                    valid = False
-                    break
-                b *= pow(factor_base[i], n // 2)
-            if not valid:
-                continue
-
-            a = 1
-            for sq in squared_nums:
-                if squared_nums[sq] in choice:
-                    a *= sq
-
-            # checks to see if a + b or a - b is a multiple of a factor of N
-            p = gcd(N, a + b)
-            q = gcd(N, a - b)
-
-            if 1 < p < N and 1 < q < N:
-                return _factorWithKnown(p, q, N)
-            if 1 < p < N:
-                q = N // p
-                if IsPrime(q) and IsPrime(p):
-                    return {p: 1, q: 1}
-                return _factorWithKnown(p, q, N)
-            if 1 < q < N:
-                p = N // q
-                if IsPrime(p) and IsPrime(q):
-                    return {p: 1, q: 1}
-                return _factorWithKnown(p, q, N)
-
-        choices = combinations_cumulative(choices, b_smooth_nums)
-
-    return {}
-
-
-def combinations_cumulative(combinations, source):
-    """Function takes in set of combinations of k-choices without replacement and returns a new
-    set of combinations of k + 1 choices without replacement."""
-
-    new_combination = []
-    for choice in combinations:
-        for e in source:
-            if e not in choice:
-                temp = choice[:]
-                temp.append(e)
-                add = True
-                for c in new_combination:
-                    different = False
-                    i = 0
-                    while i < len(temp) and not different:
-                        t = temp[i]
-                        i += 1
-                        if t not in c:
-                            different = True
-                            continue
-                    if not different:
-                        add = False
-                        break
-                if add:
-                    new_combination.append(temp)
-
-    return new_combination
