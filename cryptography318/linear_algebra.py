@@ -89,6 +89,28 @@ def all_elements(obj):
     raise AttributeError("Cannot retrieve all elements from non-list-type object")
 
 
+def find_fraction(obj):
+    """Attempts to return object with fractional instead of float values where possible."""
+
+    fraction_matrix = []
+    for i in range(len(obj)):
+        fraction_matrix.append([])
+        for j in range(len(obj[0])):
+            fraction_matrix[i].append(_fraction(obj[i][j]))
+    return FractionMatrix(fraction_matrix)
+
+
+def _fraction(n, limit=25):
+    for i in range(2, limit):
+        x = n * i
+        y = n * sqrt(i)
+        if '.' not in string_reduce(x):
+            return f'{string_reduce(x)}/{i}'
+        elif '.' not in string_reduce(y):
+            return f'{string_reduce(y)}/√{i}'
+    return n
+
+
 class Matrix:
     def __init__(self, array=None, rows=None, cols=None, rand=False, identity=False, aug=False,
                  solution=None, mod=None, dtype: type = None):
@@ -1502,7 +1524,10 @@ class Matrix:
         if len(obj1) != len(obj2):
             raise ValueError("Dot product impossible with vectors of different lengths")
 
-        return python_number(dot(obj1, obj2, self.mod))
+        # important to return python float or int instead of numpy, since numpy numbers will
+        # override a matrix operator in operations where numpy object comes first
+        mod = None if not isinstance(self, Matrix) or self.mod is None else self.mod
+        return python_number(dot(obj1, obj2, mod))
 
     def norm(self):
         """Calculates the norm (distance from origin) of a vector"""
@@ -1514,7 +1539,7 @@ class Matrix:
                 raise ValueError("Matrix must be row or column vector to calculate the norm")
             obj = obj[0]
 
-        return sqrt(reduce(lambda a, b: pow(a, 2) + pow(b, 2), obj))
+        return sqrt(sum(map(lambda a: pow(a, 2), obj)))
 
     def orthogonal(self, others=None):
         """Determines if a list of vectors are orthogonal to each other, returning True only if
@@ -1539,6 +1564,22 @@ class Matrix:
             if Matrix.inner_prod(pair[0], pair[1]) != 0:
                 return False
         return True
+
+    def coordinates(self, basis):
+        """Returns the matrix representation of the coordinates of the given vector in the given basis."""
+
+        # assumes instance matrix is matrix of column vectors
+        matrix = self.transpose()
+
+        if len(matrix[0]) == len(basis):
+            basis = basis.transpose()
+
+        coord = []
+        for i in range(len(matrix)):
+            coord.append([])
+            for j in range(len(basis)):
+                coord[i].append(Matrix.inner_prod(matrix[i], basis[j]))
+        return Matrix(array=coord).transpose()
 
 
 class LinearMap(Matrix):
@@ -1676,6 +1717,19 @@ class LinearMap(Matrix):
             raise AttributeError("This function only works with square matrices for both basis and map")
         return self.change_basis(in_basis=basis, out_basis=basis)
 
+    def in_ortho_basis(self, basis):
+        """Constructs Linear Map with respect to an orthonormal basis given."""
+
+        if len(basis) == len(self[0]):
+            basis = basis.transpose()
+
+        ortho_map = []
+        for i in range(l := len(basis)):
+            ortho_map.append([])
+            for j in range(l):
+                ortho_map[i].append(Matrix.inner_prod(self.map(basis[j]), basis[i]))
+        return LinearMap(ortho_map)
+
     def map(self, other):
         """Applies linear map to matrix"""
 
@@ -1734,3 +1788,30 @@ class LinearMap(Matrix):
         matrix = self - Matrix(rows=len(self), cols=len(self), identity=value)
         array = matrix.array.astype(numpy.float64)
         return numpy.linalg.det(array) == 0
+
+
+class FractionMatrix:
+    def __init__(self, array):
+        self.array = array
+
+    def __str__(self):
+        max_len = 0
+        for i in range(len(self.array)):
+            for j in range(len(self.array[0])):
+                if len(self.array[i][j]) > max_len:
+                    max_len = len(self.array[i][j])
+
+        padding = (max_len + 1) | 1
+        matrix = '['
+        for i in range(c := len(self.array)):
+            matrix += '['
+            for j in range(len(self.array[0])):
+                right_pad = (padding - len(e := self.array[i][j])) // 2
+                left_pad = padding - len(e) - right_pad
+                matrix += left_pad * ' ' + f'{e}' + ' ' * right_pad
+            if i < c - 1:
+                matrix += ']\n '
+            else:
+                return matrix + ']]\n'
+
+

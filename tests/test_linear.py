@@ -139,6 +139,31 @@ def test_optimal_array_addition_mod():
     print(f"Modding with after addition took {mod_after:.2f}s")
 
 
+def test_norm():
+    for _ in range(50):
+        v = Matrix(rows=1, cols=3, rand=True)
+        assert abs(pow(v.norm(), 2) - v.inner_prod(v)) < 1
+
+
+def test_in_ortho_basis():
+    T = LinearMap([[0, 1, 0],
+                   [0, 0, 1],
+                   [1, 0, 0]])
+    B = Matrix([[1/sqrt(2), 1/sqrt(6)],
+                [0, -2/sqrt(6)],
+                [-1/sqrt(2), 1/sqrt(6)]])
+    # print(T.in_ortho_basis(B))
+
+
+def test_coordinates():
+    M = Matrix([1, 2, -3]).transpose()
+    B = Matrix([[1 / sqrt(2), 1 / sqrt(6)],
+                [0, -2 / sqrt(6)],
+                [-1 / sqrt(2), 1 / sqrt(6)]])
+    print(r := M.coordinates(B))
+    print(find_fraction(r))
+
+
 if __name__ == '__main__':
     test_change_basis()
     test_ranknull()
@@ -151,3 +176,6 @@ if __name__ == '__main__':
     test_remove_null_row()
     test_remove_null_col()
     # test_optimal_array_addition_mod()
+    test_norm()
+    test_in_ortho_basis()
+    test_coordinates()
