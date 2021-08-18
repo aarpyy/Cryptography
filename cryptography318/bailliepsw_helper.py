@@ -5,7 +5,7 @@ def D_chooser(candidate):
     """Choose a D value suitable for the Baillie-PSW test - from internet"""
 
     D = 5
-    while Jacobi(D, candidate) != -1:
+    while jacobi(D, candidate) != -1:
         D += 2 if D > 0 else -2
         D *= -1
     return D
@@ -65,7 +65,7 @@ def LucasPseudoPrime(n, D, P, Q):
     return False
 
 
-def Jacobi(a, n):
+def jacobi(a, n):
     """
     Function that returns Jacobi symbol, assuming n is odd - original
     --
@@ -84,7 +84,7 @@ def Jacobi(a, n):
 
     # if a is not already mod n, reduce it mod n
     elif a != a % n:
-        return Jacobi(a % n, n)
+        return jacobi(a % n, n)
 
     # if a is even, it can be reduced until it is odd, multiplying
     # the Legendre symbol for (a / n) for each iteration of a being even
@@ -93,9 +93,9 @@ def Jacobi(a, n):
         # checks if n = +/- 1 mod 8, multiplying by the result
         # of the Legendre symbol (a / n) = 1
         # otherwise, multiply result by Legendre symbol (a / n) = -1
-        return Jacobi(a//2, n) if n % 8 in [1, 7] else -Jacobi(a//2, n)
+        return jacobi(a // 2, n) if n % 8 in [1, 7] else -jacobi(a // 2, n)
 
     # if a is odd, return Jacobi of (n / a)
     # if a and n both reduce to 3 mod 4, return the negative
     # otherwise, return (n / a)
-    return -Jacobi(n % a, a) if a % 4 == 3 and n % 4 == 3 else Jacobi(n % a, a)
+    return -jacobi(n % a, a) if a % 4 == 3 and n % 4 == 3 else jacobi(n % a, a)

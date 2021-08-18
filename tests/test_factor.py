@@ -21,15 +21,15 @@ def test_factor_perfect_square():
 
 @pytest.mark.skip
 def test_factor_int(power=1):
-    p = RandomPrime(pow(10, power), pow(10, power + 1)) * RandomPrime(pow(10, power + 1), pow(10, power + 2))
+    p = randprime(pow(10, power), pow(10, power + 1)) * randprime(pow(10, power + 1), pow(10, power + 2))
     print(timeit.timeit(lambda: quadratic_sieve(p), number=100000))
-    print(timeit.timeit(lambda: FactorInt(p), number=100000))
+    print(timeit.timeit(lambda: factor(p), number=100000))
 
 
 def test_pollard_rho(it=50):
     for _ in range(it):
         g = 4
-        p = RandomPrime(pow(2, 30))
+        p = randprime(pow(2, 30))
         e = randrange(p - 1)
         h = pow(g, e, p)
         r = pollard_rho_dlp(g, h, p)
@@ -44,8 +44,8 @@ def test_factor_if_smooth():
 
 def test_qs(it=10):
     for _ in range(it):
-        a = RandomPrime(pow(10, 4), pow(10, 5))
-        b = RandomPrime(pow(10, 4), pow(10, 5))
+        a = randprime(pow(10, 4), pow(10, 5))
+        b = randprime(pow(10, 4), pow(10, 5))
         n = a * b
         factors = quadratic_sieve(n)
         if factors is None:
@@ -62,58 +62,25 @@ def test_max_qs():
     # this test shouldn't be run with pytest, it just purely for finding largest integer than can be factored
     # in a short amount of time by quadratic sieve
     start = time.time()
-    a = RandomPrime(pow(10, 9))
-    b = RandomPrime(pow(10, 5))
+    a = randprime(pow(10, 9))
+    b = randprime(pow(10, 5))
     n = a * pow(b, 2)
     print(a, b, n)
     print(quadratic_sieve(n))
     print(f"This took {time.time() - start:.2f}s")
 
 
-@pytest.mark.skip
-def test_kernel():
-    from math import e
+def test_b_smooth():
+    for _ in range(50):
+        B = 25
+        primes = primes_lt(B)
+        n = 1
+        for i in range(len(primes)):
+            n *= pow(primes[i], randrange(2, 5))
 
-    n = RandomPrime(10000) + 2
-    L = pow(e, sqrt(log(n) * log(log(n))))
-    B = int(pow(L, 1 / sqrt(2)))
-
-    primes = PrimesLT(B)
-    bases, squares, exp = find_perfect_squares(n, primes)
-    matrix = Matrix(exp, mod=2).astype(numpy.int64)
-    print("done with first part")
-
-    def kern1(m):
-        kernel(m)
-
-    def kern2(m):
-        kern1(m)
-
-    original = timeit.timeit(lambda: kern1(matrix), number=100000)
-    print(f"original took {original:.2f}s")
-    new = timeit.timeit(lambda: kern2(matrix), number=100000)
-    print(f"new took {new:.2f}s")
-
-
-def test_find_perfect_squares():
-    n = 100
-    primes = [2, 3, 5, 7]
-    base, sq, exp = find_perfect_squares(n, primes)
-    for i, b in enumerate(base):
-        assert exp[i] == factor_if_smooth(pow(b, 2) - n, primes)
-        assert exp_value(exp[i], primes=primes) == sq[i]
-
-
-@pytest.mark.skip
-def test_all_tests():
-    test_factor_perfect_square()
-    test_factor_int()
-
-
-def test_lenstra():
-    factors = lenstra_elliptic(55)
-    print(factors)
+        assert b_smooth(n, B)
+        assert b_smooth(n, factors=primes)
 
 
 if __name__ == '__main__':
-    test_qs()
+    test_b_smooth()

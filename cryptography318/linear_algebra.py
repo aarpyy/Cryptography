@@ -3,7 +3,7 @@ from random import randint, randrange
 from math import gcd, sqrt
 from functools import reduce
 from itertools import combinations
-from .tools import string_reduce, deprecated
+from .tools import string_reduce, deprecated, python_number, fraction, isnumber
 
 
 def where(array, if_exp=None, else_exp=None):
@@ -44,23 +44,6 @@ def aslist(obj):
     return array
 
 
-def isnumber(obj):
-    types = (int, float, numpy.int16, numpy.int32, numpy.int64, numpy.float16,
-             numpy.float32, numpy.float64)
-    return isinstance(obj, types)
-
-
-def python_number(number):
-    """Returns Python version of given number, instead of numpy's version. Useful in ensuring correct
-    operations are performed with matrices (numpy.int64 * Matrix -> numpy.ndarray, not Matrix)."""
-
-    if isinstance(number, (numpy.float16, numpy.float32, numpy.float64)):
-        return float(number)
-    if isinstance(number, (numpy.int16, numpy.int32, numpy.int64)):
-        return int(number)
-    return number
-
-
 def is_binary_matrix(obj):
     """Returns False if non binary element in Matrix (not 0 or 1), True otherwise. Returns
     False if object is not Matrix."""
@@ -87,28 +70,6 @@ def all_elements(obj):
                 elements.append(row)
         return elements
     raise AttributeError("Cannot retrieve all elements from non-list-type object")
-
-
-def find_fraction(obj):
-    """Attempts to return object with fractional instead of float values where possible."""
-
-    fraction_matrix = []
-    for i in range(len(obj)):
-        fraction_matrix.append([])
-        for j in range(len(obj[0])):
-            fraction_matrix[i].append(_fraction(obj[i][j]))
-    return FractionMatrix(fraction_matrix)
-
-
-def _fraction(n, limit=25):
-    for i in range(2, limit):
-        x = n * i
-        y = n * sqrt(i)
-        if '.' not in string_reduce(x):
-            return f'{string_reduce(x)}/{i}'
-        elif '.' not in string_reduce(y):
-            return f'{string_reduce(y)}/√{i}'
-    return n
 
 
 class Matrix:
@@ -139,14 +100,18 @@ class Matrix:
 
                 # if array given is nested list, set self.array to given, otherwise, nest it
                 if isinstance(array[0], (list, numpy.ndarray)):
-                    self.array = numpy.array(array)
+                    self.array = numpy.array(array, dtype=object)
                 else:
-                    self.array = numpy.array([array])
+                    self.array = numpy.array([array], dtype=object)
             else:
                 raise TypeError(f"Matrix must be type numpy.ndarray or list. Given: object of type {type(array)}")
 
-            # if an array was given, attempt to reset type immediately
-            self.reset_type()
+            try:
+                # if an array was given, attempt to reset type immediately
+                self.reset_type()
+            except ValueError:
+                print("error~")
+                print(self)
 
         # if no array was given, matrix is not random or identity, and one of columns was not given matrix cannot be
         # constructed
@@ -310,7 +275,6 @@ class Matrix:
 
             # pivot keyword allows user to search for pivots in matrix
             if 'pivot' in other:
-
                 # returns the union of searching for pivot
                 return Matrix.union(binary_matrix, self == 'pivot')
             return binary_matrix
@@ -644,7 +608,8 @@ class Matrix:
 
         If this operation is needed with non-Matrix objects, use set.intersection(A, B)"""
 
-        if isinstance(other, list) and not isinstance(other[0], list) and isinstance(self, list) and not isinstance(self[0], list):
+        if isinstance(other, list) and not isinstance(other[0], list) and isinstance(self, list) and not isinstance(
+                self[0], list):
             result = []
             for e in other:
                 result.append(e)
@@ -995,6 +960,11 @@ class Matrix:
 
         return self.transpose()
 
+    def to_fraction(self):
+        """Returns object with fractional instead of float values where possible."""
+
+        return FractionMatrix(self.copy())
+
     def copy(self):
         """Returns exact copy of values of matrix in a new Matrix object."""
 
@@ -1149,9 +1119,9 @@ class Matrix:
                     e = matrix[k][j]
                     if k != pivot_row and e != 0:
                         for m in range(row_len):
-                        # here, e represents the number of pivot row's needed to be removed to make i'th row have
-                        # a zero entry in this column, ex. pivot row has 1 in column, i'th row as 3, removing 3 of
-                        # pivot row will make i'th row have 0 in column
+                            # here, e represents the number of pivot row's needed to be removed to make i'th row have
+                            # a zero entry in this column, ex. pivot row has 1 in column, i'th row as 3, removing 3 of
+                            # pivot row will make i'th row have 0 in column
                             matrix[k][m] -= matrix[pivot_row][m] * e
                         # matrix[k] -= (e * matrix[pivot_row])
         return Matrix(matrix, aug=self.augmented).reset_type()
@@ -1228,7 +1198,7 @@ class Matrix:
                         # here, e represents the number of pivot row's needed to be removed to make i'th row have
                         # a zero entry in this column, ex. pivot row has 1 in column, i'th row as 3, removing 3 of
                         # pivot row will make i'th row have 0 in column
-                            # matrix[k][m] -= matrix[pivot_row][m] * e
+                        # matrix[k][m] -= matrix[pivot_row][m] * e
                         matrix[k] -= matrix[pivot_row] * e
         return Matrix(matrix, aug=self.augmented).reset_type()
 
@@ -1502,8 +1472,10 @@ class Matrix:
             trace_sum += self[i][i]
         return trace_sum
 
-    def inner_prod(self, other):
+    def inner_prod(self, other=None):
         """Calculates the inner product (dot product) of two column vectors."""
+        if other is None:
+            other = self.copy()
 
         if isinstance(other, list):
             other = numpy.array(other, dtype=object)
@@ -1580,6 +1552,118 @@ class Matrix:
             for j in range(len(basis)):
                 coord[i].append(Matrix.inner_prod(matrix[i], basis[j]))
         return Matrix(array=coord).transpose()
+
+    def orthonormalize(self, steps=False):
+        """Computes the orthonormal basis of a given basis using the Gram-Schmidt process. Assumes input
+        basis is matrix of column vectors."""
+
+        matrix = self.transpose()
+
+        length = len(matrix[0])
+
+        norm = Matrix.norm(matrix[0])
+        e1 = matrix[0] / norm
+        basis = [e1]
+        if steps:
+
+            # print statement to provide spacing for readability
+            print()
+            e1_str = str(FractionMatrix(Matrix(matrix[0]).T())).split('\n')
+            for j in range(length):
+                if j == length // 2:
+                    line = f'e1 = {fraction(1 / norm)} * '
+                else:
+                    line = ' ' * (8 + len(fraction(1 / norm)))
+                line += e1_str[j]
+                print(line)
+
+            # print statement to provide spacing for readability
+            print()
+        for i, v in enumerate(matrix[1:]):
+
+            # E is the sum of each already found orthonormal basis vector and its product with v
+            E = sum(map(lambda e: Matrix.inner_prod(v, e) * e, basis))
+
+            # e_i_0 is the new basis vector that is orthogonal to all other basis vectors, but not currently
+            # orthonormal, since it still must be divided by its norm
+            e_i_0 = v - E
+            if steps:
+
+                # print statement to provide spacing for readability
+                print()
+
+                # list of each line of string for vector v
+                v_str = str(FractionMatrix(Matrix(v).T())).split('\n')
+
+                # list of each dot product between v and each basis vector
+                dot_str = list(map(lambda e: fraction(Matrix.inner_prod(v, e)), basis))
+
+                # list of each line of string for each basis vector e
+                basis_str = list(map(lambda e: str(FractionMatrix(Matrix(e).T())).split('\n'), basis))
+                for j in range(length):
+                    if j == length // 2:
+                        line = f'e{i + 2}`= ' + v_str[j]
+                        if j < length - 1:
+                            line += ' '
+                        line += ' -  [' + ' ' * 2
+                        for k in range(d := len(dot_str)):
+                            line += f'<{dot_str[k]}> * {basis_str[k][j]}' + ' '
+                            if k < d - 1:
+                                line += ' + '
+                            else:
+                                line += ' ' * 3
+                    else:
+                        line = ' ' * 5 + v_str[j]
+                        if j < length - 1:
+                            line += ' '
+                        line += 4 * ' ' + '[' + ' ' * 2
+                        for k in range(len(dot_str)):
+                            line += (len(dot_str[k]) + 5) * ' ' + f'{basis_str[k][j]}' + ' ' * 3
+                            if j < length - 1:
+                                line += ' '
+                    line += ']'
+                    print(line)
+
+                # print statement to provide spacing for readability
+                print('\n')
+                for j in range(length):
+                    if j == length // 2:
+                        line = f'e{i + 2}`= ' + v_str[j] + '  - '
+                    else:
+                        line = ' ' * 5 + v_str[j] + ' ' * 4
+                    if j < length - 1:
+                        line += ' '
+                    sum_str = str(FractionMatrix(Matrix(E).T())).split('\n')
+                    line += sum_str[j]
+                    print(line)
+
+                # print statement to provide spacing for readability
+                print('\n')
+                result = str(FractionMatrix(Matrix(e_i_0).T())).split('\n')
+                for j in range(length):
+                    if j == length // 2:
+                        line = f'e{i + 2} = {fraction(1 / norm)} * '
+                    else:
+                        line = ' ' * (8 + len(fraction(1 / norm)))
+                    line += result[j]
+                    print(line)
+
+                # print statement to provide spacing for readability
+                print()
+
+            norm = Matrix.norm(e_i_0)
+            e_i = e_i_0 / norm
+            basis.append(e_i)
+
+        for i in range(len(basis)):
+            basis[i] = list(basis[i])
+
+        ortho_basis = Matrix(basis).transpose()
+
+        if steps:
+            print('\n' + str(FractionMatrix(ortho_basis)) + '\n')
+
+        return ortho_basis
 
 
 class LinearMap(Matrix):
@@ -1790,9 +1874,22 @@ class LinearMap(Matrix):
         return numpy.linalg.det(array) == 0
 
 
+# this class is used just for printing matrices with fractions instead of floats, no mathematical
+# operations can be performed with this class currently
 class FractionMatrix:
     def __init__(self, array):
-        self.array = array
+
+        # attempts to convert each number into a fraction before adding to matrix
+        fraction_matrix = []
+        for i in range(len(array)):
+            fraction_matrix.append([])
+            for j in range(len(array[0])):
+                e = python_number(array[i][j])
+                if isinstance(e, int) or (isinstance(e, float) and e.is_integer()):
+                    fraction_matrix[i].append(str(int(e)))
+                else:
+                    fraction_matrix[i].append(fraction(e))
+        self.array = fraction_matrix
 
     def __str__(self):
         max_len = 0
@@ -1801,17 +1898,36 @@ class FractionMatrix:
                 if len(self.array[i][j]) > max_len:
                     max_len = len(self.array[i][j])
 
-        padding = (max_len + 1) | 1
+        padding = (max_len + 3) | 1
         matrix = '['
         for i in range(c := len(self.array)):
             matrix += '['
             for j in range(len(self.array[0])):
-                right_pad = (padding - len(e := self.array[i][j])) // 2
-                left_pad = padding - len(e) - right_pad
+
+                # having left padding at exactly this ensures all fractions have the numerators line up
+                # when ignoring any negative signs
+                e = str(self.array[i][j])
+                if '/' in e:
+                    left_pad = 1 if e[0] == '-' else 2
+
+                # non-fractions use normal padding to center them
+                else:
+                    left_pad = (padding - len(e)) // 2
+                right_pad = padding - len(e) - left_pad
                 matrix += left_pad * ' ' + f'{e}' + ' ' * right_pad
             if i < c - 1:
                 matrix += ']\n '
             else:
-                return matrix + ']]\n'
+                return matrix + ']]'
 
+    def __getitem__(self, item):
+        return self.array[item]
 
+    def __setitem__(self, key, value):
+        self.array[key] = value
+
+    def __len__(self):
+        return len(self.array)
+
+    def __iter__(self):
+        return iter(self.array)

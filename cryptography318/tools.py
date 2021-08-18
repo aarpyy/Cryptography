@@ -3,7 +3,8 @@
 
 from warnings import warn, simplefilter
 from functools import wraps, reduce
-from numpy import round
+from math import sqrt
+import numpy
 
 
 def deprecated(func):
@@ -33,20 +34,13 @@ def string_reduce(n):
     are reduces such that floats with no floating point value are printed as integers and 0's with
     a negative prefix lose the prefix (ex. 2.0 would return as 2, but 2.01 would return as 2.01)"""
 
-    n = round(n, decimals=3)
+    n = python_number(round(n, 3))
 
-    # if number is -0 (common) just return 0
-    if str(n) == '-0':
-        return '0'
-
-    s = str(n).split(".")
-
-    # int(s[1]) converts the floating point value of n into a number, if that number is zero then the float
-    # has no real floating point value and will be returned as integer, if number is not zero then it is
-    # a real float and the decimal values should be returned, rounded to 3
-    if len(s) > 1 and int(s[1]):
+    if isinstance(n, int):
         return str(n)
-    return s[0]
+    elif n.is_integer():
+        return str(int(n))
+    return str(n)
 
 
 def join_dict(*args: dict) -> dict:
@@ -99,3 +93,58 @@ def read_mm_int(fname='mathematica_numbers.txt'):
         integers[var] = int(integers[var])
 
     return integers
+
+
+def python_number(number):
+    """Returns Python version of given number, instead of numpy's version. Useful in ensuring correct
+    operations are performed with matrices (numpy.int64 * Matrix -> numpy.ndarray, not Matrix). Converts
+    strings to Python floats."""
+
+    if isinstance(number, str):
+        number = float(number)
+
+    if isinstance(number, (numpy.float16, numpy.float32, numpy.float64)):
+        number = float(number)
+    elif isinstance(number, (numpy.int16, numpy.int32, numpy.int64)):
+        number = int(number)
+    if isinstance(number, float) and number.is_integer():
+        return int(number)
+    return number
+
+
+def isnumber(obj):
+    types = (int, float, numpy.int16, numpy.int32, numpy.int64, numpy.float16,
+             numpy.float32, numpy.float64)
+    return isinstance(obj, types)
+
+
+def fraction(n, limit=25):
+    """Converts given number into a fraction if denominator < limit. Fractions are
+    represented by strings."""
+
+    n = python_number(n)
+
+    for i in range(2, limit):
+        x = round(n * i, 5)
+        y = round(n * sqrt(i), 5)
+        if isinstance(x, float) and x.is_integer():
+            x = int(x)
+        if isinstance(y, float) and y.is_integer():
+            y = int(y)
+        if isinstance(x, int):
+            return f'{x}/{i}'
+        if isinstance(y, int):
+            return f'{y}/sqrt({i})'
+    return string_reduce(n)
+
+
+def evaluate(obj):
+    if isinstance(obj, str):
+        return eval(obj, {'sqrt': sqrt})
+
+    array = []
+    for i in range(len(obj)):
+        array.append([])
+        for j in range(len(obj[0])):
+            array[i].append(eval(obj[i][j], {'sqrt': sqrt}))
+    return array

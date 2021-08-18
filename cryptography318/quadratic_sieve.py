@@ -2,7 +2,7 @@ from math import sqrt, log, gcd, prod, isqrt
 from itertools import combinations
 from .linear_algebra import Matrix
 from .tools import join_dict, deprecated
-from .prime import IsPrime, PrimesLT, PrimesLT_gen
+from .prime import is_prime, primes_lt, primes_lt_gen
 
 
 def quadratic_sieve(n, B=None):
@@ -21,7 +21,7 @@ def quadratic_sieve(n, B=None):
     if n == 1:
         return {}
 
-    if IsPrime(n):
+    if is_prime(n):
         return {n: 1}
 
     if pow(isqrt(n), 2) == n:
@@ -31,7 +31,7 @@ def quadratic_sieve(n, B=None):
         L = pow(e, sqrt(log(n) * log(log(n))))
         B = int(pow(L, 1 / sqrt(2)))
 
-    primes = PrimesLT(B)
+    primes = primes_lt(B)
 
     bases, squares, exp = find_perfect_squares(n, primes)
 
@@ -79,7 +79,7 @@ def exp_value(exp, p=None, primes=None):
     if p is None and primes is None:
         raise ValueError("Either a limit or a list of primes must be given")
 
-    primes = PrimesLT_gen(p) if primes is None else primes
+    primes = primes_lt_gen(p) if primes is None else primes
 
     # raises each prime to the corresponding power in list exp, then reduces that list with multiplication
     return prod([pow(p, e) for p, e in zip(primes, exp)])
@@ -257,7 +257,7 @@ def _factor_with_known(p, q, n):
 
     if n == 1:
         return factors
-    if IsPrime(n):
+    if is_prime(n):
         return join_dict(factors, {n: 1})
 
     more_factors = quadratic_sieve(n)
@@ -275,7 +275,7 @@ def __quadratic_sieve1(n, B=None):
         L = pow(e, sqrt(log(n) * log(log(n))))
         B = int(pow(L, 1 / sqrt(2))) + 10
     print(f"B: {B}")
-    primes = PrimesLT(B)
+    primes = primes_lt(B)
 
     bases, squares, exp = find_perfect_squares(n, primes)
 

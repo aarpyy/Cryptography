@@ -1,17 +1,25 @@
 from cryptography318.crypto_functions import *
-from cryptography318.prime import RandomPrime, IsPrime
+from cryptography318.prime import randprime, is_prime
 import pytest
+
+
+def test_point():
+    for _ in range(50):
+        p = randprime(pow(10, 4), pow(10, 5))
+        E = EllipticCurve.safe_curve(p)
+        P = E.point(x=randrange(2, p))
+        assert E.on_curve(P)
 
 
 def test_safe_curve_and_point():
     for _ in range(50):
-        E, P = EllipticCurve.safe_curve_and_point(RandomPrime(pow(10, 3), pow(10, 4)))
-        assert isinstance(E, EllipticCurve) and isinstance(P, Elliptic)
+        E, P = EllipticCurve.safe_curve_and_point(randprime(pow(10, 3), pow(10, 4)))
+        assert isinstance(E, EllipticCurve) and isinstance(P, Elliptic) and E.on_curve(P)
 
 
 def test_elliptic_add():
     for _ in range(500):
-        p = RandomPrime(pow(10, 2), pow(10, 3))
+        p = randprime(pow(10, 2), pow(10, 3))
         E, P = EllipticCurve.safe_curve_and_point(p)
         Q = P + P
         R = Q - P
@@ -20,7 +28,7 @@ def test_elliptic_add():
 
 def test_elliptic_mult():
     for _ in range(50):
-        p = RandomPrime(pow(10, 2), pow(10, 3))
+        p = randprime(pow(10, 2), pow(10, 3))
         E, P = EllipticCurve.safe_curve_and_point(p)
         R = P * 2
         order = 2
@@ -31,8 +39,8 @@ def test_elliptic_mult():
         assert P * order == P
 
         # if you can factor order, try multiplying part way by order, then completely to see if result is original
-        if not IsPrime(order):
-            fact = FactorInt(order)
+        if not is_prime(order):
+            fact = factor(order)
             factors = []
             for f in fact:
                 factors.append(pow(f, fact[f]))
@@ -53,7 +61,6 @@ def test_elliptic_bsgs():
     assert 947 == elliptic_bsgs(P, Q)
 
 
-@pytest.mark.skip
 def test_string():
     E = EllipticCurve(0, 1, 180039337167793501897175493739004038762395261681316852988742367480124359904807289130328068843833873066421702742460640101217376600809338199468636198555098044628998299482972323944983045884234913875508525458735536722067910377840070662914565334732578373261984514856548773711583945448134428877109037377605127434409832936443635849865584735606971650245470719854253303747830625905599682675415954316175111606488355254401541327809795822857218931391498811975792908442781893479296187087742281713894913694970210301919109047958435358258637147)
     s = "Some say the world will end in fire,\n" \
@@ -68,8 +75,21 @@ def test_string():
     e = StringToElliptic(E, s)
     assert EllipticToString(e) == s
 
+    for _ in range(50):
+        p = randprime(pow(10, 3), pow(10, 4))
+        E = EllipticCurve.safe_curve(p)
+
+        # get some form of string non-reliant on Elliptic curves
+        n = randrange(2, p)
+        s = NumToString(n)
+
+        p = StringToElliptic(E, s)
+        assert EllipticToString(p) == s
+
 
 if __name__ == '__main__':
     test_safe_curve_and_point()
     test_elliptic_add()
     test_elliptic_mult()
+    test_string()
+    test_point()

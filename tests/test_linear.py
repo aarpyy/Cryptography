@@ -1,4 +1,5 @@
 from cryptography318.linear_algebra import *
+from cryptography318.tools import *
 from random import randrange
 import pytest
 import timeit
@@ -61,6 +62,13 @@ def test_inner_product():
     a = numpy.array([1, 2, 3])
     r = m.inner_prod(a)
     assert r == 14
+
+    matrix = Matrix([[1, 0, 0],
+                     [0, 1, 0],
+                     [0, 0, 1],
+                     [-1, -1, -1]])
+    t = matrix.T()
+    assert Matrix.inner_prod(t[0]) == 2
 
 
 def test_orthogonal():
@@ -142,7 +150,7 @@ def test_optimal_array_addition_mod():
 def test_norm():
     for _ in range(50):
         v = Matrix(rows=1, cols=3, rand=True)
-        assert abs(pow(v.norm(), 2) - v.inner_prod(v)) < 1
+        assert abs(pow(v.norm(), 2) - v.inner_prod(v)) < .5
 
 
 def test_in_ortho_basis():
@@ -160,8 +168,35 @@ def test_coordinates():
     B = Matrix([[1 / sqrt(2), 1 / sqrt(6)],
                 [0, -2 / sqrt(6)],
                 [-1 / sqrt(2), 1 / sqrt(6)]])
-    print(r := M.coordinates(B))
-    print(find_fraction(r))
+    r = M.coordinates(B)
+    B = B.transpose()
+    result = Matrix([0, 0, 0])
+    for i in range(len(r)):
+        result[0] += r[i][0] * B[i]
+
+    assert result == M.T()
+
+
+def test_to_fraction():
+    M = Matrix([1, 2, -3]).transpose()
+    B = Matrix([[1 / sqrt(2), 1 / sqrt(6)],
+                [0, -2 / sqrt(6)],
+                [-1 / sqrt(2), 1 / sqrt(6)]])
+    r = M.coordinates(B)
+    f = r.to_fraction()
+
+    assert isinstance(f[0][0], str) and '/' in f[0][0]
+
+    for i, row in enumerate(f):
+        assert abs(evaluate(row[0]) - r[i][0]) < 0.1
+
+
+def test_orthonormalize():
+    matrix = Matrix([[1, 0, 0],
+                     [0, 1, 0],
+                     [0, 0, 1],
+                     [-1, -1, -2]])
+    k = matrix.orthonormalize(steps=True)
 
 
 if __name__ == '__main__':
@@ -179,3 +214,5 @@ if __name__ == '__main__':
     test_norm()
     test_in_ortho_basis()
     test_coordinates()
+    test_to_fraction()
+    test_orthonormalize()
