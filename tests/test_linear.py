@@ -199,6 +199,23 @@ def test_orthonormalize():
     k = matrix.orthonormalize(steps=True)
 
 
+def test_eigen():
+    A = Matrix([[-1, -3, 1],
+                [3, 3, 1],
+                [3, 0, 4]])
+    A1 = A - Matrix(rows=3, cols=3, identity=1)
+    A2 = A - Matrix(rows=3, cols=3, identity=2)
+    A3 = A - Matrix(rows=3, cols=3, identity=3)
+
+    v1 = Matrix([-1, 1, 1]).T()
+    v2 = Matrix([-2, 3, 3]).T()
+    v3 = Matrix([-3, 7, 9]).T()
+
+    assert A * v1 == v1
+    assert A * v2 == 2 * v2
+    assert A * v3 == 3 * v3
+
+
 if __name__ == '__main__':
     test_change_basis()
     test_ranknull()
@@ -215,4 +232,5 @@ if __name__ == '__main__':
     test_in_ortho_basis()
     test_coordinates()
     test_to_fraction()
-    test_orthonormalize()
+    # test_orthonormalize()
+    test_eigen()

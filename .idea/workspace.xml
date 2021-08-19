@@ -20,22 +20,10 @@
   </component>
   <component name="ChangeListManager">
     <list default="true" id="6ea76c49-18d8-4974-9f94-c2171563dd51" name="Default Changelist" comment="working on primality test, miller-rabin">
-      <change afterPath="$PROJECT_DIR$/tests/test_cryptofunc.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/.idea/cryptography318.iml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/cryptography318.iml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/.idea/misc.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/misc.xml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/cryptography318/__init__.py" beforeDir="false" afterPath="$PROJECT_DIR$/cryptography318/__init__.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/cryptography318/bailliepsw_helper.py" beforeDir="false" afterPath="$PROJECT_DIR$/cryptography318/bailliepsw_helper.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/cryptography318/crypto_functions.py" beforeDir="false" afterPath="$PROJECT_DIR$/cryptography318/crypto_functions.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/cryptography318/linear_algebra.py" beforeDir="false" afterPath="$PROJECT_DIR$/cryptography318/linear_algebra.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/cryptography318/prime.py" beforeDir="false" afterPath="$PROJECT_DIR$/cryptography318/prime.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/cryptography318/quadratic_sieve.py" beforeDir="false" afterPath="$PROJECT_DIR$/cryptography318/quadratic_sieve.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/cryptography318/tools.py" beforeDir="false" afterPath="$PROJECT_DIR$/cryptography318/tools.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/mathematica_numbers.txt" beforeDir="false" afterPath="$PROJECT_DIR$/mathematica_numbers.txt" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/tests/test_dlp.py" beforeDir="false" afterPath="$PROJECT_DIR$/tests/test_dlp.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/tests/test_elliptic.py" beforeDir="false" afterPath="$PROJECT_DIR$/tests/test_elliptic.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/tests/test_factor.py" beforeDir="false" afterPath="$PROJECT_DIR$/tests/test_factor.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/tests/test_linear.py" beforeDir="false" afterPath="$PROJECT_DIR$/tests/test_linear.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/tests/test_prime.py" beforeDir="false" afterPath="$PROJECT_DIR$/tests/test_prime.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/tests/test_tools.py" beforeDir="false" afterPath="$PROJECT_DIR$/tests/test_tools.py" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
