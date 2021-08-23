@@ -1,4 +1,5 @@
-from cryptography318.linear_algebra import *
+from cryptography318.linear_algebra import Matrix as Matrix1
+from cryptography318.linalg import Matrix, is_binary_matrix
 import numpy
 import pytest
 
@@ -14,6 +15,7 @@ def is_int(n):
 def test_constructor():
     m = Matrix([[1, 2, 3],
                 [3, 2, 1]])
+
     assert isinstance(m, Matrix)
     assert isinstance(m.array, numpy.ndarray)
     assert m.augmented is False
@@ -107,7 +109,7 @@ def test_operators():
 
     with pytest.raises(TypeError) as exc_info:
         a = 5 - m
-    assert "subtraction must be done" in str(exc_info.value)
+    assert "subtraction unsupported" in str(exc_info.value)
 
 
 def test_reset_type():
@@ -133,7 +135,7 @@ def test_mod():
                 [-37, -48, -20, 28],
                 [-46, -26, 40, 25],
                 [-43, -38, -33, -14],
-                [-22, 16, -33, 24]], mod=13, aug=True)
+                [-22, 16, -33, 24]], aug=True, mod=13)
 
     b.reduce_mod()
 
@@ -146,8 +148,9 @@ def test_mod():
 
     # the third row in transpose is the final column in standard form, which is augmented list of solutions
     # and there should be no possible pivot there
-    assert len(numpy.where(possible_pivots.transpose()[3] == 1)[0]) == 0
+    assert len(numpy.where(possible_pivots.transpose_obj()[3] == 1)[0]) == 0
 
 
 if __name__ == '__main__':
-    pass
+    test_operators()
+

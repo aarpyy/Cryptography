@@ -1,10 +1,10 @@
-# The purpose of this file is to easily provide tools for use in this package that are not
-# related to the mathematical content
+# The purpose of this file is to easily provide tools for use in this package that are used in multiple files
 
 from warnings import warn, simplefilter
 from functools import wraps, reduce
 from math import sqrt
 import numpy
+from sympy import Symbol, evalf, re, im
 
 
 def deprecated(func):
@@ -41,6 +41,11 @@ def string_reduce(n):
     elif n.is_integer():
         return str(int(n))
     return str(n)
+
+
+def append_and_return(obj, item):
+    obj.append(item)
+    return obj
 
 
 def join_dict(*args: dict) -> dict:
@@ -103,6 +108,12 @@ def python_number(number):
     if isinstance(number, str):
         number = float(number)
 
+    elif hasattr(number, 'evalf'):
+        number = number.evalf()
+
+    if isinstance(number, int):
+        return number
+
     if isinstance(number, (numpy.float16, numpy.float32, numpy.float64)):
         number = float(number)
     elif isinstance(number, (numpy.int16, numpy.int32, numpy.int64)):
@@ -118,7 +129,7 @@ def isnumber(obj):
     return isinstance(obj, types)
 
 
-def fraction(n, limit=25):
+def fraction(n, limit=75):
     """Converts given number into a fraction if denominator < limit. Fractions are
     represented by strings."""
 
@@ -148,3 +159,13 @@ def evaluate(obj):
         for j in range(len(obj[0])):
             array[i].append(eval(obj[i][j], {'sqrt': sqrt}))
     return array
+
+
+def dot(obj, other, mod=None):
+    """Equivalent of numpy.dot, accepts Matrix object as argument."""
+
+    if len(obj) != len(other):
+        raise ValueError(f"Unable to take product of two arrays of different length")
+    if mod is not None:
+        return reduce(lambda a, b: (a + b) % mod, map(lambda x, y: (x * y) % mod, obj, other))
+    return sum(map(lambda x, y: x * y, obj, other))

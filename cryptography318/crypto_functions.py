@@ -1,8 +1,9 @@
 from random import randrange
 from math import gcd, isqrt, sqrt, prod
 from .prime import is_prime, primes_lt, prime_pi, primes_lt_gen
-from .tools import deprecated, join_dict
+from .tools import deprecated, join_dict, dot
 from .quadratic_sieve import quadratic_sieve, _factor_with_known
+from .array import ArrayMod, Array
 
 
 class EllipticCurve:
@@ -172,6 +173,35 @@ class Elliptic:
         return Elliptic(self.E, self.point[0], self.point[1])
 
 
+def vigenere_encrypt(key, plaintext):
+    key = key.lower()
+    plaintext = plaintext.lower()
+    full_key = [plaintext[i - len(key)] if i > len(key) - 1 else key[i] for i in range(len(plaintext))]
+
+    int_key = ArrayMod(list(map(lambda c: ord(c) - 97, full_key)), 26)
+    int_text = ArrayMod(list(map(lambda c: ord(c) - 97, plaintext)), 26)
+    return ''.join(map(lambda c: chr(c + 97), int_key + int_text))
+
+
+def caeser_shift(plaintext):
+    frequencies = [.082, .015, .028, .043, .127, .022, .020, .061, .070, .002, .008, .040, .024, .067, .075,
+                   .019, .001, .060, .063, .091, .028, .010, .023, .001, .020, .001]
+    plaintext = plaintext.lower()
+    plain_freq = Array([0] * 26)
+    for c in plaintext:
+        index = ord(c) - 97
+        plain_freq[index] += 1
+    plain_freq /= len(plaintext)
+
+    products = []
+    for k in range(26):
+        products.append(dot(plain_freq, frequencies))
+        plain_freq.shift_elements(shift=1)
+    products = abs(Array(products) - dot(frequencies, frequencies))
+    index = products.index(min(products)) + 1
+    return ''.join(map(lambda c: chr(((ord(c) - 97) + index) % 26 + 96), plaintext))
+
+
 def sqrt_safe(n):
     try:
         return sqrt(n)
@@ -337,7 +367,6 @@ def factor_with_base(n, factors):
 
 
 def chinese_remainder(values, moduli):
-
     # initializes lists of moduli, mod = product of all moduli
     mod = prod(moduli)
 

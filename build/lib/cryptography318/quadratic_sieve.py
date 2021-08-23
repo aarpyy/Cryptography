@@ -138,7 +138,7 @@ def gaussian_elimination_mod(matrix):
     Credit to https://github.com/mikolajsawicki/quadratic-sieve/tree/main/quadratic_sieve for technique of
     performing gaussian elimination on the transpose of the binary matrix."""
 
-    m = matrix.copy().transpose()
+    m = matrix.copy().transpose_obj()
 
     pivot = 0
     for j in range(len(m[0])):

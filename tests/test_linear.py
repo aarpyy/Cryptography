@@ -1,8 +1,33 @@
 from cryptography318.linear_algebra import *
 from cryptography318.tools import *
+from cryptography318.array import *
 from random import randrange
 import pytest
 import timeit
+
+
+def matmul(obj1, obj2, row_type=None, obj_type=None, mod=None):
+    if row_type is None:
+        row_type = list
+    if obj_type is None:
+        obj_type = list
+
+    # attempts to transpose using built in methods, manually performs if no method exists
+    transpose = getattr(obj2, 'transpose', None)
+    if transpose is None:
+        T = []
+        for j in range(len(obj2[0])):
+            T.append([])
+            for i in range(len(obj2)):
+                T[j].append(obj2[i][j])
+    else:
+        T = transpose()
+
+    if isnumber(mod):
+        if row_type == ArrayMod:
+            return obj_type(map(lambda r: ArrayMod(map(lambda c: dot(c, r, mod), T), mod), obj1))
+        return obj_type(map(lambda r: row_type(map(lambda c: dot(c, r, mod), T)), obj1))
+    return obj_type(map(lambda r: row_type(map(lambda c: dot(c, r), T)), obj1))
 
 
 def test_change_basis():
@@ -216,6 +241,17 @@ def test_eigen():
     assert A * v3 == 3 * v3
 
 
+def test_matmul():
+    m = numpy.array([[2, 0, 5],
+                     [1, 3, 4],
+                     [9, -1, 4]])
+    a = numpy.array([[1],
+                     [3],
+                     [-2]])
+    print(matmul(m, a, list))
+    print(Matrix(m) * Matrix(a))
+
+
 if __name__ == '__main__':
     test_change_basis()
     test_ranknull()
@@ -234,3 +270,14 @@ if __name__ == '__main__':
     test_to_fraction()
     # test_orthonormalize()
     test_eigen()
+    test_matmul()
+    m = Matrix([[1, 0, 0, 0, 0, 0],
+                [0, 1, 0, 0, 0, 0],
+                [0, 0, 0, 1, 0, 0],
+                [0, 0, 0, 0, 1, 0],
+                [0, 0, 1, 0, 0, 1]])
+    c = ArrayMod([1, 2, 3], 5)
+    a = Matrix([1, 2, 3]).T()
+    b = [[1, 2, 3]]
+    res = matmul(b, a, row_type=type(c), obj_type=Matrix, mod=5)
+    print(res, type(res[0]))

@@ -3,28 +3,8 @@ from random import randint, randrange
 from math import gcd, sqrt
 from functools import reduce
 from itertools import combinations
-from .tools import string_reduce, deprecated, python_number, fraction, isnumber
-
-
-def where(array, if_exp=None, else_exp=None):
-    """Equivalent of numpy.where, accepts Matrix object as argument."""
-
-    if isinstance(array, Matrix):
-        array = array.array
-    if isinstance(array, numpy.ndarray):
-        if if_exp is None and else_exp is None:
-            return numpy.where(array)
-        return numpy.where(array, if_exp, else_exp)
-    raise TypeError("where only accepts Matrix or numpy.ndarray objects")
-
-
-def dot(obj, other, mod=None):
-    """Equivalent of numpy.dot, accepts Matrix object as argument."""
-    if len(obj) != len(other):
-        raise ValueError(f"Unable to take product of two arrays of different length")
-    if mod is not None:
-        return reduce(lambda a, b: (a + b) % mod, map(lambda x, y: (x * y) % mod, obj, other))
-    return sum(map(lambda x, y: x * y, obj, other))
+from .tools import string_reduce, deprecated, python_number, fraction, isnumber, dot
+from .array import where
 
 
 def aslist(obj):
@@ -48,10 +28,10 @@ def is_binary_matrix(obj):
     """Returns False if non binary element in Matrix (not 0 or 1), True otherwise. Returns
     False if object is not Matrix."""
 
-    if isinstance(obj, (Matrix, numpy.ndarray)):
+    if isinstance(obj, (list, Matrix)):
         for row in obj:
             for e in row:
-                if e not in [0, 1]:
+                if e not in (0, 1):
                     return False
         return True
     return False
@@ -70,6 +50,21 @@ def all_elements(obj):
                 elements.append(row)
         return elements
     raise AttributeError("Cannot retrieve all elements from non-list-type object")
+
+
+def det(obj):
+    if len(obj) == 2:
+        return obj[0, 0] * obj[1, 1] - obj[1, 0] * obj[0, 1]
+
+    determinant = 0
+    sign = 1
+    for j in range(len(obj[0])):
+        a = obj[0][j]
+        obj_copy = obj[:]
+        obj_copy.remove_row(0)
+        obj_copy.remove_column(j)
+        determinant += sign * a * det(obj_copy)
+    return determinant
 
 
 class Matrix:
@@ -96,6 +91,8 @@ class Matrix:
 
         # if array given, check if list or numpy array (cannot inherit a Matrix object)
         if array is not None:
+            if isinstance(array, map):
+                array = list(array)
             if isinstance(array, (list, numpy.ndarray)):
 
                 # if array given is nested list, set self.array to given, otherwise, nest it
@@ -116,7 +113,8 @@ class Matrix:
         # if no array was given, matrix is not random or identity, and one of columns was not given matrix cannot be
         # constructed
         elif not rand and not identity and (rows is None or cols is None):
-            raise ValueError("Constructor requires number of rows and columns, or valid matrix")
+            raise ValueError(f"{__class__.__name__} missing required argument(s): array (object) or rand (bool)"
+                             f"or identity (bool or int) or rows (int) or cols (int)")
 
         # if random, no rows or columns required, creates m x n matrix with random m, n (where not given) and
         # values random integers between -50, 50
@@ -181,6 +179,8 @@ class Matrix:
         self.array[key] = value
 
     def __getitem__(self, item):
+        if item == slice(None, None, None):
+            return self.copy()
         return self.array[item]
 
     def __contains__(self, item):
@@ -292,22 +292,31 @@ class Matrix:
         # that is not in a row with a preceding value != 0 or 1 (first non-zero entry in row should be pivot)
         # also checks if entry = 1 is in same column as already identified pivot
         if other == 'pivot':
-            binary_matrix = Matrix(rows=len(self), cols=len(self[0]))
+            binary_matrix = Matrix(rows=len(self[0]), cols=len(self), mod=2)
             adj = 1 if self.augmented else 0
+            pivot_row = -1
 
-            # the reason pivot_column is kept track of but not used as a starting point for row iteration is
-            # because if there are non-zero entries in front of a possible pivot, it becomes an invalid location
-            pivot_column = -1
-            for i in range(len(self)):
-                for j in range(len(self[0]) - adj):
-                    e = self[i][j]
-                    if e not in [0, 1]:
-                        break
-                    if e == 1 and j > pivot_column:
-                        binary_matrix[i][j] = 1
-                        pivot_column = j
-                        break
-            return binary_matrix
+            columns = []
+            array = self.transpose()
+
+            for i in range(len(array) - adj):
+                # slices row so that if augmented, don't include the last element
+                row = array[i]
+
+                # find all instances of non-zero entries in row, if there are none, or the first one is in a column
+                # with a non-zero entry, or value is not one, no more pivots can be found in matrix so return
+                indices = where(row)[0]
+                if len(indices) != 1:
+                    continue
+                index = indices[0]
+                if index <= pivot_row or index in columns:
+                    continue
+                columns += indices
+                pivot_row = index
+                binary_matrix[i][index] = 1
+                if index == len(array[0]) - 1:
+                    return binary_matrix.transpose()
+            return binary_matrix.transpose()
 
         # if didn't identify valid type to compare with, error thrown
         raise TypeError(f"Cannot compare objects of type Matrix and type {type(other)}")
@@ -1544,7 +1553,7 @@ class Matrix:
         matrix = self.transpose()
 
         if len(matrix[0]) == len(basis):
-            basis = basis.transpose()
+            basis = basis.transpose_obj()
 
         coord = []
         for i in range(len(matrix)):
@@ -1640,6 +1649,7 @@ class Matrix:
                 # print statement to provide spacing for readability
                 print('\n')
                 result = str(FractionMatrix(Matrix(e_i_0).T())).split('\n')
+                norm = Matrix.norm(e_i_0)
                 for j in range(length):
                     if j == length // 2:
                         line = f'e{i + 2} = {fraction(1 / norm)} * '
@@ -1805,7 +1815,7 @@ class LinearMap(Matrix):
         """Constructs Linear Map with respect to an orthonormal basis given."""
 
         if len(basis) == len(self[0]):
-            basis = basis.transpose()
+            basis = basis.transpose_obj()
 
         ortho_map = []
         for i in range(l := len(basis)):

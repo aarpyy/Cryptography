@@ -88,5 +88,13 @@ def test_primes_gen():
             result.append(p)
 
 
+def test_vigenere():
+    key = 'dog'
+    plaintext = 'attack'
+    res = vigenere_encrypt(key, plaintext)
+    assert res == 'dhzavd'
+
+
 if __name__ == '__main__':
-    test_primes_gen()
+    test_vigenere()
+    caeser_shift('joxxurbqlxwbrbcnwlhrbcqnqxkpxkurwxourccunvrwmb')
