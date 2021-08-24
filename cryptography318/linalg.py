@@ -11,6 +11,22 @@ from functools import reduce, wraps
 from itertools import combinations
 
 
+# decorator for methods that should conserve .mod and .augmented between objects
+def conserve_attributes(func):
+
+    @wraps(func)
+    def new_func(instance, *args, **kwargs):
+        if not isinstance(instance, Matrix):
+            raise AttributeError(f"conserve_attributes wrapper unsupported for functions outside of Matrix class")
+        result = func(instance, *args, **kwargs)
+        if result is not None:
+            result.mod = instance.mod
+            result.augmented = instance.augmented
+        return result
+
+    return new_func
+
+
 def array_like(obj):
     if isinstance(obj, (list, Matrix, Array, ndarray)):
         return True
@@ -35,21 +51,6 @@ def transpose_obj(obj, row_type=None, obj_type=None):
             raise AttributeError(f"{repr(obj)} has no associated attribute mod")
         return obj_type(map(lambda i: ArrayMod(map(lambda r: r[i], obj), mod), range(len(obj[0]))))
     return obj_type(map(lambda i: row_type(map(lambda r: r[i], obj)), range(len(obj[0]))))
-
-
-def conserve_attributes(func):
-
-    @wraps(func)
-    def new_func(*args, **kwargs):
-        if not isinstance(args[0], Matrix):
-            raise AttributeError(f"conserve_attributes wrapper unsupported for functions outside of Matrix class")
-        result = func(*args, **kwargs)
-        if result is not None:
-            result.mod = args[0].mod
-            result.augmented = args[0].augmented
-        return result
-
-    return new_func
 
 
 def matmul(obj1, obj2, row_type=None, obj_type=None, mod=None):
@@ -355,8 +356,7 @@ class Matrix:
 
         # if other is nested list i.e. 2-dimensional array, return False if values at each corresponding row, col
         # are not similar, True otherwise (returning True if all values within 0.1 of each other because numpy
-        # rounding /dealing with long floats can result in the solution to Ax = B for some x might be correct
-        # solution but slightly off float values
+        # rounding /dealing with long floats can result in slight variation of same matrices)
         if array_like(other) and isinstance(other[0], (list, Array, ndarray)):
             if len(other) != len(self) or len(other[0]) != len(self[0]):
                 raise ValueError(f"equality between {repr(self)} and {repr(other)} is unsupported")
@@ -402,7 +402,7 @@ class Matrix:
                 # if the current index is in a row with a non-zero entry preceding, it cannot be a pivot
                 # checks if in column of transpose == in row of original
                 index = indices[0]
-                if len(indices[0]) != 1 or index <= pivot_row or index in columns:
+                if len(indices) != 1 or index <= pivot_row or index in columns:
                     continue
 
                 # add to list of columns every row with non-zero entry, since all pivots with preceding non-zero value
@@ -785,16 +785,14 @@ class Matrix:
 
     @conserve_attributes
     def rref(self):
-        """Uses Guassian elimination to row reduce matrix, returning a new instance of a matrix in reduced row
+        """Uses Gaussian elimination to row reduce matrix, returning a new instance of a matrix in reduced row
         echelon form."""
 
-        matrix = self[:]
+        matrix = self[:]  # deep copy
 
-        # if augmented don't reduce last column
-        adjust = 1 if self.augmented else 0
+        adjust = 1 if self.augmented else 0  # if augmented don't reduce last column
 
-        # first pivot belongs in first row
-        pivot_row = 0
+        pivot_row = 0  # first pivot belongs in first row
         for j in range(len(self[0]) - adjust):
 
             # start at looking for pivot after previous pivot row
@@ -805,18 +803,14 @@ class Matrix:
 
                     # make j'th element the pivot, reducing rest of row as well
                     matrix[i].make_pivot(j)
-
-                    # if pivot row not already in correct position, swap
-                    if i > pivot_row:
+                    if i > pivot_row:  # if pivot row not already in correct position, swap
                         matrix[i], matrix[pivot_row] = matrix[pivot_row][:], matrix[i][:]
-
-                    # row reduce everything else
-                    matrix.row_reduce(pivot_row, j)
+                    matrix.row_reduce(pivot_row, j)  # row reduce everything else
                     pivot_row += 1
 
         return matrix
 
-    def is_rref(self):
+    def is_rref_old(self):
         """Function that checks to see if matrix is in reduced row echelon form."""
 
         # adjust prevents iterating last column if augmented
@@ -835,6 +829,28 @@ class Matrix:
                     pivot_row.append(i)
                 if e != 0 and i not in pivot_row:
                     return False
+        return True
+
+    def is_rref(self):
+        columns = set()
+        adj = 1 if self.augmented else 0
+        for i in range(len(self)):
+            for j in range(len(self[0]) - adj):
+                e = self[i][j]
+                if e not in (0, 1):  # if first non-zero entry in row is not 1, not in rref
+                    return False
+                if e == 1:
+                    if columns and j <= max(columns):  # if pivot found is to left of prev pivot, not rref
+                        return False
+                    columns.add(j)
+                    break
+
+        for j, col in enumerate(self.transpose()):
+            if j not in columns:  # if not a column w/ potential pivot, ignore
+                continue
+            indices = where(col != 0)[0]  # non-zero entries in the column
+            if len(indices) > 1:  # should just be one, the pivot
+                return False
         return True
 
     def is_consistent(self):

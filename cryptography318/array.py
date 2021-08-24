@@ -25,7 +25,9 @@ def where(array):
     This where, evaluates using numpy.where() but returns output as type list. Does
     not extend any further functionality from numpy.where()."""
 
-    return tuple(map(list, asarray(array).nonzero()))
+    # where usually returns tuple of np.array of row and column indices, this converts them into python integers
+    # inside a python list, so that numpy library does not extend past this function
+    return tuple(map(lambda arr: list(map(lambda n: int(n), arr)), asarray(array).nonzero()))
 
 
 class Array:
@@ -194,11 +196,12 @@ class Array:
     def to_ndarray(self):
         return ndarray(self.array)
 
-    def make_pivot(self, index=None):
+    def make_pivot(self, index=None, copy=False):
         if index is None:
             index = where(self)[0][0]
-
-        return self.__truediv__(self[index])
+        if copy:
+            return self.__truediv__(self[index])
+        self.array = list(map(lambda n: n / self[index], self.array))
 
     def shift_elements(self, shift, copy=False):
         """Performs a logical shift of elements in array.
@@ -373,12 +376,14 @@ class ArrayMod(Array):
     def copy(self):
         return ArrayMod(self.array[:], self.mod)
 
-    def make_pivot(self, index=None):
+    def make_pivot(self, index=None, copy=False):
         if index is None:
             index = where(self)[0][0]
 
         pivot = self[index]
         if gcd(pivot, self.mod) == 1:
-            return self.__mul__(pow(pivot, -1, self.mod))
+            if copy:
+                return self.__mul__(inv := pow(pivot, -1, self.mod))
+            self.array = list(map(lambda n: n * inv, self.array))
         raise ValueError("array is not invertible at the given index")
 

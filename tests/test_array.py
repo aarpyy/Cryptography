@@ -1,4 +1,6 @@
 from random import randrange
+from unittest import TestCase
+
 from cryptography318.array import *
 from functools import reduce
 import numpy
@@ -141,7 +143,7 @@ def test_div():
     assert list_equals(b / a, Array([.5, .5, .5]))
     assert list_equals(b // a, Array([0, 0, 0]))
     assert list_equals(a / 2, Array([1, 2, 3]))
-    assert list_equals(a / 3, Array([2/3, 4/3, 2]))
+    assert list_equals(a / 3, Array([2 / 3, 4 / 3, 2]))
     assert list_equals(a // 3, Array([0, 1, 2]))
 
     for _ in range(50):
@@ -177,6 +179,9 @@ def test_make_pivot():
     assert a.make_pivot() == [1, 2, 3, 4]
     assert a.make_pivot(index=1) == [.5, 1, 1.5, 2]
     assert b.make_pivot() == [1, .75, .5, .25]
+
+    c = Array([4, 1, 5, 1, 2, 9])
+    print(c.make_pivot(2))
 
 
 def test_where():
@@ -229,13 +234,4 @@ if __name__ == '__main__':
     test_where()
     test_copy()
     test_shift()
-    a1 = Array([1, 2, 3])
-    a2 = Array([1, 2, 4])
-    a3 = Array([1, 2, 5])
-    a4 = Array([1, 2, 6])
-
-    b = [a1, a2, a3, a4]
-    b[0], b[1] = b[1][:], b[0][:]
-    print(b)
-    b[0][0] = 2
-    print(b)
+    test_shift()
