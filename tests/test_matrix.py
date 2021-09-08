@@ -148,7 +148,7 @@ def test_mod():
 
     # the third row in transpose is the final column in standard form, which is augmented list of solutions
     # and there should be no possible pivot there
-    assert len(numpy.where(possible_pivots.transpose_obj()[3] == 1)[0]) == 0
+    assert len(numpy.where(possible_pivots.transpose()[3] == 1)[0]) == 0
 
 
 if __name__ == '__main__':

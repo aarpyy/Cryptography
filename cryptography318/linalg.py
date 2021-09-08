@@ -1,26 +1,32 @@
 from .array import Array, ArrayMod, where
-from .tools import dot, isnumber, python_number, string_reduce, fraction, append_and_return
+from .tools import dot, isnumber, python_number, string_reduce, fraction, r_append
 from random import randrange
 from numpy import ndarray
 from numpy import array as np_array
-from sympy import Symbol, solve, im, evalf, sympify, N
+from sympy import Symbol, solve, im
 from numpy.linalg import inv
 from numpy.linalg import det as np_det
 from math import sqrt
 from functools import reduce, wraps
 from itertools import combinations
+from fractions import Fraction
+from numbers import Number
 
 
 # decorator for methods that should conserve .mod and .augmented between objects
-def conserve_attributes(func):
+# this decorator is used for nested methods only, since if it is used for a surface method,
+# it prevents PyCharm from prompting the func w/ parentheses/parameters, so a shell function
+# is used to call the actual function w/ decorator
+def conserve_attributes(func):  # *CA - funcs marked with this use decorator in nested function
 
     @wraps(func)
     def new_func(instance, *args, **kwargs):
         if not isinstance(instance, Matrix):
             raise AttributeError(f"conserve_attributes wrapper unsupported for functions outside of Matrix class")
         result = func(instance, *args, **kwargs)
-        if result is not None:
-            result.mod = instance.mod
+        if isinstance(result, Matrix):
+            if isinstance(instance, ModularMatrix):
+                result.mod = instance.mod
             result.augmented = instance.augmented
         return result
 
@@ -28,29 +34,44 @@ def conserve_attributes(func):
 
 
 def array_like(obj):
-    if isinstance(obj, (list, Matrix, Array, ndarray)):
-        return True
-    return getattr(obj, '__getitem__', None) is not None and getattr(obj[0], '__getitem__', None) is not None
+    if not hasattr(obj, '__iter__'):
+        return False
+    for row in obj:
+        if not hasattr(row, '__iter__'):
+            return False
+        for e in row:
+            if hasattr(e, '__iter__'):
+                return False
+    return True
 
 
-def transpose_obj(obj, row_type=None, obj_type=None):
-    """Transpose method that computes transpose for array_like objects without transpose
+def row_vector(obj):
+    """Returns True if object is a row vector, False otherwise"""
+
+    if hasattr(obj, '__iter__') and hasattr(obj[0], '__iter__'):
+        if len(obj) == 1:
+            obj = obj[0]
+        elif len(obj[0]) == 1:
+            obj = list(transpose_obj(obj))[0]
+        else:
+            return False
+
+    for r in obj:
+        if isinstance(r, (list, Array, ndarray, Matrix)):
+            return False
+    return obj
+
+
+def assert_square(obj):
+    if len(obj) != len(obj[0]):
+        raise AttributeError("operation unsupported for non-square matrices")
+
+
+def transpose_obj(obj):
+    """Transpose method that computes transpose for array-like objects without transpose
     methods."""
 
-    if row_type is None:
-        row_type = list
-    if obj_type is None:
-        obj_type = list
-
-    if row_type == ArrayMod:
-        if hasattr(obj, 'mod'):
-            mod = obj.mod
-        elif hasattr(obj[0], 'mod'):
-            mod = obj[0].mod
-        else:
-            raise AttributeError(f"{repr(obj)} has no associated attribute mod")
-        return obj_type(map(lambda i: ArrayMod(map(lambda r: r[i], obj), mod), range(len(obj[0]))))
-    return obj_type(map(lambda i: row_type(map(lambda r: r[i], obj)), range(len(obj[0]))))
+    return map(lambda i: list(map(lambda r: r[i], obj)), range(len(obj[0])))
 
 
 def matmul(obj1, obj2, row_type=None, obj_type=None, mod=None):
@@ -62,14 +83,10 @@ def matmul(obj1, obj2, row_type=None, obj_type=None, mod=None):
     # attempts to transpose using built in methods, manually performs if no method exists
     transpose = getattr(obj2, 'transpose', None)
     if transpose is None:
-        T = []
-        for j in range(len(obj2[0])):
-            T.append([])
-            for i in range(len(obj2)):
-                T[j].append(obj2[i][j])
+        T = transpose_obj(obj2)
     else:
         T = transpose()
-    if isnumber(mod):
+    if isinstance(other, Number) and not isinstance(other, complex):
         if row_type is ArrayMod:
             return obj_type(map(lambda r: ArrayMod(map(lambda c: dot(c, r, mod), T), mod), obj1))
         return obj_type(map(lambda r: row_type(map(lambda c: dot(c, r, mod), T)), obj1))
@@ -168,116 +185,118 @@ def binary_inverse(obj, row_type=None, obj_type=None):
     return obj_type(map(lambda r: row_type(map(lambda e: (e + 1) % 2, r)), obj))
 
 
+def matrix(obj=None, rows=None, cols=None, rand=False, diag=None, aug=False, solution=None, mod=None):
+    """Parses arguments for creation of matrix, returning an instance of Matrix object or raising exception
+        if invalid arguments are given. Use this constructor instead of object constructors."""
+
+    augmented = True if aug or solution is not None else False
+
+    # if array given, check if list or numpy array (cannot inherit a Matrix object)
+    if obj is not None:
+        if isinstance(obj, map):
+            obj = list(obj)
+        if isinstance(obj, list):
+
+            # empty matrix
+            if not obj:
+                array = obj
+            # if array given is nested list, set self.array to given, otherwise, nest it
+            elif mod is not None:
+                array = list(map(lambda a: ArrayMod(a, mod), obj))
+            elif isinstance(obj[0], list):
+                array = list(map(Array, obj))
+            elif isinstance(obj[0], Array):
+                array = obj
+            else:
+                raise TypeError(f"{repr(obj)} is not array-like")
+        elif isinstance(obj, Array):
+            array = [obj]
+        else:
+            raise TypeError(f"{repr(obj)} is not array-like")
+
+    # if random, no rows or columns required, creates m x n matrix with random m, n (where not given) and
+    # values random integers between -50, 50
+    elif rand:
+        if rows is None:
+            rows = randrange(1, 10)
+        if cols is None:
+            cols = randrange(1, 10)
+        array = []
+        for i in range(rows):
+            array.append(ArrayMod([], mod) if mod is not None else Array([]))
+            for j in range(cols):
+                array[i].append(randrange(-50, 50))
+
+    # if identity, matrix must be square
+    elif diag is not None:
+        # matrix constructed with just identity = True will return In for random n: [1, 10)
+        if rows is None and cols is None:
+            rows = randrange(1, 10)
+
+        # if one of cols or rows given, make the other equal so that matrix is square
+        if rows is None:
+            rows = cols
+        elif cols is None:
+            cols = rows
+        # if neither are integers, or they are not equal, raise error
+        if (not isinstance(rows, int) and not isinstance(cols, int)) or rows != cols:
+            raise ValueError(f"argument(s) incompatible: rows={rows}, cols={cols}")
+        array = []
+        if isinstance(diag, list):
+            for i in range(rows):
+                array.append(ArrayMod([0] * rows, mod) if mod is not None else Array([0] * rows))
+                array[i][i] = diag[i] if isinstance(diag[i], Symbol) else int(diag[i])
+        else:
+            for i in range(rows):
+                array.append(ArrayMod([0] * rows, mod) if mod is not None else Array([0] * rows))
+                array[i][i] = diag if isinstance(diag, Symbol) else int(diag)
+
+    # if both rows and cols are ints, make empty matrix
+    elif isinstance(rows, int) and isinstance(cols, int):
+        array = []
+        for i in range(rows):
+            array.append(ArrayMod([0] * cols, mod) if mod is not None else Array([0] * cols))
+    else:
+        raise ValueError(f"not enough information given to construct a matrix. one of the following is required: "
+                         f"valid 2-dimensional array; integer or symbol identity; bool rand; int rows "
+                         f"and int cols also required if array not given")
+
+    # if a solution is provided, attach column to end of matrix
+    if solution is not None and array:
+        if not isinstance(solution, (list, Matrix, Array)):
+            raise TypeError(f"{repr(solution)} is not array_like")
+        if isinstance(solution[0], (list, Array)) and len(solution) == len(array):
+            for i in range(len(array)):
+                array[i].append(solution[i][0])
+        elif isinstance(solution[0], (list, Array)) and len(solution) == 1 and len(solution[0]) == len(array):
+            for i in range(len(array)):
+                array[i].append(solution[0][i])
+        elif isinstance(solution, (list, Array)) and len(solution) == len(array):
+            for i in range(len(array)):
+                array[i].append(solution[i])
+        else:
+            raise TypeError(f"{repr(solution)} is incompatible with matrix of dimension {len(array)}x{len(array[0])}")
+
+    if isinstance(mod, int):
+        if mod == 2:
+            return BinaryMatrix(array, aug=augmented)
+        return ModularMatrix(array, mod, aug=augmented)
+    return Matrix(array, aug=augmented)
+
+
 class Matrix:
-    def __init__(self, array=None, rows=None, cols=None, rand=False, identity=False, aug=False,
-                 solution=None, mod=None, dtype: type = None):
-        self.mod = mod
-        self.augmented = False
-
-        # if augmented is True or solution provided, matrix is augmented
-        if aug or solution is not None:
-            self.augmented = True
-
-        # dtype allows for faster creation of matrix, assumes input is reliable and correct type
-        if dtype is not None:
-            if dtype not in (list, Array):
-                raise TypeError(f"dtype given not recognized: {dtype}")
-            if dtype == list:
-                self.array = list(map(Array, array))
-            else:
-                self.array = array
-            if self.mod is not None:
-                self.array %= self.mod
-            return
-
-        # if array given, check if list or numpy array (cannot inherit a Matrix object)
-        if array is not None:
-            if isinstance(array, map):
-                array = list(array)
-            if isinstance(array, list):
-
-                # empty matrix
-                if not array:
-                    self.array = array
-                # if array given is nested list, set self.array to given, otherwise, nest it
-                elif isinstance(array[0], list) and self.mod is not None:
-                    self.array = list(map(lambda a: ArrayMod(a, self.mod), array))
-                elif isinstance(array[0], list):
-                    self.array = list(map(Array, array))
-                elif isinstance(array[0], Array):
-                    self.array = array
-                else:
-                    raise TypeError(f"{repr(array)} is not array_like")
-            elif isinstance(array, Array):
-                self.array = [array]
-            else:
-                raise TypeError(f"{repr(array)} is not array_like")
-
-        # if random, no rows or columns required, creates m x n matrix with random m, n (where not given) and
-        # values random integers between -50, 50
-        elif rand:
-            if rows is None:
-                rows = randrange(1, 10)
-            if cols is None:
-                cols = randrange(1, 10)
-            matrix = []
-            for i in range(rows):
-                matrix.append(ArrayMod([], self.mod) if self.mod is not None else Array([]))
-                for j in range(cols):
-                    matrix[i].append(randrange(-50, 50))
-            self.array = matrix
-
-        # if identity, matrix must be square
-        elif identity:
-            # matrix constructed with just identity = True will return In for random n: [1, 10)
-            if rows is None and cols is None:
-                rows = randrange(1, 10)
-
-            # if one of cols or rows given, make the other equal so that matrix is square
-            if rows is None:
-                rows = cols
-            elif cols is None:
-                cols = rows
-            # if neither are integers, or they are not equal, raise error
-            if (not isinstance(rows, int) and not isinstance(cols, int)) or rows != cols:
-                raise ValueError(f"argument(s) incompatible: rows={rows}, cols={cols}")
-            matrix = []
-            for i in range(rows):
-                matrix.append(ArrayMod([], self.mod) if self.mod is not None else Array([]))
-                for j in range(cols):
-                    if i == j:
-                        matrix[i].append(identity if isinstance(identity, Symbol) else int(identity))
-                    else:
-                        matrix[i].append(0)
-            self.array = matrix
-
-        # if both rows and cols are ints, make empty matrix
-        elif isinstance(rows, int) and isinstance(cols, int):
-            matrix = []
-            for i in range(rows):
-                matrix.append(ArrayMod([0] * cols, self.mod) if self.mod is not None else Array([0] * cols))
-            self.array = matrix
-
-        # if a solution is provided, attach column to end of matrix
-        if solution is not None:
-            if not isinstance(solution, (list, Matrix, Array)):
-                raise TypeError(f"{repr(solution)} is not array_like")
-            if isinstance(solution[0], (list, Array)) and len(solution) == len(self):
-                for i in range(len(self)):
-                    self.array[i].append(solution[i][0])
-            elif isinstance(solution[0], (list, Array)) and len(solution) == 1 and len(solution[0]) == len(self):
-                for i in range(len(self)):
-                    self.array[i].append(solution[0][i])
-            elif isinstance(solution, (list, Array)) and len(solution) == len(self):
-                for i in range(len(self)):
-                    self.array[i].append(solution[i])
-            else:
-                raise TypeError(f"{repr(solution)} is incompatible with matrix of dimension {len(self)}x{len(self[0])}")
-
-        if self.mod is not None:
-            self.array = list(map(lambda r: r % self.mod, self.array))
-
-        self.row_type = type(self.array[0]) if self.array else Array
+    def __init__(self, array, aug=False):
+        for row in array:
+            if not isinstance(row, Array):
+                print(array)
+                raise AttributeError(f"valid matrix must be constructed from Array object")
+            for v in row:
+                if isinstance(v, (list, Array, str)):
+                    raise ValueError(f"matrix must be 2-dimensional array with number or symbol values. "
+                                     f"given: {repr(array)}")
+        self.array = array
+        self.augmented = aug
+        self.attr = [self.augmented]
 
     def __setitem__(self, key, value):
         self.array[key] = value
@@ -297,7 +316,7 @@ class Matrix:
         return iter(self.array)
 
     def __repr__(self):
-        return f"{__class__.__name__}(array={self.array}, aug={self.augmented}, mod={self.mod})"
+        return f"{__class__.__name__}({self.tolist()}, aug={self.augmented})"
 
     def __str__(self):
         str_array = []
@@ -345,7 +364,11 @@ class Matrix:
                 e = str_array[i][j]
                 pad_left = (padding - len(e)) // 2
                 pad_right = padding - len(e) - pad_left
-                formatted += pad_left * " " + f"{e}" + " " * pad_right
+
+                if j == 0 and e[0] != '-':  # sets numbers back from left [ to not squish, doesn't with negatives
+                    formatted += max(pad_left, 1) * " " + f"{e}" + " " * pad_right
+                else:
+                    formatted += pad_left * " " + f"{e}" + " " * pad_right
             if i == l - 1:
                 formatted += "]"
             else:
@@ -359,7 +382,8 @@ class Matrix:
         # rounding /dealing with long floats can result in slight variation of same matrices)
         if array_like(other) and isinstance(other[0], (list, Array, ndarray)):
             if len(other) != len(self) or len(other[0]) != len(self[0]):
-                raise ValueError(f"equality between {repr(self)} and {repr(other)} is unsupported")
+                return False
+                # raise ValueError(f"equality between {repr(self)} and {repr(other)} is unsupported")
             for i in range(len(self)):
                 for j in range(len(self[0])):
                     if abs(self[i][j] - other[i][j]) > 0.1:
@@ -369,23 +393,25 @@ class Matrix:
         # if not nested list, two objects will not be compared as arrays, but will return a binary matrix
         # with truth values wherever self's values are in the list
         if isinstance(other, (list, set, tuple)):
-            binary_matrix = Matrix(map(lambda r: ArrayMod(map(lambda e: 1 if e in other else 0, r), 2), self))
+            binary_matrix = BinaryMatrix(
+                list(map(lambda r: ArrayMod(map(lambda e: 1 if e in other else 0, r), 2), self))
+            )
 
             # pivot keyword allows user to search for pivots in matrix
             if 'pivot' in other:
                 # returns the union of searching for pivot
-                return union(binary_matrix, self == 'pivot', row_type=ArrayMod, obj_type=Matrix)
+                return binary_matrix.union(self == 'pivot')
             return binary_matrix
 
         # if comparing to a number, return binary matrix with values = 1 wherever matrix values = number
-        if isnumber(other):
-            return Matrix(map(lambda r: ArrayMod(map(lambda e: 1 if e == other else 0, r), 2), self))
+        if isinstance(other, Number) and not isinstance(other, complex):
+            return BinaryMatrix(list(map(lambda r: ArrayMod(map(lambda e: 1 if e == other else 0, r), 2), self)))
 
         # if user searching for pivots, return binary matrix with values = 1 wherever an entry = 1
         # that is not in a row with a preceding value != 0 or 1 (first non-zero entry in row should be pivot)
         # also checks if entry = 1 is in same column as already identified pivot
         if other == 'pivot':
-            binary_matrix = Matrix(rows=len(self[0]), cols=len(self), mod=2)
+            binary_matrix = matrix(rows=len(self[0]), cols=len(self), mod=2)
             adj = 1 if self.augmented else 0
             pivot_row = -1
 
@@ -437,102 +463,108 @@ class Matrix:
 
     def __lt__(self, other):
 
-        if isnumber(other):
-            return Matrix(map(lambda r: r < other, self))
+        if isinstance(other, Number) and not isinstance(other, complex):
+            return self.construct(list(map(lambda r: r < other, self)))
         if array_like(other):
-            return Matrix(map(lambda r1, r2: r1 < r2, self, other))
+            return self.construct(list(map(lambda r1, r2: r1 < r2, self, other)))
         raise TypeError(f"operation unsupported for type(s): {type(self)} and {type(other)}")
 
     def __le__(self, other):
 
-        if isnumber(other):
-            return Matrix(map(lambda r: r <= other, self))
+        if isinstance(other, Number) and not isinstance(other, complex):
+            return self.construct(list(map(lambda r: r <= other, self)))
         if array_like(other):
-            return Matrix(map(lambda r1, r2: r1 <= r2, self, other))
+            return self.construct(list(map(lambda r1, r2: r1 <= r2, self, other)))
         raise TypeError(f"operation unsupported for type(s): {type(self)} and {type(other)}")
 
     def __gt__(self, other):
 
-        if isnumber(other):
-            return Matrix(map(lambda r: r > other, self))
+        if isinstance(other, Number) and not isinstance(other, complex):
+            return self.construct(list(map(lambda r: r > other, self)))
         if array_like(other):
-            return Matrix(map(lambda r1, r2: r1 > r2, self, other))
+            return self.construct(list(map(lambda r1, r2: r1 > r2, self, other)))
         raise TypeError(f"operation unsupported for type(s): {type(self)} and {type(other)}")
 
     def __ge__(self, other):
 
-        if isnumber(other):
-            return Matrix(map(lambda r: r >= other, self))
+        if isinstance(other, Number) and not isinstance(other, complex):
+            return self.construct(list(map(lambda r: r >= other, self)))
         if array_like(other):
-            return Matrix(map(lambda r1, r2: r1 >= r2, self, other))
+            return self.construct(list(map(lambda r1, r2: r1 >= r2, self, other)))
         raise TypeError(f"operation unsupported for type(s): {type(self)} and {type(other)}")
 
     def __mul__(self, other):
 
         # if number * matrix, return each element of matrix *= number
-        if isnumber(other):
-            return Matrix(map(lambda r: r * other, self))
+        if isinstance(other, Number) and not isinstance(other, complex):
+            return self.construct(list(map(lambda r: r * other, self)), *self.attr)
         # checks to see if dimensions of both objects are compatible with matrix multiplication
         if array_like(other):
             if len(self[0]) != len(other):
                 raise ValueError(f"multiplication unsupported between matrix objects of dimension "
                                  f"{len(self)}x{len(self[0])} and {len(other)}x{len(other[0])}")
 
-            return matmul(self, other, row_type=type(self[0]), obj_type=Matrix, mod=self.mod)
+            return self.matmul(self, other)
         raise TypeError(f"multiplication unsupported for type(s): {type(self)} and {type(other)}")
 
     def __rmul__(self, other):
 
         # refer to __mul__ for documentation
-        if isinstance(other, Matrix) or isnumber(other):
-            return Matrix.__mul__(self, other)
+        if isinstance(other, Number) and not isinstance(other, complex):
+            return self.__mul__(other)
         if array_like(other):
-            if len(self[0]) != len(other):
+            if len(other[0]) != len(self):
                 raise ValueError(f"multiplication unsupported between matrix objects of dimension "
                                  f"{len(self)}x{len(self[0])} and {len(other)}x{len(other[0])}")
 
-            return matmul(other, self, row_type=type(self[0]), obj_type=Matrix, mod=self.mod)
+            return self.matmul(other, self)
         raise TypeError(f"multiplication unsupported for type(s): {type(self)} and {type(other)}")
 
     def __add__(self, other):
 
         # validates input as matrix that can be added if list-type
         if array_like(other):
-            return Matrix(map(lambda r1, r2: r1 + r2, other, self))
-        if isnumber(other):
-            return Matrix(map(lambda r: r + other, self))
+            return self.construct(list(map(lambda r1, r2: r1 + r2, other, self)))
+        if isinstance(other, Number) and not isinstance(other, complex):
+            return self.construct(list(map(lambda r: r + other, self)))
         raise TypeError(f"addition unsupported for type(s): {type(self)} and {type(other)}")
 
     def __radd__(self, other):
-        if isnumber(other):
-            raise TypeError(f"scalar-matrix addition unsupported for scalar + matrix")
+        if isinstance(other, Number) and not isinstance(other, complex):
+            raise TypeError(f"scalar-matrix addition unsupported for scalar plus matrix")
         return self.__add__(other)
 
     def __sub__(self, other):
         # validates input as matrix that can be added if list-type
         if array_like(other):
-            return Matrix(map(lambda r1, r2: r1 - r2, self, other))
-        if isnumber(other):
-            return Matrix(map(lambda r: r - other, self))
+            return self.construct(list(map(lambda r1, r2: r1 - r2, self, other)))
+        if isinstance(other, Number) and not isinstance(other, complex):
+            return self.construct(list(map(lambda r: r - other, self)))
         raise TypeError(f"subtraction unsupported for type(s): {type(self)} and {type(other)}")
 
     def __rsub__(self, other):
-        if isnumber(other):
-            raise TypeError(f"scalar-matrix subtraction unsupported for scalar - matrix")
+        if isinstance(other, Number) and not isinstance(other, complex):
+            raise TypeError(f"scalar-matrix subtraction unsupported for scalar minus matrix")
         # validates input as matrix that can be added if list-type
         if array_like(other):
-            return Matrix(map(lambda r1, r2: r1 + r2, other, self))
+            return self.construct(list(map(lambda r1, r2: r1 + r2, other, self)))
         raise TypeError(f"subtraction unsupported for type(s): {type(self)} and {type(other)}")
 
     def __floordiv__(self, other):
-        if isnumber(other):
-            return Matrix(map(lambda r: r // other, self))
+        if isinstance(other, Number) and not isinstance(other, complex):
+            return self.construct(list(map(lambda r: r // other, self)))
         raise TypeError(f"division unsupported for type(s): {type(self)} and {type(other)}")
 
+    def __rfloordiv__(self, other):
+        raise TypeError(f"matrix object cannot be divisor")
+
     def __truediv__(self, other):
-        if isnumber(other):
-            return Matrix(map(lambda r: r / other, self))
+        if isinstance(other, Number) and not isinstance(other, complex):
+            return self.construct(list(map(lambda r: r / other, self)))
         raise TypeError(f"division unsupported for type(s): {type(self)} and {type(other)}")
+
+    def __rtruediv__(self, other):
+        raise TypeError(f"matrix object cannot be divisor")
 
     def __pow__(self, power, modulo=None):
         # powers currently supported are positive integers (referring to the number of times a matrix will
@@ -551,110 +583,42 @@ class Matrix:
         return product
 
     def __mod__(self, other):
-        return Matrix(map(lambda r: r % other, self))
+        return self.construct(list(map(lambda r: r % other, self)))
 
-    # pseudo-constructor class methods that return a new instance of Matrix specified by the method
-    @classmethod
-    def make(cls, rows, cols, aug=False, by_row=True):
-        """
-        Class method that takes number of rows and columns as input and returns a new instance of
-        a Matrix object with the values given by user.
-
-        :param aug : bool; determines if matrix is an augmented coefficient matrix or not.
-        :param by_row : bool; determines if input from user is collected each row at a time, or each element at a time.
-        """
-
-        def get_number(n):
-            if "," in n:
-                c = n.split(",")
-                real = float(c[0])
-                imag = float(c[1])
-                return complex(real, imag)
-            return float(n) if "." in n else int(n)
-
-        array = []
-        for i in range(rows):
-            array.append(Array([]))
-            if not by_row:
-                for j in range(cols):
-                    n = input(f"{i + 1},{j + 1}: ")
-                    array[i].append(get_number(n))
-            else:
-                while True:
-                    try:
-                        row = input(f"row {i + 1}: ")
-                        values = row.split()
-                        if len(values) != cols:
-                            raise ValueError(f"entered {len(values)} values. this matrix is expecting {cols}")
-                    except ValueError:
-                        continue
-                    else:
-                        array[i] = Array(map(get_number, values))
-                        break
-        return cls(array=array, aug=aug)
+    # static methods used in matrix operations that allow subclasses to inherit more methods, using sub's statics
+    @staticmethod
+    def matmul(obj1, obj2):
+        # attempts to transpose using built in methods, manually performs if no method exists
+        transpose = getattr(obj2, 'transpose', None)
+        if transpose is None:
+            T = list(transpose_obj(obj2))
+        else:
+            T = transpose()
+        return Matrix(list(map(lambda r: Array(map(lambda c: dot(c, r), T)), obj1)))
 
     @classmethod
-    def diag(cls, scalars):
-        matrix = cls(rows=len(scalars), cols=len(scalars), identity=scalars)
-        for i in range(len(scalars)):
-            matrix[i][i] = scalars[i]
-        return matrix
-
-    @classmethod
-    def make_basis(cls, in_basis=None, out_basis=None):
-        """
-        make_basis creates a new Matrix object which represents the change-of-basis matrix between
-        the given in_basis and out_basis if both are given. in_basis determines the basis that this
-        change-of-basis matrix can be applied to. out_basis determines the basis that the output of
-        applying this matrix to a vector will be given in.
-
-        ex.
-            in_basis = Matrix([[1, 2], [2, -1]])
-            out_basis = Matrix([[1, 1], [1, -1]])
-
-            With just in_basis, this change of basis matrix would be the in_basis. This converts each
-            input matrix from the same basis as in_basis into the standard basis for output.
-            With just out_basis, this change of basis matrix would be the inverse of out_basis. Applying
-            this simply returns the input matrix given in the basis of out_basis.
-            With both, this change of basis matrix is the inverse of in_basis multiplied against the
-            out_basis, making the matrix first convert input from in_basis into standard basis, then
-            from standard basis into out_basis, except this is done in one step since both steps are
-            combined into the multiplication of out_basis.invert() * in_basis.
-
-        Parameters
-        ----------
-        out_basis : Matrix
-            a square matrix that represents a given basis for an n-dimensional vector space, this basis will be the basis
-        of matrices that this matrix will be applied to
-
-        in_basis : Matrix
-            a square matrix that represents a given basis for an n-dimensional vector space, this basis will be the basis
-        of matrices that are produced by applying this matrix to another
-        """
-        if in_basis is None and out_basis is None:
-            raise ValueError("make_basis requires at least one basis")
-        if in_basis is None:
-            if len(out_basis) != len(out_basis[0]):
-                raise ValueError("basis must be square matrix")
-            return out_basis.invert()
-        if out_basis is None:
-            if len(in_basis) != len(in_basis[0]):
-                raise ValueError("basis must be square matrix")
-            return in_basis
-        if not all(length == len(in_basis) for length in [len(out_basis), len(out_basis[0]), len(in_basis[0])]):
-            raise ValueError("bases must be square matrices")
-        return out_basis.invert() * in_basis
+    def construct(cls, *args):
+        return cls(*args)
 
     # standard matrix methods
-    @conserve_attributes
     def copy(self):
         """Returns exact copy of values of matrix in a new Matrix object."""
 
-        return Matrix(map(lambda r: r[:], self))
+        if not self.array:
+            return self.construct([], *self.attr)
+
+        return self.construct(list(map(lambda r: r[:], self)), *self.attr)
 
     def __array_copy(self):
         # exact copy of array in list format
         return list(map(lambda r: r[:], self))
+
+    def _transpose_obj(self, obj):
+        return list(map(lambda i: Array(map(lambda r: r[i], obj)), range(len(obj[0]))))
+
+    def _fraction(self):
+        if self.array and all(isinstance(v, int) or (isinstance(v, float) and v.is_integer()) for v in self.flatten()):
+            self.array = list(map(lambda r: Array(map(lambda e: Fraction(e), r)), self))
 
     def index(self, item):
         return self.array.index(item)
@@ -663,25 +627,24 @@ class Matrix:
         """Returns flat list containing all elements of matrix, going from left-to-right then
         top-to-bottom."""
 
-        return [*reduce(lambda r1, r2: list(r1) + list(r2), self)]
+        return [*reduce(lambda r1, r2: list(r1) + list(r2), self)] if self.array else []
 
     def tolist(self):
-        return list(map(lambda r: list(r), self))
+        return list(map(list, self.array))
 
     def append(self, row):
         if any(isinstance(e, (list, Array, ndarray)) for e in row):
             raise ValueError(f"operation unsupported for non-flat arrays. given: {repr(row)}")
         if self.array and len(row) != len(self[0]):
             raise ValueError(f"array length of {len(row)} incompatible with matrix of width {len(self[0])}")
+
         if isinstance(row, (ndarray, Matrix)):
             row = row.tolist()
-        if isinstance(row, list) and self.row_type == ArrayMod:
-            row = ArrayMod(row, self.mod)
-        elif isinstance(row, list):
+
+        if isinstance(row, list):
             row = Array(row)
-        if isinstance(row, ArrayMod) and self.row_type != ArrayMod:
-            raise TypeError(f"appending ArrayMod to matrix with rows of type Array is unsupported")
-        elif isinstance(row, Array) and not self.array:
+
+        if isinstance(row, Array) and not self.array:
             self.array.append(row)
         elif isinstance(row, Array) and len(row) == len(self[0]):
             self.array.append(row)
@@ -691,15 +654,16 @@ class Matrix:
     def invert(self):
         if len(self) != len(self[0]):
             raise AttributeError(f"inversion unsupported for non-square matrices")
-        return Matrix(inv(np_array(self.tolist())).tolist(), mod=self.mod)  # using numpy.inv for efficiency
+        return self.construct(inv(np_array(self.tolist())).tolist(), *self.attr)  # using numpy.inv for efficiency
 
     def transpose(self):
         """Returns transpose of Matrix object."""
 
+        if not self.array:
+            return self.construct([], *self.attr)
+
         # maps indices of columns to inner map that returns the value at that index for each row
-        return Matrix(map(lambda i: ArrayMod(
-            map(lambda r: r[i], self), self.mod) if self.mod is not None else Array(
-            map(lambda r: r[i], self)), range(len(self[0]))), mod=self.mod)
+        return self.construct(list(map(lambda i: Array(map(lambda r: r[i], self)), range(len(self[0])))), *self.attr)
 
     def to_fraction(self):
         """Returns object with fractional instead of float values where possible."""
@@ -709,41 +673,38 @@ class Matrix:
         """Given matrix object and set of solutions, returns an augmented coefficient matrix
         with the set of solutions as the final column."""
 
+        if self.augmented:
+            raise AttributeError(f"{repr(self)} is already augmented coefficient matrix")
+
+        self.attr = list(map(lambda e: True if isinstance(e, bool) else e, self.attr))  # only bool in self.attr is aug
+
         if isinstance(solution[0], list) and len(solution) == len(self):
-            return Matrix(map(lambda r, s: append_and_return(r, s[0]), self, solution), aug=True, mod=self.mod)
+            return self.construct(list(map(lambda r, s: r_append(r, s[0]), self, solution)), *self.attr)
         elif isinstance(solution[0], list) and len(solution[0]) == len(self):
-            return Matrix(map(lambda r, s: append_and_return(r, s), self, solution[0]), aug=True, mod=self.mod)
+            return self.construct(list(map(lambda r, s: r_append(r, s), self, solution[0])), *self.attr)
         elif len(solution) == len(self):
-            return Matrix(map(lambda r, s: append_and_return(r, s), self, solution), aug=True, mod=self.mod)
+            return self.construct(list(map(lambda r, s: r_append(r, s), self, solution)), *self.attr)
         raise ValueError(f"augmentation of matrix of length {len(self)} unsupported for {repr(solution)}")
 
-    def separate(self):
-        """Function used to separate an augmented coefficient matrix into
-        a standard coefficient matrix and a column matrix of solutions"""
+    def separate(self, index=-1):
+        """Separates matrix at index, returning two matrices, first with indices [0, index) and
+        second with indices [index:)."""
 
-        if self.mod is not None:
-            return Matrix(map(lambda r: ArrayMod(r[-1], self.mod), self), aug=False, mod=self.mod)
-        return Matrix(map(lambda r: Array(r[-1]), self), aug=False, mod=self.mod)
+        self.attr = list(map(lambda e: False if isinstance(e, bool) else e, self.attr))  # only bool in self.attr is aug
 
-    @conserve_attributes
-    def remove_null(self, copy=False):
-        """Removes all null rows and columns from matrix."""
+        array_r = self.construct(list(map(lambda r: r[index:], self)), *self.attr)
+        array_l = self.construct(list(map(lambda r: r[:index], self)), *self.attr)
+        return array_l, array_r
 
-        if copy:
-            return self.remove_null_column(copy=True).remove_null_row(copy=True)
-
-        self.remove_null_column()
-        self.remove_null_row()
-
-    @conserve_attributes
     def remove_null_row(self, copy=False):
         """Removes rows consisting of just zeros."""
 
         if copy:
-            return Matrix(reduce(lambda a, b: a if b.contains_only(0) else append_and_return(a, b), self, []))
-        self.array = reduce(lambda a, b: a if b.contains_only(0) else append_and_return(a, b), self, [])
+            return self.construct(
+                reduce(lambda a, b: a if b.contains_only(0) else r_append(a, b), self, []), *self.attr
+            )
+        self.array = reduce(lambda a, b: a if b.contains_only(0) else r_append(a, b), self, [])
 
-    @conserve_attributes
     def remove_null_column(self, copy=False):
         """Removes columns consisting of just zeros."""
 
@@ -751,30 +712,40 @@ class Matrix:
         if self.augmented:
             T.remove_row(-1)
         if copy:
-            return Matrix(reduce(
-                lambda a, b: a if b.contains_only(0) else append_and_return(
-                    a, b), T, []), aug=self.augmented, mod=self.mod).transpose()
-        self.array = transpose_obj(
-            reduce(lambda a, b: a if b.contains_only(0) else append_and_return(a, b), T, []),
-            row_type=self.row_type
+            return self.construct(
+                reduce(lambda a, b: a if b.contains_only(0) else r_append(a, b), T, []), *self.attr
+            ).transpose()
+
+        self.array = list(
+            self._transpose_obj(reduce(lambda a, b: a if b.contains_only(0) else r_append(a, b), T, []))
         )
 
-    @conserve_attributes
     def remove_row(self, row, copy=False):
+
         row %= len(self)
         if copy:
-            return Matrix(reduce(lambda a, b: a if b == row else append_and_return(a, self[b]), range(len(self)), []))
-        self.array = reduce(lambda a, b: a if b == row else append_and_return(a, self[b]), range(len(self)), [])
+            return self.construct(
+                reduce(lambda a, b: a if b == row else r_append(a, self[b]), range(len(self)), []), *self.attr
+            )
 
-    @conserve_attributes
+        self.array = reduce(
+            lambda a, b: a if b == row else r_append(a, self[b]), range(len(self)), []
+        )
+
     def remove_column(self, col, copy=False):
+
         T = self.transpose()
         col %= len(T)
         if copy:
-            return Matrix(
-                reduce(lambda a, b: a if b == col else append_and_return(a, T[b]), range(len(T)), [])).transpose()
-        self.array = transpose_obj(
-            reduce(lambda a, b: a if b == col else append_and_return(a, T[b]), range(len(T)), []))
+            return self.construct(
+                reduce(lambda a, b: a if b == col else r_append(a, T[b]), range(len(T)), []), *self.attr
+            ).transpose()
+
+        self.array = list(
+            self._transpose_obj(
+                reduce(lambda a, b: a if b == col else r_append(a, T[b]), range(len(T)), [])
+            )
+        )
 
     def row_reduce(self, row, col):
         """Subtracts each row besides given by given row until j'th element is zero. This function is the basis
@@ -783,32 +754,96 @@ class Matrix:
             if i != row:
                 self[i] -= self[row] * self[i][col]
 
-    @conserve_attributes
     def rref(self):
         """Uses Gaussian elimination to row reduce matrix, returning a new instance of a matrix in reduced row
-        echelon form."""
+        echelon form. If instance matrix is constructed over the finite field of integers (matrix.mod is an int)
+        then a modified version of Gaussian elimination is used to row reduce the matrix to construct rref
+        (see examples and notes for more details).
 
-        matrix = self[:]  # deep copy
+        Examples
+        --------
+        [1]
+        add non-mod example here
+
+        [2]
+
+        >>> a = Matrix([[2, 4, 5], [5, 1, -2], [5, 6, 8]], mod=14, aug=True)
+        >>> repr(a.rref())
+        Matrix(array=[[1, 0, 2], [0, 1, 2], [0, 0, 7]], aug=True, mod=14)
+
+
+        Notes
+        -----
+        Example 2: In this example, the matrix given is augmented and is constructed over Z14. The rref process
+        is as follows (for specifics see below paragraph):
+        First, the matrix is searched iteratively for a row at index 0 with a value that can be converted to 1. This
+        is the second row, which has value 5 at index 0 which is invertible mod 14, with an inverse of 3. The
+        entire second row is multiplied by 3, resulting in [1, 3, 8]. This row is then subtracted from all other rows
+        such that the value at index 0 for all other rows is 0. This process is then repeated, this time with index
+        1 and row 3, which now has value 5 at index 1. Row is multiplied by inverse and subtracted from all other
+        rows. At this point, since the matrix is augmented, rref computation is complete.
+
+        At each instance of compuation for example 2, each value for the given column index is checked
+        not only to be invertible, but more broadly if it cna be converted to 1, through a combination of
+        floor division and multiplication. If this is not possible for any value at the index, rref is still
+        possible, but not currently computed. It is possible because, through finding pivots in other rows,
+        the value at that index for all rows may become invertible given the modulus, but this requires
+        returning to the unfinished column, and this computation is currently not supported. Thus, rref
+        over the finite field of integers is not guaranteed to be rref.
+
+        Specifics for example 2:
+
+        after second row is identified as having an invertible value at index 0, second row becomes [1, 3, 8]
+
+        >>> Matrix(array=[[2, 4, 5], [1, 3, 8], [5, 6, 8]], aug=True, mod=14)
+
+        rows are swapped
+
+        >>> Matrix(array=[[1, 3, 8], [2, 4, 5], [5, 6, 8]], aug=True, mod=14)
+
+        rows are reduced
+
+        >>> Matrix(array=[[1, 3, 8], [0, 12, 3], [0, 5, 10]], aug=True, mod=14)
+
+        matrix now has pivot in first column, first row, process is repeated with second column
+        third row has invertible element in second column, so row is converted to pivot
+
+        >>> Matrix(array=[[1, 3, 8], [0, 12, 3], [0, 1, 2]], aug=True, mod=14)
+
+        rows are swapped and reduced
+
+        >>> Matrix(array=[[1, 0, 2], [0, 1, 2], [0, 0, 7]], aug=True, mod=14)
+        computation complete
+        """
+
+        array = self[:]  # deep copy
 
         adjust = 1 if self.augmented else 0  # if augmented don't reduce last column
 
         pivot_row = 0  # first pivot belongs in first row
+
+        # if all integers, convert to fractions for more accurate rref
+        # if all(isinstance(v, int) or (isinstance(v, float) and v.is_integer()) for v in self.flatten()):
+        #     array = Matrix(list(map(lambda r: Array(map(lambda e: Fraction(e), r)), array)))
+
         for j in range(len(self[0]) - adjust):
 
             # start at looking for pivot after previous pivot row
             for i in range(pivot_row, len(self)):
 
                 # if non-zero element, this row can become pivot row
-                if matrix[i][j] != 0:
+                if array[i][j] != 0:
 
                     # make j'th element the pivot, reducing rest of row as well
-                    matrix[i].make_pivot(j)
+                    array[i].make_pivot(j)
                     if i > pivot_row:  # if pivot row not already in correct position, swap
-                        matrix[i], matrix[pivot_row] = matrix[pivot_row][:], matrix[i][:]
-                    matrix.row_reduce(pivot_row, j)  # row reduce everything else
+                        array[i], array[pivot_row] = array[pivot_row][:], array[i][:]
+                    array.row_reduce(pivot_row, j)  # row reduce everything else
                     pivot_row += 1
 
-        return matrix
+                    break
+
+        return array
 
     def is_rref_old(self):
         """Function that checks to see if matrix is in reduced row echelon form."""
@@ -945,29 +980,28 @@ class Matrix:
                     break
         return solutions
 
-    @conserve_attributes
     def change_basis(self, basis):
         """Returns object previously in standard basis now in given basis"""
 
         if not isinstance(basis, Matrix):
-            raise TypeError("Basis must be a Matrix")
+            raise TypeError("basis must be a Matrix")
         return basis.invert() * self
 
-    @conserve_attributes
     def revert_basis(self, basis):
         """Returns object previously in given basis now in standard basis"""
 
         if not isinstance(basis, Matrix):
-            raise TypeError("Basis must be a Matrix")
+            raise TypeError("basis must be a Matrix")
         return basis * self
 
-    def is_basis(self):
-        if len(self) != len(self[0]):
-            return False
-        matrix = self.copy()
-        if not matrix.is_rref():
-            matrix = matrix.rref()
-        return matrix == Matrix(rows=len(self), cols=len(self), identity=True)
+    def column_li(self):
+        """Determines if matrix consists of linearly dependent columns. Returns True if
+        any column is linearly dependent, False otherwise."""
+
+        array = self.copy()
+        if not array.is_rref():
+            array = array.rref()
+        return array == matrix(rows=len(self), cols=len(self), diag=True)
 
     def to_vector(self):
         """Function that converts m x n Matrix into n columns vectors of
@@ -978,7 +1012,7 @@ class Matrix:
             vector = []
             for i in range(len(self)):
                 vector.append([self[i][j]])
-            columns.append(Matrix(vector))
+            columns.append(self.construct(vector))
         return columns
 
     def trace(self):
@@ -990,37 +1024,31 @@ class Matrix:
             trace_sum += self[i][i]
         return trace_sum
 
-    def inner_prod(self, other=None):
-        """Calculates the inner product (dot product) of two column vectors."""
-        if other is None:
-            other = self.copy()
+    def inner(self, other):
+        """Calculates the inner product (dot product) of a vector with the instance matrix, returning
+        a list of values representing the inner product of each column with the given vector."""
 
-        # converts column vectors to row vectors in form of python list, row vectors as python list
-        obj1 = self if len(self) == 1 else self.transpose()
-        obj2 = other if len(other) == 1 else other.transpose()
-
-        # if nested vectors, un-nest
-        if isinstance(obj1[0], list):
-            obj1 = obj1[0]
-        if isinstance(obj2[0], list):
-            obj2 = obj2[0]
-
-        if len(obj1) != len(obj2):
-            raise ValueError("Dot product impossible with vectors of different lengths")
+        if not (other := row_vector(other)) or len(self) != len(other):
+            raise ValueError(f"multiplication unsupported between matrix objects of dimension "
+                             f"{len(self)}x{len(self[0])} and {len(other)}x{len(other[0])}")
 
         # important to return python float or int instead of numpy, since numpy numbers will
         # override a matrix operator in operations where numpy object comes first
-        return python_number(dot(obj1, obj2, self.mod))
+        if obj := row_vector(self):
+            return python_number(dot(obj, other))
+        return list(map(lambda r: python_number(dot(r, other)), obj))
 
     def norm(self):
         """Calculates the norm (distance from origin) of a vector"""
 
-        obj = self if len(self) == 1 else self.transpose()
-
-        if isinstance(obj[0], list):
-            if len(obj) > 1:
-                raise ValueError(f"operation incompatible with matrix of dimension {len(self)}x{len(self[0])}")
-            obj = obj[0]
+        if row_vector(self):
+            obj = self
+        elif row_vector(self[0]):
+            obj = self[0]
+        elif row_vector(T := self.transpose()[0]):
+            obj = T
+        else:
+            raise ValueError(f"operation incompatible with object of dimension {len(self)}x{len(self[0])}")
 
         return sqrt(sum(map(lambda a: pow(a, 2), obj)))
 
@@ -1041,7 +1069,7 @@ class Matrix:
         vector_pairs = combinations(vectors, 2)
 
         for pair in vector_pairs:
-            if Matrix.inner_prod(pair[0], pair[1]) != 0:
+            if Matrix.inner(pair[0], pair[1]) != 0:
                 return False
         return True
 
@@ -1052,31 +1080,31 @@ class Matrix:
         matrix = self.transpose()
 
         if len(matrix[0]) == len(basis):
-            basis = basis.transpose_obj()
+            basis = list(transpose_obj(basis))
 
         coord = []
         for i in range(len(matrix)):
             coord.append([])
             for j in range(len(basis)):
-                coord[i].append(Matrix.inner_prod(matrix[i], basis[j]))
-        return Matrix(array=coord).transpose()
+                coord[i].append(Matrix.inner(matrix[i], basis[j]))
+        return self.construct(coord, *self.attr).transpose()
 
     def orthonormalize(self, steps=False):
         """Computes the orthonormal basis of a given basis using the Gram-Schmidt process. Assumes input
         basis is matrix of column vectors."""
 
-        matrix = self.transpose()
+        array = self.transpose()
 
-        length = len(matrix[0])
+        length = len(array[0])
 
-        norm = Matrix.norm(matrix[0])
-        e1 = matrix[0] / norm
+        norm = Matrix.norm(array[0])
+        e1 = array[0] / norm
         basis = [e1]
         if steps:
 
             # print statement to provide spacing for readability
             print()
-            e1_str = str(FractionMatrix(Matrix(matrix[0]).transpose())).split('\n')
+            e1_str = str(FractionMatrix(matrix(array[0]).transpose())).split('\n')
             for j in range(length):
                 if j == length // 2:
                     line = f'e1 = {fraction(1 / norm)} * '
@@ -1087,10 +1115,10 @@ class Matrix:
 
             # print statement to provide spacing for readability
             print()
-        for i, v in enumerate(matrix[1:]):
+        for i, v in enumerate(array[1:]):
 
             # E is the sum of each already found orthonormal basis vector and its product with v
-            E = sum(map(lambda e: Matrix.inner_prod(v, e) * e, basis))
+            E = sum(map(lambda e: Matrix.inner(v, e) * e, basis))
 
             # e_i_0 is the new basis vector that is orthogonal to all other basis vectors, but not currently
             # orthonormal, since it still must be divided by its norm
@@ -1101,13 +1129,13 @@ class Matrix:
                 print()
 
                 # list of each line of string for vector v
-                v_str = str(FractionMatrix(Matrix(v).transpose())).split('\n')
+                v_str = str(FractionMatrix(matrix(v).transpose())).split('\n')
 
                 # list of each dot product between v and each basis vector
-                dot_str = list(map(lambda e: fraction(Matrix.inner_prod(v, e)), basis))
+                dot_str = list(map(lambda e: fraction(Matrix.inner(v, e)), basis))
 
                 # list of each line of string for each basis vector e
-                basis_str = list(map(lambda e: str(FractionMatrix(Matrix(e).transpose())).split('\n'), basis))
+                basis_str = list(map(lambda e: str(FractionMatrix(matrix(e).transpose())).split('\n'), basis))
                 for j in range(length):
                     if j == length // 2:
                         line = f'e{i + 2}`= ' + v_str[j]
@@ -1141,13 +1169,13 @@ class Matrix:
                         line = ' ' * 5 + v_str[j] + ' ' * 4
                     if j < length - 1:
                         line += ' '
-                    sum_str = str(FractionMatrix(Matrix(E).transpose())).split('\n')
+                    sum_str = str(FractionMatrix(matrix(E).transpose())).split('\n')
                     line += sum_str[j]
                     print(line)
 
                 # print statement to provide spacing for readability
                 print('\n')
-                result = str(FractionMatrix(Matrix(e_i_0).transpose())).split('\n')
+                result = str(FractionMatrix(matrix(e_i_0).transpose())).split('\n')
                 for j in range(length):
                     if j == length // 2:
                         line = f'e{i + 2} = {fraction(1 / norm)} * '
@@ -1166,7 +1194,7 @@ class Matrix:
         for i in range(len(basis)):
             basis[i] = list(basis[i])
 
-        ortho_basis = Matrix(basis).transpose()
+        ortho_basis = matrix(basis).transpose()
 
         if steps:
             print('\n' + str(FractionMatrix(ortho_basis)) + '\n')
@@ -1197,15 +1225,35 @@ class Matrix:
         return list(map(
             lambda e: int(e) if isinstance(e, float) and e.is_integer else e, map(
                 lambda e: float(e) if im(e) == 0 else complex(e), solve(
-                    (self - Matrix(rows=len(self), identity=x)).minor(), x)
-                )
-            )  # inner map converts each root of solve into float if not complex
+                    self.char_poly(sym=x), x)
+            )
+        )  # inner map converts each root of solve into float if not complex
         )  # outer map converts each element of list into int if possible
 
-    def minor(self, index=None):
-        """Computes the minor of each sub-matrix of instance matrix. Effectively computes determinant, except
-        if index is given, in which case just the minor of that index is computed.
-        Use matrix.det() unless solving for system of equations with sympy.Symbol
+    def eigvec(self, eigvals=None):
+        if len(self) != len(self[0]):
+            raise AttributeError(f"operation unsupported for non-square matrices")
+
+        if eigvals is None:
+            eigvals = self.eigvals()
+
+        vectors = []
+        I = matrix(rows=len(self), cols=len(self), diag=1)
+        for e in eigvals:
+            mat = self - (I * e)
+            kern = mat.kernel().transpose()
+            for v in kern:
+                vectors.append(v)
+        return self.construct(vectors, *self.attr).transpose()
+
+    def minor(self, idx=None):
+        """
+        Computes the determinant of instance matrix if no index given. If index given,
+        computes the minor A1,index (referring to the resulting matrix after removing
+        row 1 and column index) multiplied against the value of A[0][index] with the
+        correct sign (negative if index is even [when start counting at 1] otherwise
+        positive). Use A.det() for calculating determinant for efficiency, unless specific
+        minors or solving for sympy.Symbol is required.
 
         Examples
         --------
@@ -1230,6 +1278,7 @@ class Matrix:
         Notes
         -----
         in the first example, 'x' is a sympy.Symbol and the solution given is solvable using sympy.solve()
+
         in the last two examples, A.minor(1) computes the A[0, 1] * determinant of A1,2 (A with row 1 and column 2
         removed, start counting at 1) while B.det() computes the determinant of B, which is A1,2. Since the sign
         of the minor alternates, A.minor(1) returns -3 * -1 * det(A1,2) = -3 * -1 * B.det() = 27
@@ -1239,14 +1288,30 @@ class Matrix:
             return self[0][0] * self[1][1] - self[1][0] * self[0][1]
 
         det = 0
-        if isinstance(index, int):
-            return pow(-1, index) * self[0][index] * self.remove_row(
-                0, copy=True).remove_column(index, copy=True).minor()
+        if isinstance(idx, int):
+            return pow(-1, idx) * self[0][idx] * self.remove_row(0, copy=True).remove_column(idx, copy=True).minor()
+
         sign = 1
         for j in range(len(self[0])):
             det += sign * self[0][j] * self.remove_row(0, copy=True).remove_column(j, copy=True).minor()
             sign *= -1
+
+        if isinstance(det, float):
+            return round(det) if abs(det - round(det)) < pow(10, -8) else det  # if essentially integer, return int
         return det
+
+    def char_poly(self, sym='x'):
+        """Computes the characteristic polynomial of a square matrix. Analogous
+        to A.minor() for A = instance-matrix - Identity * x, for some variable x
+        [typically x = sympy.Symbol('x')]."""
+
+        assert_square(self)
+        if not isinstance(sym, Symbol):
+            sym = Symbol(sym)
+        size = range(len(self))
+        return self.construct(
+            list(map(lambda i: Array(map(lambda j: self[i][j] - sym if i == j else self[i][j], size)), size))
+        ).minor()
 
     def cross(self):
         """Given a list of n-1 vectors each of length n, returns 1 vector of length n that is
@@ -1258,16 +1323,336 @@ class Matrix:
         return Array(map(lambda i: pow(-1, i) * matrix.remove_column(i, copy=True).minor(), range(len(matrix[0]))))
 
     def det(self):
-        if len(self) != len(self[0]):
-            raise AttributeError(f"operation unsupported for non-square matrices")
-
         return python_number(np_det(np_array(self.tolist())))  # using numpy's det function for efficiency
+
+    def kernel(self):
+        """Computes the basis of the kernel for the given matrix."""
+
+        if self.augmented:
+            raise AttributeError(f"kernel computation uses implied set of solutions and does not support "
+                                 f"augmented coefficient matrices")
+
+        size = len(self)  # get number of rows
+        array = self.copy() if self.is_rref() else self.rref()
+        for j in range(l := len(self[0])):  # this loop appends identity matrix to bottom of instance matrix
+            row = Array([0] * l)
+            row[j] = 1
+            array.append(row)
+
+        array = array.transpose()
+
+        pivot_row = 0  # first pivot belongs in first row
+
+        for j in range(size):  # iterate only over current matrix, not attached identity matri
+
+            # start at looking for pivot after previous pivot row
+            for i in range(pivot_row, len(array)):
+
+                # if non-zero element, this row can become pivot row
+                if array[i][j] != 0:
+
+                    # make j'th element the pivot, reducing rest of row as well
+                    array[i].make_pivot(j)
+                    if i > pivot_row:  # if pivot row not already in correct position, swap
+                        array[i], array[pivot_row] = array[pivot_row][:], array[i][:]
+
+                    array.row_reduce(pivot_row, j)  # row reduce everything else
+                    pivot_row += 1
+
+        array, kern = array.separate(size)  # separates original matrix from now modified identity matrix
+        basis = Matrix([])
+
+        for i, row in enumerate(array):
+            if row.contains_only(0):  # all null rows in original matrix correspond to basis vector for kernel
+                basis.append(kern[i])
+
+        return basis.transpose()  # basis is list of rows, transpose into standard of column vectors
+
+
+class ModularMatrix(Matrix):
+    def __init__(self, array, mod, aug=False):
+        self.mod = mod
+        super().__init__(array, aug)
+        self.attr = [self.mod] + self.attr
+
+    def __repr__(self):
+        return f"{__class__.__name__}({self.tolist()}, {self.mod}, aug={self.augmented})"
+
+    @staticmethod
+    def matmul(obj1, obj2):
+
+        mod = obj1.mod if isinstance(obj1, ModularMatrix) else obj2.mod
+        # attempts to transpose using built in methods, manually performs if no method exists
+        transpose = getattr(obj2, 'transpose', None)
+        if transpose is None:
+            T = list(transpose_obj(obj2))
+        else:
+            T = transpose()
+        return ModularMatrix(list(map(lambda r: ArrayMod(map(lambda c: dot(c, r), T), mod), obj1)), mod)
+
+    def _transpose_obj(self, obj):
+        return list(map(lambda i: ArrayMod(map(lambda r: r[i], obj), self.mod), range(len(obj[0]))))
+
+    def _fraction(self):
+        pass
+
+    def append(self, row):
+        if any(isinstance(e, (list, Array, ndarray)) for e in row):
+            raise ValueError(f"operation unsupported for non-flat arrays. given: {repr(row)}")
+        if self.array and len(row) != len(self[0]):
+            raise ValueError(f"array length of {len(row)} incompatible with matrix of width {len(self[0])}")
+
+        if isinstance(row, (ndarray, Matrix)):
+            row = row.tolist()
+
+        if isinstance(row, list):
+            row = ArrayMod(row, self.mod)
+
+        if isinstance(row, ArrayMod) and not self.array:
+            self.array.append(row)
+        elif isinstance(row, ArrayMod) and len(row) == len(self[0]) and row.mod == self.mod:
+            self.array.append(row)
+        else:
+            raise TypeError(f"argument {repr(row)} invalid for Matrix.append()")
+
+    def invert(self):
+        raise AttributeError(f"{__class__.__name__} does not currently support inversion")
+
+    def transpose(self):
+        if not self.array:
+            return self.construct([], *self.attr)
+
+        # maps indices of columns to inner map that returns the value at that index for each row
+        return self.construct(
+            list(map(lambda i: ArrayMod(map(lambda r: r[i], self), self.mod), range(len(self[0])))), *self.attr
+        )
+
+    def rref(self):
+        matrix = self[:]  # deep copy
+
+        adjust = 1 if self.augmented else 0  # if augmented don't reduce last column
+
+        pivot_row = 0  # first pivot belongs in first row
+        for j in range(len(self[0]) - adjust):
+
+            # start at looking for pivot after previous pivot row
+            for i in range(pivot_row, len(self)):
+
+                # if non-zero element, this row can become pivot row
+                if matrix[i][j] != 0 and (res := matrix[i].make_pivot(j, copy=True)):
+
+                    # make j'th element the pivot, reducing rest of row as well
+                    matrix[i] = res
+
+                    if i > pivot_row:  # if pivot row not already in correct position, swap
+                        matrix[i], matrix[pivot_row] = matrix[pivot_row][:], matrix[i][:]
+
+                    matrix.row_reduce(pivot_row, j)  # row reduce everything else
+
+                    pivot_row += 1
+
+        return matrix
+
+    def orthonormalize(self, steps=False):
+        pass
+
+    def eigvals(self):
+        pass
+
+    def cross(self):
+        pass
+
+    def kernel(self):
+        if self.augmented:
+            raise AttributeError(f"kernel computation uses implied set of solutions and does not support "
+                                 f"augmented coefficient matrices")
+
+        size = len(self)  # get number of rows
+        array = self.copy() if self.is_rref() else self.rref()
+        for j in range(l := len(self[0])):  # this loop appends identity matrix to bottom of instance matrix
+            row = ArrayMod([0] * l, self.mod)
+            row[j] = 1
+            array.append(row)
+
+        array = array.transpose()
+        pivot_row = 0  # first pivot belongs in first row
+        for j in range(size):
+
+            # start at looking for pivot after previous pivot row
+            for i in range(pivot_row, len(array)):
+
+                # if non-zero element, this row can become pivot row
+                if array[i][j] != 0 and (res := array[i].make_pivot(j, copy=True)):
+
+                    # make j'th element the pivot, reducing rest of row as well
+                    array[i] = res
+
+                    if i > pivot_row:  # if pivot row not already in correct position, swap
+                        array[i], array[pivot_row] = array[pivot_row][:], array[i][:]
+
+                    array.row_reduce(pivot_row, j)  # row reduce everything else
+
+                    pivot_row += 1
+
+        mat, kern = array.separate(size)  # separates original matrix from now modified identity matrix
+
+        if not mat.is_rref():
+            print(array.transpose())
+            raise ValueError(f"computation of kernel failed because matrix could not be properly row reduced. "
+                             f"above is result of attempted row reduction")
+
+        basis = ModularMatrix([], self.mod)
+
+        for i, row in enumerate(mat):
+            if row.contains_only(0):  # all null rows in original matrix correspond to basis vector for kernel
+                basis.append(kern[i])
+
+        return basis.transpose()  # basis is list of rows, transpose into standard of column vectors
+
+
+class BinaryMatrix(ModularMatrix):
+    def __init__(self, array, aug=False):
+        super().__init__(array, 2, aug)
+        self.attr = [aug]
+
+    @staticmethod
+    def matmul(obj1, obj2):
+        mod = obj1.mod if isinstance(obj1, ModularMatrix) else obj2.mod
+        # attempts to transpose using built in methods, manually performs if no method exists
+        transpose = getattr(obj2, 'transpose', None)
+        if transpose is None:
+            T = list(transpose_obj(obj2))
+        else:
+            T = transpose()
+        if isinstance(obj2, ModularMatrix):
+            return ModularMatrix(list(map(lambda r: ArrayMod(map(lambda c: dot(c, r), T), mod), obj1)), obj2.mod)
+        if isinstance(obj2, Matrix):
+            return Matrix(list(map(lambda r: Array(map(lambda c: dot(c, r), T)), obj1)))
+        return BinaryMatrix(list(map(lambda r: ArrayMod(map(lambda c: dot(c, r), T), mod), obj1)))
+
+    def union(self, other):
+        """Returns the logical union of two binary matrices.
+
+        If this operation is needed with non-matrix objects, use set.union(A, B)"""
+
+        if not is_binary_matrix(self) and not is_binary_matrix(other):
+            raise AttributeError(f"union between {repr(self)} and {repr(other)} is unsupported")
+        if len(self) != len(other) or len(self[0]) != len(other[0]):
+            raise AttributeError(f"operation unsupported for objects with dimensions {len(self)}x{len(self[0])} "
+                                 f"and {len(other)}x{len(other[0])}")
+        return BinaryMatrix(list(map(lambda r1, r2: ArrayMod(map(lambda e1, e2: e1 ^ e2, r1, r2), 2), self, other)))
+
+    def intersection(self, other):
+        """Returns the logical intersection of two binary matrices.
+
+        If this operation is needed with non-Matrix objects, use set.intersection(A, B)"""
+
+        if not is_binary_matrix(self) and not is_binary_matrix(other):
+            raise AttributeError(f"union between {repr(self)} and {repr(other)} is unsupported")
+        if len(self) != len(other) or len(self[0]) != len(other[0]):
+            raise AttributeError(f"operation unsupported for objects with dimensions {len(self)}x{len(self[0])} "
+                                 f"and {len(other)}x{len(other[0])}")
+
+        return BinaryMatrix(list(map(lambda r1, r2: ArrayMod(map(lambda e1, e2: e1 & e2, r1, r2), 2), self, other)))
+
+    def disjunction(self, other):
+        """Returns the logical intersection of two binary matrices.
+
+        If this operation is needed with non-Matrix objects, use set(A) - set(B)"""
+
+        if not is_binary_matrix(self) and not is_binary_matrix(other):
+            raise AttributeError(f"union between {repr(self)} and {repr(other)} is unsupported")
+        if len(self) != len(other) or len(self[0]) != len(other[0]):
+            raise AttributeError(f"operation unsupported for objects with dimensions {len(self)}x{len(self[0])} "
+                                 f"and {len(other)}x{len(other[0])}")
+
+        return BinaryMatrix(list(map(lambda r1, r2: ArrayMod(map(lambda e1, e2: e1 | e2, r1, r2), 2), self, other)))
+
+    def binary_inverse(self):
+        """Returns the negative image of a binary matrix"""
+
+        if not is_binary_matrix(self):
+            raise AttributeError(f"binary inverse unsupported for {repr(self)}")
+
+        return BinaryMatrix(list(map(lambda r: ArrayMod(map(lambda e: e + 1, r), 2), self)))
+
+    def row_reduce(self, row, col):
+        for i in range(len(self)):
+            if self[i][col] == 1 and i != row:
+                self[i] += self[row]
+
+    def rref(self):
+        matrix = self[:]  # deep copy
+
+        adjust = 1 if self.augmented else 0  # if augmented don't reduce last column
+
+        pivot_row = 0  # first pivot belongs in first row
+        for j in range(len(self[0]) - adjust):
+
+            # start at looking for pivot after previous pivot row
+            for i in range(pivot_row, len(self)):
+
+                # if non-zero element, this row can become pivot row
+                if matrix[i][j] == 1:
+
+                    if i > pivot_row:  # if pivot row not already in correct position, swap
+                        matrix[i], matrix[pivot_row] = matrix[pivot_row][:], matrix[i][:]
+
+                    matrix.row_reduce(pivot_row, j)  # row reduce everything else
+
+                    pivot_row += 1
+
+        return matrix
+
+    def kernel(self):
+        if self.augmented:
+            raise AttributeError(f"kernel computation uses implied set of solutions and does not support "
+                                 f"augmented coefficient matrices")
+
+        size = len(self)  # get number of rows
+        array = self.copy()
+        for j in range(l := len(self[0])):  # this loop appends identity matrix to bottom of instance matrix
+            row = ArrayMod([0] * l, 2)
+            row[j] = 1
+            array.append(row)
+
+        array = array.transpose()
+        pivot_row = 0  # first pivot belongs in first row
+        for j in range(size):
+
+            # start at looking for pivot after previous pivot row
+            for i in range(pivot_row, len(array)):
+
+                # if non-zero element, this row can become pivot row
+                if array[i][j] == 1:
+
+                    if i > pivot_row:  # if pivot row not already in correct position, swap
+                        array[i], array[pivot_row] = array[pivot_row][:], array[i][:]
+
+                    array.row_reduce(pivot_row, j)  # row reduce everything else
+
+                    pivot_row += 1
+
+        mat, kern = array.separate(size)  # separates original matrix from now modified identity matrix
+
+        if not mat.is_rref():
+            print(array.transpose())
+            raise ValueError(f"computation of kernel failed because matrix could not be properly row reduced. "
+                             f"above is result of attempted row reduction")
+
+        basis = BinaryMatrix([])
+
+        for i, row in enumerate(mat):
+            if row.contains_only(0):  # all null rows in original matrix correspond to basis vector for kernel
+                basis.append(kern[i])
+
+        return basis.transpose()  # basis is list of rows, transpose into standard of column vectors
 
 
 # this class is used just for printing matrices with fractions instead of floats, no mathematical
 # operations can be performed with this class currently
 class FractionMatrix:
-    def __init__(self, array):
+    def __init__(self, array, limit=75):
 
         # attempts to convert each number into a fraction before adding to matrix
         fraction_matrix = []
@@ -1278,7 +1663,7 @@ class FractionMatrix:
                 if isinstance(e, int) or (isinstance(e, float) and e.is_integer()):
                     fraction_matrix[i].append(str(int(e)))
                 else:
-                    fraction_matrix[i].append(fraction(e))
+                    fraction_matrix[i].append(fraction(e, limit))
         self.array = fraction_matrix
 
     def __str__(self):

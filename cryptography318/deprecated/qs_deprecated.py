@@ -1,137 +1,69 @@
-from math import sqrt, log, gcd, prod, isqrt
-from itertools import combinations
-from .linear_algebra import Matrix
-from .tools import join_dict, deprecated
-from .prime import IsPrime, PrimesLT, PrimesLT_gen
 
+@deprecated
+def __factor_perfect_square(n, B=7):
+    """Attempts a similar attack to quadratic sieve, finding B-smooth perfect squares in an attempt
+    to find a multiple of n. Function written for learning purposes, if trying to factor integer, using
+    FactorInt."""
 
-def quadratic_sieve(n, B=None):
-    """Performs the single polynomial quadratic sieve.
-    Attempts to factor given integer n through finding B-smooth perfect square solutions to the
-    quadratic function a^2 - n for √n < a with the goal of finding a solution that allows a multiple
-    of a factor n to be found, thus allowing the gcd(solution, n) to yield a non-trivial solution.
+    from itertools import combinations_with_replacement as _all
 
-    :param n: integer to be factored
-    :param B: required smoothness of solution (all factors of solution have to be <= B), it is recommended to leave
-    this value at its default
-    :return: dictionary of all prime factors of n and their powers, or None if n not-factorable"""
+    m = prime_pi(B)
+    b_smooth_nums = []
+    squared_nums = {}
+    a = isqrt(n) - 1
+    while len(b_smooth_nums) < m:
+        ci = pow(a, 2, n)
+        if b_smooth(ci, B):
+            b_smooth_nums.append(ci)
+            squared_nums[ci] = a
+        a += 1
 
-    from math import e
+    ci_factors = {}
+    factor_base = primes_lt(B)
+    mat = []
+    for num in b_smooth_nums:
+        ci = num
+        exp = []
+        for p in factor_base:
+            count = 0
+            while num % p == 0:
+                num //= p
+                count += 1
+            exp.append(count)
+        ci_factors[ci] = exp
+        mat.append(exp)
 
-    if n == 1:
-        return {}
+    for c in range(2, len(mat)):
+        possible = list(map(list, list(_all(mat, c))))
+        for comb in possible:
+            acc = comb[0][:]
+            perfect_2 = True
 
-    if IsPrime(n):
-        return {n: 1}
+            for i in range(1, len(comb)):
+                for j in range(len(acc)):
+                    acc[j] += comb[i][j]
+            for j in acc:
+                if j % 2 != 0:
+                    perfect_2 = False
 
-    if pow(isqrt(n), 2) == n:
-        return {isqrt(n): 2}
+            if not perfect_2:
+                continue
+            a, b = 1, 1
+            for num in b_smooth_nums:
+                choice = ci_factors[num]
+                if choice in comb:
+                    a *= squared_nums[num]
+            for k in range(len(acc)):
+                b *= pow(factor_base[k], acc[k] // 2)
 
-    if B is None:
-        L = pow(e, sqrt(log(n) * log(log(n))))
-        B = int(pow(L, 1 / sqrt(2)))
-
-    primes = PrimesLT(B)
-
-    bases, squares, exp = find_perfect_squares(n, primes)
-
-    matrix = Matrix(array=exp, mod=2, dtype=list)
-
-    # transposed matrix in rref mod 2
-    m = gaussian_elimination_mod(matrix)
-
-    # basis for kernel, given as dictionary with keys as column indices of free variables, values as
-    # basis (or iterations of basis depending on null columns) for the given variable
-    basis = kernel(m)
-
-    zero_vector = [0] * len(primes)
-    for c in basis:
-        for vector in basis[c]:
-            a = 1
-            e = [*zero_vector]
-            for j in range(len(vector)):
-
-                # at all locations where this vector is 1, signifies adding that row to the total
-                if vector[j] == 1:
-                    e = map(lambda x, y: x + y, e, exp[j])
-                    a *= bases[j]
-
-            # reduces exponent list // 2, effectively taking square root
-            e = map(lambda x: x // 2, e)
-
-            # evaluates exponent with list of primes
-            b = exp_value(e, primes=primes)
-            p, q = gcd(a + b, n), gcd(a - b, n)
-
-            # if one solution is non-trivial factor, _factor_with_known will take care of the rest
+            p, q = gcd(a - b, n), gcd(a + b, n)
             if 1 < p < n or 1 < q < n:
                 return _factor_with_known(p, q, n)
 
-    # this return statement should never hit, if it does consider adding more rows to matrix in function find_perf_sq
-    return None
+    return False
 
 
-def exp_value(exp, p=None, primes=None):
-    """Calculates the value of a list of powers of primes. If only p is given, assumes list of primes to be
-    from 2 to largest prime <= p. If list of exponents does not match the powers of the continuous ascending
-    list of primes, this will compute incorrectly."""
-
-    if p is None and primes is None:
-        raise ValueError("Either a limit or a list of primes must be given")
-
-    primes = PrimesLT_gen(p) if primes is None else primes
-
-    # raises each prime to the corresponding power in list exp, then reduces that list with multiplication
-    return prod([pow(p, e) for p, e in zip(primes, exp)])
-
-
-def factor_if_smooth(n, primes):
-    """Helper function for quadratic sieve that returns factors of n if n can be factored
-    only by list of given primes, returning None otherwise."""
-
-    exp = [0] * len(primes)
-
-    for i, p in enumerate(primes):
-        while n % p == 0:
-            n //= p
-            exp[i] += 1
-
-    return exp if n == 1 else None
-
-
-def find_perfect_squares(n, primes):
-    """Helper function for Quadratic Sieve that generates N = len(primes) integers that minus p are perfect squares
-    and are also B-smooth.
-
-    :param n: int
-    :param primes: list of primes
-    :return: tuple of perfect squares"""
-
-    # attempt to not have to generate a lot of extra rows for smaller n, tweak this
-    extra_rows = 1 + len(primes) // 10 if len(primes) > 8 else 0
-
-    a = isqrt(n) + 1
-
-    i = 0
-    perfect_sq_base = []
-    perfect_sq = []
-    perfect_sq_exp = []
-
-    # finds + extra_rows so that resulting matrix will have more rows than columns which increases the chances of each
-    # row being linearly dependent mod 2
-    while i < len(primes) + extra_rows:
-        b = pow(a, 2) - n
-        factors = factor_if_smooth(b, primes)
-        if factors is not None:
-            perfect_sq_base.append(a)
-            perfect_sq.append(b)
-            perfect_sq_exp.append(factors)
-            i += 1
-        a += 1
-
-    return perfect_sq_base, perfect_sq, perfect_sq_exp
-
-
+@deprecated
 def gaussian_elimination_mod(matrix):
     """Performs Gaussian elimination mod 2 over a matrix.
 
@@ -167,6 +99,7 @@ def gaussian_elimination_mod(matrix):
     return m
 
 
+@deprecated
 def kernel(matrix):
     """Finds the basis of the kernel of a binary matrix. Intended as helper function for quadratic sieve algorithm.
     Assumes input matrix is in rref, has no null-rows, and is over the field Z-2 (field of integers mod 2).
@@ -226,6 +159,7 @@ def kernel(matrix):
     return kernel_basis
 
 
+@deprecated
 def _factor_with_known(p, q, n):
     """Helper function for all integer factoring functions, which further factors integer given known factors.
 
@@ -257,7 +191,7 @@ def _factor_with_known(p, q, n):
 
     if n == 1:
         return factors
-    if IsPrime(n):
+    if is_prime(n):
         return join_dict(factors, {n: 1})
 
     more_factors = quadratic_sieve(n)
@@ -275,14 +209,14 @@ def __quadratic_sieve1(n, B=None):
         L = pow(e, sqrt(log(n) * log(log(n))))
         B = int(pow(L, 1 / sqrt(2))) + 10
     print(f"B: {B}")
-    primes = PrimesLT(B)
+    primes = primes_lt(B)
 
     bases, squares, exp = find_perfect_squares(n, primes)
 
     # print(exp)
     # print("matrix: ")
 
-    matrix = Matrix(exp, mod=2)
+    matrix = None
 
     # print(matrix)
     # print("break")

@@ -159,6 +159,29 @@ def test_div():
         assert list_equals(n1 / n2, a1 / a2)
         assert list_equals(n1 // n2, a1 // a2)
 
+    a = ArrayMod([2, 4, 6, 8, 10], 12)
+    assert (k := a // 2) == [1, 2, 3, 4, 5] and k.mod == 12
+    assert (k := a / 2) == [1, 2, 3, 4, 5] and k.mod == 6
+
+    with pytest.raises(ValueError) as exc_info:
+        a // 4
+    assert "does not divide" in str(exc_info.value)
+
+    a = ArrayMod([2, 4, 6, 8, 10], 14)
+
+    # can divide because row divisible by 2, then whats left to divide by is 3 which is invertible mod 14, so
+    # whole process looks like dividing row by 2, then multiplying row by pow(3, -1, 14)
+    assert (k := a // 6) == [5, 10, 1, 6, 11] and k.mod == 14
+
+    a = ArrayMod([2, 4, 6, 8, 10], 11)
+    assert (k := a // 2) == [1, 2, 3, 4, 5] and k.mod == 11
+
+    with pytest.raises(ValueError) as exc_info:
+        a / 2
+    assert "not divisible" in str(exc_info.value)
+
+    assert (k := a // 3) == [8, 5, 2, 10, 7] and k.mod == 11
+
 
 def test_pow_mod():
     a = Array([1, 2, 3])
@@ -176,12 +199,12 @@ def test_make_pivot():
     a = Array([1, 2, 3, 4])
     b = Array([4, 3, 2, 1])
 
-    assert a.make_pivot() == [1, 2, 3, 4]
-    assert a.make_pivot(index=1) == [.5, 1, 1.5, 2]
-    assert b.make_pivot() == [1, .75, .5, .25]
+    assert a.make_pivot(copy=True) == [1, 2, 3, 4]
+    assert a.make_pivot(index=1, copy=True) == [.5, 1, 1.5, 2]
+    assert b.make_pivot(copy=True) == [1, .75, .5, .25]
 
     c = Array([4, 1, 5, 1, 2, 9])
-    print(c.make_pivot(2))
+    # print(c.make_pivot(2, copy=True))
 
 
 def test_where():
@@ -235,3 +258,10 @@ if __name__ == '__main__':
     test_copy()
     test_shift()
     test_shift()
+    a = ArrayMod([2, 4, 6, 8, 12], mod=14)
+    g = gcd(*a.array)
+    pivot = lambda arr: reduce(lambda i, c: c if (
+                    gcd(c, arr.mod) == 1 or (g > 1 and gcd(c//g, arr.mod) == 1)
+            ) else i, arr.array[::-1], False)
+    print(p := pivot(a))
+    print(a // p)

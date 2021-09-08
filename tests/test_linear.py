@@ -73,7 +73,7 @@ def test_inner_product():
     # works with two column vectors
     m = Matrix([[1, 2, 3]]).transpose()
     a = numpy.array([[1, 2, 3]]).transpose()
-    r = m.inner_prod(a)
+    r = m.inner(a)
     assert r == 14
 
     # works with one column vector and one row vector

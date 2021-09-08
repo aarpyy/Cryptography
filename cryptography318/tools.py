@@ -2,9 +2,11 @@
 
 from warnings import warn, simplefilter
 from functools import wraps, reduce
-from math import sqrt
-import numpy
-from sympy import Symbol, evalf, re, im
+from math import sqrt, gcd
+from numpy import int16, int32, int64, float16, float32, float64
+from fractions import Fraction
+from numbers import Complex, Rational
+from typing import SupportsRound
 
 
 def deprecated(func):
@@ -33,6 +35,8 @@ def string_reduce(n):
     """Reduces numbers in string form to shortest possible number for printing as matrix. Numbers
     are reduces such that floats with no floating point value are printed as integers and 0's with
     a negative prefix lose the prefix (ex. 2.0 would return as 2, but 2.01 would return as 2.01)"""
+    if not isinstance(n, SupportsRound) or isinstance(n, (complex, Fraction)):
+        return str(n)
 
     n = python_number(round(n, 3))
 
@@ -43,7 +47,10 @@ def string_reduce(n):
     return str(n)
 
 
-def append_and_return(obj, item):
+def r_append(obj: list, item) -> list:
+    """Appends item to object and returns object. Helper function for lambda's
+    involving appending."""
+
     obj.append(item)
     return obj
 
@@ -67,7 +74,7 @@ def join_dict(*args: dict) -> dict:
     return reduce(lambda a, b: update(a, b) if not any(k in b for k in a) else join(a, b), args)
 
 
-def replace_all(string, values, replace=''):
+def replace_all(string: str, values: str, replace: str = '') -> str:
     """Replaces all instances of items from string values with string replace, default is to remove all items
     from values."""
 
@@ -114,9 +121,9 @@ def python_number(number):
     if isinstance(number, int):
         return number
 
-    if isinstance(number, (numpy.float16, numpy.float32, numpy.float64)):
+    if isinstance(number, (float16, float32, float64)):
         number = float(number)
-    elif isinstance(number, (numpy.int16, numpy.int32, numpy.int64)):
+    elif isinstance(number, (int16, int32, int64)):
         number = int(number)
     if isinstance(number, float) and number.is_integer():
         return int(number)
@@ -124,9 +131,23 @@ def python_number(number):
 
 
 def isnumber(obj):
-    types = (int, float, numpy.int16, numpy.int32, numpy.int64, numpy.float16,
-             numpy.float32, numpy.float64)
+    types = (int, float, int16, int32, int64, float16,
+             float32, float64, Fraction)
     return isinstance(obj, types)
+
+
+def number_to_integer(number):
+    """Converts non-integer number into integer if it is integer-valued, otherwise
+    returns the original value."""
+    if isinstance(number, int):
+        return number
+    if isinstance(number, Complex) and number.imag == 0:
+        number = number.real
+    if isinstance(number, float) and number.is_integer():
+        return int(number)
+    if isinstance(number, Rational) and number.denominator == 1:
+        return int(number.numerator)
+    return number
 
 
 def fraction(n, limit=75):
@@ -135,18 +156,38 @@ def fraction(n, limit=75):
 
     n = python_number(n)
 
+    if isinstance(n, int) or (isinstance(n, float) and n.is_integer()):
+        return str(n)
+
     for i in range(2, limit):
         x = round(n * i, 5)
         y = round(n * sqrt(i), 5)
+
         if isinstance(x, float) and x.is_integer():
             x = int(x)
         if isinstance(y, float) and y.is_integer():
             y = int(y)
+
         if isinstance(x, int):
+            if x == 0:
+                return '0'
             return f'{x}/{i}'
         if isinstance(y, int):
+            if y == 0:
+                return '0'
             return f'{y}/sqrt({i})'
+
     return string_reduce(n)
+
+
+def lcm(*args):
+
+    def _lcm(a, b):
+        g = gcd(a, b)
+        x = a // g
+        return x * b
+
+    return reduce(lambda i, c: _lcm(i, c), args)
 
 
 def evaluate(obj):
@@ -165,7 +206,7 @@ def dot(obj, other, mod=None):
     """Equivalent of numpy.dot, accepts Matrix object as argument."""
 
     if len(obj) != len(other):
-        raise ValueError(f"Unable to take product of two arrays of different length")
-    if mod is not None:
+        raise ValueError(f"unable to take product of two arrays of different length")
+    if isinstance(mod, int):
         return reduce(lambda a, b: (a + b) % mod, map(lambda x, y: (x * y) % mod, obj, other))
     return sum(map(lambda x, y: x * y, obj, other))

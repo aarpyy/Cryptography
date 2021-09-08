@@ -1553,7 +1553,7 @@ class Matrix:
         matrix = self.transpose()
 
         if len(matrix[0]) == len(basis):
-            basis = basis.transpose_obj()
+            basis = basis.transpose()
 
         coord = []
         for i in range(len(matrix)):
@@ -1815,7 +1815,7 @@ class LinearMap(Matrix):
         """Constructs Linear Map with respect to an orthonormal basis given."""
 
         if len(basis) == len(self[0]):
-            basis = basis.transpose_obj()
+            basis = basis.transpose()
 
         ortho_map = []
         for i in range(l := len(basis)):

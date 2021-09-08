@@ -1,6 +1,7 @@
-from cryptography318.crypto_functions import __factor_perfect_square, pollard_rho_dlp
+from cryptography318.crypto_functions import pollard_rho_dlp
 from cryptography318.prime import *
 from cryptography318.crypto_functions import *
+from cryptography318.crypto_functions import _factor_with_known
 from cryptography318.linear_algebra import *
 from cryptography318.quadratic_sieve import *
 from math import prod
@@ -8,15 +9,6 @@ import time
 import timeit
 import pytest
 import numpy
-
-
-@pytest.mark.skip
-def test_factor_perfect_square():
-    factors = __factor_perfect_square(198103, B=20)
-    n = 1
-    for f in factors:
-        n *= pow(f, factors[f])
-    assert n == 198103
 
 
 @pytest.mark.skip
@@ -84,3 +76,35 @@ def test_b_smooth():
 
 if __name__ == '__main__':
     test_b_smooth()
+    # n = randprime(pow(10, 4), pow(10, 6)) + 2
+    n = 888135
+
+    # print(f"n: {n}")
+    # factors = quadratic_sieve(n, force=20)
+    factors = {5: 1, 177627: 3, 16: 2}
+
+    final = reduce(
+        lambda i, c: join_dict(i, reduce(
+            lambda a, b: join_dict(a, {b: k[b] * factors[c]}), k := factor(c), {}
+        )) if not isprime(c) else join_dict(i, {c: factors[c]}), factors, {}
+    )
+    print(_factor_with_known(factors))
+    # temp = reduce(lambda i, c: join_dict(i, {c: k[c] * factors[c]}), k := factor(c), {})
+    # print("temp")
+    # print(temp)
+
+    more_factors = {}
+    for f in factors:
+        if not isprime(f):  # if further factoring to do
+            more_factors[f] = factor(f)
+
+            for e in more_factors[f]:
+                more_factors[f][e] *= factors[f]  # if non-prime factor had power greater than 1, * powers of its prime factors by exp
+
+    final = {}
+    for f in factors:
+        if f not in more_factors:
+            final[f] = factors[f]
+
+    final = reduce(lambda i, c: join_dict(i, more_factors[c]), more_factors, final)
+    # print(final)

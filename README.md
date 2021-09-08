@@ -8,7 +8,7 @@ baby-step-giant-step, and Pohlig-Hellman, support for working with Elliptic Curv
 power algorithm' and baby-step-giant-step, general algebra functions such as Chinese Remainder and the 
 Euclidean Extended Algorithm for gcd's, and support for matrices including Matrix and Linear Map objects 
 that extend numpy's array to include more functionality such as solving non-square systems, solving 
-systems over the field of integers, change-of-basis, etc.
+systems over the finite field of integers, change-of-basis, etc.
 
 ## Required Packages
 * numpy

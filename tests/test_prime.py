@@ -16,7 +16,7 @@ def test_primes_lt():
 
 def test_is_prime():
     n = 2047
-    assert not is_prime(n)
+    assert not isprime(n)
 
     n = randprime(pow(10, 3))
     assert confirm_prime(n)

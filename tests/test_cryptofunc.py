@@ -3,9 +3,10 @@ from cryptography318.tools import *
 from cryptography318.prime import *
 from cryptography318.linear_algebra import *
 from cryptography318.quadratic_sieve import *
-import timeit
+from timeit import timeit
 import numpy
 import pytest
+from sympy import factorint
 
 
 @pytest.mark.skip
@@ -84,7 +85,7 @@ def test_primes_gen():
         primes = primes_lt_gen(B := randrange(20, 50))
         result = [0]
         for p in primes:
-            assert is_prime(p) and result[-1] < p <= B
+            assert isprime(p) and result[-1] < p <= B
             result.append(p)
 
 
@@ -95,6 +96,36 @@ def test_vigenere():
     assert res == 'dhzavd'
 
 
+def test_rho_factor():
+    mix1 = lambda e: (pow(e, 2, n) + 1) % n
+    mix2 = lambda e: pow(e, 2, n) + 1
+
+    time_1, time_2 = 0, 0
+    for _ in range(100):
+        n = randrange(pow(10, 4), pow(10, 6))
+        time_1 += timeit(lambda: pollard_rho_factor(n, mix1), number=100)
+        time_2 += timeit(lambda: pollard_rho_factor(n, mix2), number=100)
+
+    print(f"factor 1: {time_1:.2f}s")
+    print(f"factor 2: {time_2:.2f}s")
+
+
+def test_factor():
+    time_1, time_2, time_3 = 0, 0, 0
+    try:
+        for _ in range(1000):
+            n = randrange(pow(2, 15))
+            time_1 += timeit(lambda: factor(n), number=100)
+            time_2 += timeit(lambda: factor2(n), number=100)
+            time_3 += timeit(lambda: factorint(n), number=100)
+    except RecursionError:
+        print(n)
+    print(f"factor 1: {time_1:.2f}s")
+    print(f"factor 2: {time_2:.2f}s")
+    print(f"factor 3: {time_3:.2f}s")
+
+    print(f"sy.factorint = 100%; factor1 = {(time_1 / time_3):.2f}%; factor2 = {(time_2 / time_3):.2f}%")
+
+
 if __name__ == '__main__':
-    test_vigenere()
-    caeser_shift('joxxurbqlxwbrbcnwlhrbcqnqxkpxkurwxourccunvrwmb')
+    test_factor()

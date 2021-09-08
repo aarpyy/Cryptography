@@ -124,7 +124,7 @@ def known_prime(n):
     return None
 
 
-def is_prime(n):
+def isprime(n):
     """
     IsPrime function returns False iff the prime-candidate is composite, and True
     if the prime-candidate is probably prime.
@@ -138,8 +138,11 @@ def is_prime(n):
     probably prime.
     """
 
-    if (res := known_prime(n)) is not None:
-        return res
+    if n < 2:
+        return False
+
+    if not n & 1:
+        return False
 
     if n < 2047:
         return miller_rabin_bases([2], n)
@@ -188,7 +191,7 @@ def randprime(*args):
     # if base =/= 2, generates random int starting at lower limit, incrementing by 2
     while True:
         prime = randrange(2, limit) if base_2 else randrange(base, limit, 2)
-        if is_prime(prime):
+        if isprime(prime):
             return prime
 
 
@@ -233,8 +236,8 @@ def next_prime(n):
 
     # ensures n is odd to start so that can increment by 2
     n = (n + 1) | 1
-    while True:
-        if is_prime(n):
+    while 1:
+        if isprime(n):
             return n
         n += 2
 
@@ -251,7 +254,7 @@ def prev_prime(n):
     # ensures n is odd to start so that can decrement by 2
     n = (n - 2) | 1
     while True:
-        if is_prime(n):
+        if isprime(n):
             return n
         n -= 2
 
@@ -271,11 +274,17 @@ def primes_lt(limit):
 def primes_lt_gen(limit):
     """Creates generator for all primes lte p"""
 
-    if limit < 2:
-        raise ValueError("Must enter a number greater than the smallest prime (2)")
+    return primes_gen(2, limit)
 
-    n = next_prime(1)
-    while n <= limit:
+
+def primes_gen(start, stop):
+    """Creates generator for all primes p in range [start, stop)"""
+
+    if start >= stop or start < 2:
+        raise ValueError(f"invalid arguments for iteration over primes: {start}, {stop}")
+
+    n = next_prime(start - 1)
+    while n < stop:
         yield n
         n = next_prime(n)
 
