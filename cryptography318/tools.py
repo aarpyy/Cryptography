@@ -57,21 +57,14 @@ def r_append(obj: list, item) -> list:
 
 def join_dict(*args: dict) -> dict:
     """Joins multiple dictionaries in a way that sums values of shared keys. Assumes all values
-    support + method."""
+    are Numbers that support + method."""
 
     def join(dict1, dict2):
         for key in dict2:
-            if key in dict1:
-                dict1[key] += dict2[key]
-            else:
-                dict1[key] = dict2[key]
+            dict1[key] = dict1.get(key, 0) + dict2[key]
         return dict1
 
-    def update(dict1, dict2):
-        dict1.update(dict2)
-        return dict1
-
-    return reduce(lambda a, b: update(a, b) if not any(k in b for k in a) else join(a, b), args)
+    return reduce(lambda a, b: join(a, b), args)
 
 
 def replace_all(string: str, values: str, replace: str = '') -> str:

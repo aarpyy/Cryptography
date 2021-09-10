@@ -3,11 +3,11 @@ import pytest
 
 
 def test_primes_lt():
-    primes = primes_lt(11)
+    primes = primerange(11)
     assert primes == [2, 3, 5, 7, 11]
     assert len(primes) == prime_pi(11)
 
-    primes = primes_lt_gen(11)
+    primes = primes_gen(11)
     n = 2
     for p in primes:
         assert p == n
@@ -23,5 +23,4 @@ def test_is_prime():
 
 
 if __name__ == '__main__':
-    test_primes_lt()
-    test_is_prime()
+    pass

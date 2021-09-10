@@ -4,6 +4,7 @@ from cryptography318.elliptic import *
 from cryptography318.factor import *
 import pytest
 from timeit import timeit
+from time import time
 from sympy.ntheory.ecm import Point as syPoint
 from sympy import factorint
 from sympy.ntheory.factor_ import _factorint_small
@@ -68,7 +69,8 @@ def test_elliptic_bsgs():
 
 
 def test_string():
-    E = EllipticCurve(0, 1, 180039337167793501897175493739004038762395261681316852988742367480124359904807289130328068843833873066421702742460640101217376600809338199468636198555098044628998299482972323944983045884234913875508525458735536722067910377840070662914565334732578373261984514856548773711583945448134428877109037377605127434409832936443635849865584735606971650245470719854253303747830625905599682675415954316175111606488355254401541327809795822857218931391498811975792908442781893479296187087742281713894913694970210301919109047958435358258637147)
+    E = EllipticCurve(0, 1,
+                      180039337167793501897175493739004038762395261681316852988742367480124359904807289130328068843833873066421702742460640101217376600809338199468636198555098044628998299482972323944983045884234913875508525458735536722067910377840070662914565334732578373261984514856548773711583945448134428877109037377605127434409832936443635849865584735606971650245470719854253303747830625905599682675415954316175111606488355254401541327809795822857218931391498811975792908442781893479296187087742281713894913694970210301919109047958435358258637147)
     s = "Some say the world will end in fire,\n" \
         "Some say in ice.\n" \
         "From what I've tasted of desire,\n" \
@@ -156,7 +158,7 @@ def test_compare_all(test_accurate=False):
             N = p + 4
             if isprime(N):
                 continue
-            km, kw = ecm_mont(N), ecm_weierstrass(N)
+            km, kw = ecm_mont_basic(N), ecm_weierstrass(N)
             if km is None or kw is None:
                 print(N, km, kw)
                 continue
@@ -171,9 +173,9 @@ def test_compare_all(test_accurate=False):
             N = randprime(pow(2, power), pow(2, power + 2)) + 4
         print(N)
 
-        time_mont = timeit(lambda: ecm_mont(N), number=100)
+        time_mont = timeit(lambda: ecm_mont_basic(N), number=100)
         print(f"time 1: {time_mont}")
-        time_mont2 = timeit(lambda: ecm_mont_large(N), number=100)
+        time_mont2 = timeit(lambda: ecm_mont(N), number=100)
         print(f"time 2: {time_mont2}")
 
         print(f"mont: {(time_mont / time_mont2) * 100:.2f}%")
@@ -185,10 +187,11 @@ def test_compare_all(test_accurate=False):
             power += 1
 
     N = randprime(pow(2, 15), pow(2, 16)) + 4
+    iters = pow(10, 5)
     if not isprime(N):
         print(N)
-        time_factor = timeit(lambda: factor_small({}, N, 2 ** 15), number=10000)
-        time_sy = timeit(lambda: _factorint_small({}, N, 2 ** 15, 300), number=10000)
+        time_factor = timeit(lambda: factor_small({}, N, 2 ** 15), number=iters)
+        time_sy = timeit(lambda: _factorint_small({}, N, 2 ** 15, 300), number=iters)
         print(f"time comparison: {(time_factor / time_sy) * 100:.2f}%")
 
 
@@ -201,8 +204,96 @@ def inc_mul(p, n):
     return m - 1
 
 
+def test_efficiency2():
+    avg = 0
+    lst = dict()
+
+    primes = primerange(500)
+    start = time()
+    for p in primes:
+        n = 1
+        count = 0
+        while 1:
+            n *= p
+            time_m = timeit(lambda: multiplicity(p, n), number=pow(10, 4))
+            time_i = timeit(lambda: inc_mul(p, n), number=pow(10, 4))
+            ratio = time_m / time_i
+            if ratio < 1:
+                count += 1
+                if count == 10:
+                    k = multiplicity(p, n // pow(p, 10))
+                    avg += k
+                    lst[p] = k
+                    break
+            else:
+                count = 0
+    print(f"testing took: {time() - start:.2f}s")
+    print(f"average breakpoint: {avg / len(primes)}")
+    print(lst)
+
+
+from sympy import primepi
+from math import log2
+
+
+def pp(n, r):
+    return primepi(n ** (1 / r))
+
+
+def temp():
+    iters = pow(10, 3)
+    time_f, time_sy = 0, 0
+    N = 0
+    try:
+        for _ in range(100):
+            N = randprime(pow(2, 20), pow(2, 24)) + 4
+            if not isprime(N):
+                f = timeit(lambda: factor(N), number=iters)
+                s = timeit(lambda: factorint(N), number=iters)
+                time_f += f
+                time_sy += s
+    except RecursionError:
+        print(N)
+
+    print(rho_successes)
+
+    print(f"factor: {time_f:.2f}s")
+    print(f"syfactor: {time_sy:.2f}s")
+    print(f"time comparison: {(time_f / time_sy) * 100:.2f}%")
+
+
+def test_compare_ecm():
+    count = 0
+    a = 20
+    while 1:
+        N = randprime(pow(2, a - 1), pow(2, a)) + 4
+        if isprime(N):
+            continue
+
+        time_mont = timeit(lambda: ecm_mont_basic(N), number=50)
+        time_we = timeit(lambda: ecm_mont(N), number=50)
+        print(time_mont / time_we)
+        if time_we < time_mont:
+            if count == 10:
+                print(N, a)
+                break
+            count += 1
+        else:
+            count = 0
+        a += 1
+        print(count, a)
+
+
 if __name__ == '__main__':
+    from sympy import primepi
+
     # test_compare_all()
-    time_m = timeit(lambda: multiplicity(3, 54), number=pow(10, 7))
-    time_i = timeit(lambda: inc_mul(3, 54), number=pow(10, 7))
-    print(f"efficiency: {(time_m / time_i) * 100:2f}%")
+    e = 9
+    start = time()
+    N = randprime(pow(2, e)) * randprime(pow(2, e + 1)) * randprime(pow(2, e + 2))
+    if not isprime(N):
+        print(N)
+        print(k := quadratic_sieve(N))
+        print(N % k)
+    print(f"this took: {time() - start:.2f}s")
+

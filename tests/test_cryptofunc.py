@@ -17,7 +17,7 @@ def test_kernel():
     L = pow(e, sqrt(log(n) * log(log(n))))
     B = int(pow(L, 1 / sqrt(2)))
 
-    primes = primes_lt(B)
+    primes = primes(B)
     bases, squares, exp = find_perfect_squares(n, primes)
     matrix = Matrix(exp, mod=2).astype(numpy.int64)
     print("done with first part")
@@ -82,7 +82,7 @@ def test_find_non_residue():
 
 def test_primes_gen():
     for _ in range(50):
-        primes = primes_lt_gen(B := randrange(20, 50))
+        primes = primes_gen(B := randrange(20, 50))
         result = [0]
         for p in primes:
             assert isprime(p) and result[-1] < p <= B

@@ -20,37 +20,21 @@
   </component>
   <component name="ChangeListManager">
     <list default="true" id="6ea76c49-18d8-4974-9f94-c2171563dd51" name="Default Changelist" comment="working on primality test, miller-rabin">
-      <change afterPath="$PROJECT_DIR$/cryptography318/deprecated/crypto_deprecated.py" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/cryptography318/deprecated/qs_deprecated.py" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/cryptography318/elliptic.py" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/cryptography318/factor.py" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/cryptography318/fraction.py" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/tests/cryptography_final.py" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/tests/test_fraction.py" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/tests/test_qs.py" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/tests/test_re.py" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/tests/test_square_root.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/.idea/misc.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/misc.xml" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/cryptography318/fraction.pyi" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/tests/test_primesieve.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/README.md" beforeDir="false" afterPath="$PROJECT_DIR$/README.md" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/build/lib/cryptography318/quadratic_sieve.py" beforeDir="false" afterPath="$PROJECT_DIR$/build/lib/cryptography318/quadratic_sieve.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/cryptography318/__init__.py" beforeDir="false" afterPath="$PROJECT_DIR$/cryptography318/__init__.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/cryptography318/array.py" beforeDir="false" afterPath="$PROJECT_DIR$/cryptography318/array.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/cryptography318/crypto_functions.py" beforeDir="false" afterPath="$PROJECT_DIR$/cryptography318/crypto_functions.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/cryptography318/linalg.py" beforeDir="false" afterPath="$PROJECT_DIR$/cryptography318/linalg.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/cryptography318/linear_algebra.py" beforeDir="false" afterPath="$PROJECT_DIR$/cryptography318/linear_algebra.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/cryptography318/elliptic.py" beforeDir="false" afterPath="$PROJECT_DIR$/cryptography318/elliptic.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/cryptography318/factor.py" beforeDir="false" afterPath="$PROJECT_DIR$/cryptography318/factor.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/cryptography318/fraction.py" beforeDir="false" afterPath="$PROJECT_DIR$/cryptography318/fraction.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/cryptography318/prime.py" beforeDir="false" afterPath="$PROJECT_DIR$/cryptography318/prime.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/cryptography318/quadratic_sieve.py" beforeDir="false" afterPath="$PROJECT_DIR$/cryptography318/quadratic_sieve.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/cryptography318/tools.py" beforeDir="false" afterPath="$PROJECT_DIR$/cryptography318/tools.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/mathematica_numbers.txt" beforeDir="false" afterPath="$PROJECT_DIR$/mathematica_numbers.txt" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/tests/test_array.py" beforeDir="false" afterPath="$PROJECT_DIR$/tests/test_array.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/tests/test_cryptofunc.py" beforeDir="false" afterPath="$PROJECT_DIR$/tests/test_cryptofunc.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/tests/test_elliptic.py" beforeDir="false" afterPath="$PROJECT_DIR$/tests/test_elliptic.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/tests/test_factor.py" beforeDir="false" afterPath="$PROJECT_DIR$/tests/test_factor.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/tests/test_linalg.py" beforeDir="false" afterPath="$PROJECT_DIR$/tests/test_linalg.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/tests/test_linear.py" beforeDir="false" afterPath="$PROJECT_DIR$/tests/test_linear.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/tests/test_matrix.py" beforeDir="false" afterPath="$PROJECT_DIR$/tests/test_matrix.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/tests/test_prime.py" beforeDir="false" afterPath="$PROJECT_DIR$/tests/test_prime.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/tests/test_square_root.py" beforeDir="false" afterPath="$PROJECT_DIR$/tests/test_square_root.py" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -93,7 +77,7 @@
     </file-type-list>
   </component>
   <component name="ProblemsViewState">
-    <option name="selectedIndex" value="11" />
+    <option name="selectedIndex" value="2" />
   </component>
   <component name="ProjectId" id="1u36NPVAANkMvTilFg3SGn0Z84R" />
   <component name="ProjectLevelVcsManager" settingsEditedManually="true">
@@ -315,6 +299,7 @@
       <workItem from="1629059685327" duration="35475000" />
       <workItem from="1629433656588" duration="58111000" />
       <workItem from="1629756434404" duration="5164000" />
+      <workItem from="1631124555840" duration="54211000" />
     </task>
     <task id="LOCAL-00001" summary="wrote some stuff for ps4.5, figured out problem with pohlig-hellman, bsgs in work">
       <created>1624923163169</created>

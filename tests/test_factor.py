@@ -1,12 +1,15 @@
 from cryptography318.crypto_functions import pollard_rho_dlp
 from cryptography318.prime import *
 from cryptography318.crypto_functions import *
-from cryptography318.crypto_functions import _factor_with_known
+from cryptography318.crypto_functions import *
 from cryptography318.linear_algebra import *
 from cryptography318.quadratic_sieve import *
+from cryptography318.factor import *
+from cryptography318.factor import _reduce_factors
 from math import prod
 import time
 import timeit
+from timeit import timeit
 import pytest
 import numpy
 
@@ -65,7 +68,7 @@ def test_max_qs():
 def test_b_smooth():
     for _ in range(50):
         B = 25
-        primes = primes_lt(B)
+        primes = primes(B)
         n = 1
         for i in range(len(primes)):
             n *= pow(primes[i], randrange(2, 5))
@@ -74,37 +77,69 @@ def test_b_smooth():
         assert b_smooth(n, factors=primes)
 
 
+def jd(*args: dict) -> dict:
+    """Joins multiple dictionaries in a way that sums values of shared keys. Assumes all values
+    support + method."""
+
+    def join(dict1, dict2):
+        for key in dict2:
+            if key in dict1:
+                dict1[key] += dict2[key]
+            else:
+                dict1[key] = dict2[key]
+        return dict1
+
+    def update(dict1, dict2):
+        dict1.update(dict2)
+        return dict1
+
+    return reduce(lambda a, b: join(a, b) if any(k in b for k in a) else update(a, b), args)
+
+
+def rd_fact(factors):
+    result = {}
+    for f in factors:
+        if not isprime(f):
+            k = factor(f)
+            for a in k:
+                k[a] *= factors[f]
+            result = join_dict(result, k)
+        else:
+            result = join_dict(result, {f: factors[f]})
+    return result
+
+
+def rd_fact2(factors):
+    new_factors = []
+    to_del = set()
+    for f in factors:
+        if not isprime(f):
+            k = factor(f)
+            for a in k:
+                k[a] *= factors[f]
+            new_factors.append(k)
+            to_del.add(f)
+    for f in to_del:
+        del factors[f]
+    for d in new_factors:
+        for f in d:
+            if f in factors:
+                factors[f] += d[f]
+            else:
+                factors[f] = d[f]
+    return factors
+
+
+def test_compare_reduction():
+    factors = {2: 4, 4: 6, 22: 7, 625: 18}
+    res = {2: 23, 11: 7, 5: 72}
+    iters = pow(10, 4)
+    itr1 = timeit(lambda: rd_fact2(factors), number=iters)
+    itr2 = timeit(lambda: rd_fact(factors), number=iters)
+    print(f"for w/ new join: {itr1 * pow(10, 3):.2f}ms")
+    print(f"for w/ old join: {itr2 * pow(10, 3):.2f}ms")
+
+
 if __name__ == '__main__':
-    test_b_smooth()
-    # n = randprime(pow(10, 4), pow(10, 6)) + 2
-    n = 888135
-
-    # print(f"n: {n}")
-    # factors = quadratic_sieve(n, force=20)
-    factors = {5: 1, 177627: 3, 16: 2}
-
-    final = reduce(
-        lambda i, c: join_dict(i, reduce(
-            lambda a, b: join_dict(a, {b: k[b] * factors[c]}), k := factor(c), {}
-        )) if not isprime(c) else join_dict(i, {c: factors[c]}), factors, {}
-    )
-    print(_factor_with_known(factors))
-    # temp = reduce(lambda i, c: join_dict(i, {c: k[c] * factors[c]}), k := factor(c), {})
-    # print("temp")
-    # print(temp)
-
-    more_factors = {}
-    for f in factors:
-        if not isprime(f):  # if further factoring to do
-            more_factors[f] = factor(f)
-
-            for e in more_factors[f]:
-                more_factors[f][e] *= factors[f]  # if non-prime factor had power greater than 1, * powers of its prime factors by exp
-
-    final = {}
-    for f in factors:
-        if f not in more_factors:
-            final[f] = factors[f]
-
-    final = reduce(lambda i, c: join_dict(i, more_factors[c]), more_factors, final)
-    # print(final)
+    n = (randprime(pow(2, 10)) + 4) * 2
+    print(factor(n))

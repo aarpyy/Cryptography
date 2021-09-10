@@ -1,10 +1,10 @@
 from random import randrange, Random
 from abc import ABCMeta, abstractmethod
 from typing import overload, Union
-from math import gcd, log, isqrt, floor, ceil
+from math import gcd, log, isqrt, floor
 
 from .crypto_functions import find_roots
-from .prime import primes_gen, isprime
+from .prime import isprime
 
 
 rndm = Random()
@@ -146,6 +146,36 @@ class Montgomery(Curve):
         x, z = u_3 % p, (v * v * v) % p
         E = Montgomery(a_sig, p)
         P = MontgomeryPoint(x, z, E)
+        return E, P
+
+    @classmethod
+    def z_1_curve_and_point(cls, p: int) -> Union[tuple['Montgomery', 'MontgomeryPoint'], int]:
+        """
+        Implementation of Suyama's parameterization of Montgomery curves as above except that the
+        coordinates x, z are optimized such that x = x / z, z = z / z, resulting in z = 1 allowing
+        for the use of add_z1 and ladder_z1 methods which saves a multiplication.
+        """
+        sigma = rndm.randrange(6, p - 1)
+        sig_sq = sigma * sigma
+        u = (sig_sq - 5) % p
+        v = (4 * sigma) % p
+        u_sub_v = v - u
+        u_3 = u * u * u
+        try:
+            u_3_inv = pow(4 * u_3 * v, -1, p)
+        except ValueError:
+
+            # if composite m for FF(m) then this curve is likely intended for Lenstra's ECM and gcd is factor
+            return gcd(4 * u_3 * v, p)
+
+        a_sig = ((u_sub_v * u_sub_v * u_sub_v) * (3 * u + v) * u_3_inv - 2) % p
+
+        # here, z would be v^3, but instead x = x / z and z = z / z so x = u^3 / v^3 and z = 1
+        # this allows for one less multiplication to be used in add and ladder methods
+        u_div_v = u_3 * u * 4 * u_3_inv  # 4u^4 / 4u^3v = u / v
+        x = u_div_v * u_div_v * u_div_v % p  # u^3 / v^3
+        E = Montgomery(a_sig, p)
+        P = MontgomeryPoint(x, 1, E)
         return E, P
 
 
@@ -293,7 +323,7 @@ class MontgomeryPoint(Point):
         return self
 
     def __repr__(self):
-        return f'<{__class__.__name__} object; point=({self.x}, {self.z}); ' \
+        return f'<{__class__.__name__} object; point={self.points}; ' \
                f'curve={repr(self.curve)}>'
 
     def __eq__(self, other: 'MontgomeryPoint') -> bool:
@@ -307,7 +337,7 @@ class MontgomeryPoint(Point):
     def __neg__(self) -> 'MontgomeryPoint':
         return MontgomeryPoint(self.x, -self.z, self.curve)
 
-    def add_general(self, Q: 'MontgomeryPoint', initial: 'MontgomeryPoint'):
+    def add_general(self, Q: 'MontgomeryPoint', difference: 'MontgomeryPoint'):
         """
         Computes addition on E over FF(m). For specifically Montgomery curves, operation involving
         symbol '+' is unsupported, due to the necessity of the initial point in addition. For
@@ -320,28 +350,28 @@ class MontgomeryPoint(Point):
         if self == Q:
             return self.double()
 
-        x0, z0 = initial.x, initial.z
+        x0, z0 = difference.x, difference.z
 
         # if z0 == 1, then multiplication is simplified (this is common)
         if z0 == 1:
-            return self.add_z1(Q, initial)
+            return self.add_z1(Q, difference)
 
-        return self.add(Q, initial)
+        return self.add(Q, difference)
 
-    def add(self, Q: 'MontgomeryPoint', initial: 'MontgomeryPoint'):
+    def add(self, Q: 'MontgomeryPoint', difference: 'MontgomeryPoint'):
         """
         Cost:
             *: 6;
             +: 6;
         """
-        u, v = self.x - self.z * Q.x + Q.z, self.x + self.z * Q.x - Q.z
+        u, v = (self.x - self.z) * (Q.x + Q.z), (self.x + self.z) * (Q.x - Q.z)
         add, sub = u + v, u - v
 
-        x3 = (initial.z * add * add) % self.modulus
-        z3 = (initial.x * sub * sub) % self.modulus
+        x3 = (difference.z * add * add) % self.modulus
+        z3 = (difference.x * sub * sub) % self.modulus
         return MontgomeryPoint(x3, z3, self.curve)
 
-    def add_z1(self, Q: 'MontgomeryPoint', initial: 'MontgomeryPoint'):
+    def add_z1(self, Q: 'MontgomeryPoint', difference: 'MontgomeryPoint'):
         """
         Computes addition P + Q on E over FF(m) when z_P == 1 (z coordinate of initial point)
 
@@ -351,30 +381,28 @@ class MontgomeryPoint(Point):
         Cost:
             *: 5;
             +: 6;
-
-        Note
-        ----
-        While this cost is small, _add_z1 has one less % operation than _add in addition to the reduction in *
         """
-        selfdiff, Qdiff = self.x - self.z, Q.x - Q.z
-        selfsum, Qsum = self.x + self.z, Q.x + Q.z
-        u, v = selfdiff * Qsum, selfsum * Qdiff
+        u, v = (self.x - self.z) * (Q.x + Q.z), (self.x + self.z) * (Q.x - Q.z)
         add, sub = u + v, u - v
         x3 = (add * add) % self.modulus
-        z3 = (initial.x * sub * sub) % self.modulus
+        z3 = (difference.x * sub * sub) % self.modulus
         return MontgomeryPoint(x3, z3, self.curve)
 
     def double(self):
         """
         Computes addition P + Q on E over FF(m) when P == Q
 
+        Cost:
+            *: 5;
+            +: 4;
+
         Refer to Gaj p.4, algorithm 3
         """
-        selfdiff, selfsum = self.x - self.z, self.x + self.z
-        selfdiff, selfsum = selfdiff * selfdiff, selfsum * selfsum
-        self4xz = selfsum - selfdiff
-        x2 = (selfsum * selfdiff) % self.modulus
-        z2 = (self4xz * (selfdiff + self.curve.A_24 * self4xz)) % self.modulus
+        u, v = self.x - self.z, self.x + self.z
+        u, v = u * u, v * v
+        _4xz = v - u
+        x2 = (v * u) % self.modulus
+        z2 = (_4xz * (u + self.curve.A_24 * _4xz)) % self.modulus
         return MontgomeryPoint(x2, z2, self.curve)
 
     def __add__(self, other):
@@ -430,32 +458,29 @@ class MontgomeryPoint(Point):
         return self.x, self.z
 
 
-def ecm_mont(N: int, B1: int = None, B2: int = None, _retry: int = 50):
+def ecm_mont_basic(N: int, B1: int = None, B2: int = None, _retry: int = 50):
     """
-    Performs Lenstra's elliptic curve factorization method with elliptic curve E
-    in Montgomery form over FF(N) with Suyama's parameterization.
-
-    References
-    ----------
-    [1] Gaj K. et al. Implementing the Elliptic Curve Method of Factoring in Reconfigurable Hardware
-    https://www.hyperelliptic.org/tanja/SHARCS/talks06/Gaj.pdf
-
-    :param N: integer to be factored
-    :param B1: integer limit for phase 1; start for phase 2
-    :param B2: integer limit for phase 2
-    :param _retry: integer number of trials to be run
-    :return: one integer factor of N or None
+    A more basic version of the below elliptic factorization over a Montgomery form elliptic curve.
+    This method opts for a direct multiplication approach for phase 2. Phase 1 is computed
+    identically to find Q = kP. If kP missed the order of E(FF(q)), for some q factor of N, by a small
+    integer, then we compute some multiple of kP to find the factor. In this phase 2, the integer
+    multiplied against kP is the z coord of the product of Q with each prime p, B1 < p < B2. This results
+    in a sometimes quicker calculation if N is small enough, but in general the below function should
+    be used for elliptic curve factorization.
     """
     if B1 is None:
         from math import e
-        B1 = int(pow(e, isqrt(int((log(N) * log(log(N))) / 2))))
+        B1 = (int(pow(e, isqrt(int((log(N) * log(log(N))) / 2)))) | 1) + 1  # | 1 + 1 ensures even
 
     if B2 is None:
         B2 = B1 * 100
 
+    global primesieve
+    primesieve.extend(B2)
+
     # with initial point P, get k to find initial Q = kP
     k = 1
-    for p in primes_gen(2, B1):
+    for p in primesieve.range(B1 + 1):
         k *= floor(log(B1, p))
 
     trials = 0
@@ -477,7 +502,7 @@ def ecm_mont(N: int, B1: int = None, B2: int = None, _retry: int = 50):
 
         d = 1
 
-        for p in primes_gen(B1, B2):
+        for p in primesieve.range(B1, B2):
             d = (d * Q.ladder(p).z) % N
 
         q = gcd(d, N)
@@ -487,55 +512,43 @@ def ecm_mont(N: int, B1: int = None, B2: int = None, _retry: int = 50):
     return None
 
 
-def ecm_mont_large(N: int, B1: int = None, B2: int = None, _retry: int = 50):
+def ecm_mont(N: int, B1: int = None, B2: int = None, _retry: int = 50):
     """
-    A modification of the above ecm_mont() function that relies on a pre-processing
-    step for phase 2 to find m, j s.t. for prime p B1 < p < B2, p = m*D +/- j for
-    D = sqrt(B2), p*P = Identity meaning (m*D +/- j) * P = O, thus mD * P = +/- jP
-    for mD != +/- j which allows for d = prod(X_mDP * Z_jP - X_jP * Z_mDP) to be
-    found s.t. q = gcd(d, N), 1 < q < N, q is a factor of N (not necessarily prime).
+    Performs Lenstra's elliptic curve factorization method with elliptic curve E
+    in Montgomery form over FF(N) with Suyama's parameterization.
 
-    Notes
-    -----
-    While the exact value is currently unknown, this method should be used for larger
-    composites, where the cost of the pre-processing steps are absorbed by the
-    time complexity of factoring. Since the time of Lenstra's ECM is dominated by the
-    smallest factor of composite N, this method should be reserved for when N's smallest
-    prime factor is larger (until this pre-processing is optimized).
+    References
+    ----------
+    [1] Gaj K. et al. Implementing the Elliptic Curve Method of Factoring in Reconfigurable Hardware
+    https://www.hyperelliptic.org/tanja/SHARCS/talks06/Gaj.pdf
+
+    :param N: integer to be factored
+    :param B1: integer limit for phase 1; start for phase 2
+    :param B2: integer limit for phase 2
+    :param _retry: integer number of trials to be run
+    :return: one integer factor of N or None
     """
     if B1 is None:
         from math import e
         B1 = int(pow(e, isqrt(int((log(N) * log(log(N))) / 2))))
 
+    B1 = (B1 | 1) + 1  # ensures B1 is even, thus B2 also is even
+
     if B2 is None:
         B2 = B1 * 100
+    else:
+        B2 = (B2 | 1) + 1
+
+    global primesieve
+    primesieve.extend(B2)
 
     # with initial point P, get k to find initial Q = kP
     k = 1
-    for p in primes_gen(2, B1):
+    for p in primesieve.range(2, B1):
         k *= floor(log(B1, p))
 
     D = isqrt(B2)
-
-    # faster to do both separate computations than to do one and copy s
     S = [0] * (D + 1)
-    gcd_table = [0] * (D + 1)
-    set_j = set()
-    for j in range(1, D//2):
-        if gcd(j, D) == 1:
-            gcd_table[j] = 1
-            set_j.add(j)
-
-    prime_table = []
-    M_min = floor((B1 + D/2)/D)
-    M_max = ceil((B2 - D/2)/D)
-    M_range = range(M_max - M_min)
-
-    for m in M_range:
-        prime_table.append([0] * (D + 1))
-        for j in set_j:
-            if isprime(m * D + j) or isprime(m * D - j):
-                prime_table[m][j] = 1
 
     trials = 0
     while trials <= _retry:
@@ -543,6 +556,8 @@ def ecm_mont_large(N: int, B1: int = None, B2: int = None, _retry: int = 50):
 
         # get montgomery curve for phase 1
         res = Montgomery.safe_curve_and_point(N)
+
+        # if in finding curve a factor was found, return it
         if isinstance(res, int):
             return res
 
@@ -554,22 +569,26 @@ def ecm_mont_large(N: int, B1: int = None, B2: int = None, _retry: int = 50):
         if 1 < q < N:
             return q
 
+        # Begin Phase 2
+
+        # initialize full table S (algorithm 5) where S = [Q_0, 2 * Q_0, 3 * Q_0, ..., D/2 * Q_0]
         Q = Q_0
-        R = Q.ladder(M_min)
+        Q_2 = Q_0.double()
+        S[0] = Q
+        S[1] = Q.add(Q_2, Q_0)
+        for i in range(2, D + 1):
+            S[i] = S[i - 1].add(Q_2, S[i - 2])
 
-        for j in gcd_table:
-            if gcd_table[j]:
-                S[j] = Q
-            Q = Q.add(Q_0.double(), Q_0)
-
-        Q = Q_0.ladder(D)
         d = 1
-        for m in M_range:
-            for j in prime_table[m]:
-                if prime_table[m][j]:
-                    j_Q = S[j]
-                    d = (d * (R.x * j_Q.z - R.z * j_Q.x)) % N
-            R = R.add(Q, Q_0)
+
+        R = Q_0.ladder(B1)  # B * Q
+        T = Q_0.ladder(B1 - D)  # (B - D) * Q
+        Q_D = S[D]
+        for i in range(1, D + 1):
+            d = (d * (R.x * S[i].z - R.z * S[i].x))
+
+            # swap T, R to keep track of difference between points for montgomery addition
+            T, R = R, R.add(Q_D, T)  # R = (B + kD)Q + DQ, T = (B + (k-1) * D)Q = diff
 
         q = gcd(d, N)
         if 1 < q < N:
@@ -579,6 +598,10 @@ def ecm_mont_large(N: int, B1: int = None, B2: int = None, _retry: int = 50):
 
 
 def ecm_weierstrass(N: int, B: int = None, _retry: int = 50):
+    """
+    Lenstra's Elliptic Curve Factorization method over a short Weierstrass curve
+    with parameters a, b s.t. 4a^3 + 27b^2 != 0
+    """
 
     if B is None:
         from math import e
@@ -595,9 +618,27 @@ def ecm_weierstrass(N: int, B: int = None, _retry: int = 50):
             for j in range(1, B):
                 P = j * P
         except ValueError as exc:
+
+            # if an error was thrown, a number was inverted that is not invertible, take the gcd
             k = int(str(exc).split('base: ')[1])
             q = gcd(k, N)
             if 1 < q < N:
                 return q
 
     return None
+
+
+def lenstra_ecm(N: int, B: int = None, _retry: int = 50):
+    """
+    General purpose function to compute Lenstra's elliptic curve factorization method
+    on a composite integer N. If number is a 32-bit integer, use a Weierstrass curve
+    to find a factor. If this succeeds, return the factor. If this fails, or number is
+    greater than a 32-bit integer, use a Montgomery curve to find a factor.
+    """
+    if isprime(N):
+        return N
+    if N < 0x100000000:
+        f = ecm_weierstrass(N, B, _retry)
+        if f:
+            return f
+    return ecm_mont(N, B1=B, _retry=_retry)

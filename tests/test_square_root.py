@@ -1,19 +1,16 @@
 from cryptography318.fraction import *
 import pytest
 import fractions
+from math import sqrt
 from random import randrange
 from timeit import timeit
-from sympy import factorint as syfactor
-from cryptography318.linalg import matrix
+from cryptography318.factor import factor
+from cryptography318.prime import isprime
 
 
 def test_constructor():
     x = SquareRoot(2)
-    assert isinstance(x, SquareRoot) and x.value == sqrt(2)
-
-    # construct from complex that is int
-    x = SquareRoot(complex(2, 0))
-    assert isinstance(x, SquareRoot) and x.value == sqrt(2)
+    assert isinstance(x, SquareRoot) and x.eval == sqrt(2)
 
     # construct from float that is int
     x = SquareRoot(float(2.0))
@@ -28,10 +25,10 @@ def test_constructor():
     assert isinstance(x, float) and x == 3 * sqrt(2.1)
 
     x = SquareRoot('sqrt(12)')
-    assert x.value == sqrt(12) and x._value == 3
+    assert x.eval == sqrt(12) and x.radicand == 3
 
     x = SquareRoot('sqrt(8)')
-    assert x._value == 2 and x._scalar == 2
+    assert x.radicand == 2 and x.coefficient == 2
 
     # cannot create sqrt object from incomplete string
     with pytest.raises(ValueError) as exc_info:
@@ -89,47 +86,48 @@ def test_div():
     assert x / SquareRoot(33) == 2 * sqrt(2/3)
 
 
-def reduce_sqrt1(operand):
-    s = 1
+def reduce_sqrt1(operand, s=1):
+    factors = factor(operand)
+
+    if factors == {operand: 1} or not factors:
+        return operand, s
+
+    for f in factors:
+        if factors[f] > 1:  # if there is a square or greater in the factors, push it to the coeff
+            power = pow(f, factors[f] // 2)
+            s *= power
+            operand //= (power * power)
+    return operand, s
+
+
+def reduce_sqrt2(operand, s=1):
     factors = factor(operand)
 
     if factors is None or factors == {operand: 1}:
         return operand, s
 
     for f in factors:
-        if factors[f] > 1:
-            s *= pow(f, factors[f] // 2)
-            operand //= pow(f, factors[f])
-    return operand, s
-
-
-def reduce_sqrt2(operand):
-    s = 1
-    factors = syfactor(operand)
-
-    if factors is None or factors == {operand: 1}:
-        return operand, s
-
-    for f in factors:
         if factors[f] > 1:  # if there is a square or greater in the factors, push it to the coeff
-            s *= pow(f, factors[f] // 2)
-            operand //= pow(f, factors[f])
+            power = pow(f, factors[f] // 2)
+            s *= power
+            operand //= (power * power)
     return operand, s
 
 
 def test_reduce_sq():
     time_1, time_2 = 0, 0
-    for _ in range(1000):
+    for _ in range(500):
         n = randrange(5, 5000)
         time_1 += timeit(lambda: reduce_sqrt1(n), number=1000)
         time_2 += timeit(lambda: reduce_sqrt2(n), number=1000)
     print(f"time for-loop1: {time_1:.2f}s")
     print(f"time for-loop2: {time_2:.2f}s")
+    print(f"efficiency: {(time_1 / time_2) * 100:.2f}%")
 
 
 def test_constructor_timeit():
     time_sr, time_fr = 0, 0
-    for _ in range(10000):
+    for _ in range(100):
         v1, v2 = randrange(5, 50), randrange(5, 50)
         time_sr += timeit(lambda: SquareRoot(v1, v2), number=1000)
         time_fr += timeit(lambda: fractions.Fraction(v1, v2), number=1000)
@@ -139,9 +137,4 @@ def test_constructor_timeit():
 
 
 if __name__ == '__main__':
-    test_constructor()
-    test_div()
-    test_mul()
-    test_add()
     test_reduce_sq()
-

@@ -1,6 +1,137 @@
 from math import isqrt
-from random import randrange
+from random import randrange, choice
+from itertools import count
+
 from .bailliepsw_helper import LucasPseudoPrime, D_chooser
+
+
+class Sieve:
+    """
+    Unbound list of primes starting at 2. Object is iterable, index-able, print-able, searchable,
+    and extendable. Unless another specific use is required, import primesieve object as a global
+    variable for use. Intended to help with primality tests and factoring integers.
+    """
+
+    def __init__(self):
+        self._list = [2, 3, 5, 7, 11, 13]
+
+    def __repr__(self):
+        return repr(self._list)
+
+    def __getitem__(self, item):
+        return self._list[item]
+
+    def __contains__(self, item):
+        return self._list.__contains__(item)
+
+    def __len__(self):
+        return len(self._list)
+
+    def __iter__(self):
+        nprimes = len(self._list) + 1
+        for i in count(1):
+            if i == nprimes:
+                return
+            yield self._list[i - 1]
+
+    def search(self, *args):
+        if len(args) == 1:
+            item = args[0]
+            try:
+                return self._list.index(item)
+            except ValueError:
+                if item > self._list[-1] or item < self._list[0]:
+                    raise ValueError(f"{item} is not in the sieve list")
+
+                start_idx = 0
+                for p in primesieve:
+                    if p > item:
+                        break
+                    start_idx += 1
+                return start_idx - 1, start_idx
+
+        args = sorted(set(args))  # in case args aren't sorted, they need to be, set call removes duplicates
+        if args[-1] > self._list[-1] or args[0] < self._list[0]:
+            raise ValueError(f"one (or more) of {args} is not in the sieve list")
+
+        indices = []
+        nargs = len(args)
+        i = 0
+        curr = args[0]
+        max_idx = -1
+
+        # try to get indices using index, if any fail, start from there
+        try:
+            while 1:
+                max_idx = self._list.index(curr)
+                indices.append(max_idx)
+                i += 1
+                if i == nargs:
+                    return indices
+                curr = args[i]
+        except ValueError:
+            pass
+
+        start_idx = max_idx + 1
+
+        # start at max_idx + 1, 0 if none were indexed, or index + 1 of last found prime
+        for p in primesieve[start_idx:]:
+            if p == curr:
+                indices.append(start_idx)
+                i += 1
+                if i == nargs:
+                    return indices
+                curr = args[i]
+            elif p > curr:
+                indices.append((start_idx - 1, start_idx))
+                i += 1
+                if i == nargs:
+                    return indices
+                curr = args[i]
+            start_idx += 1
+
+    def extend(self, n):
+        if n <= self._list[-1]:
+            return
+        p = next_prime(self._list[-1])
+        while p <= n:
+            self._list.append(p)
+            p = next_prime(p)
+
+    def range(self, a, b=None):
+        if b is None:
+            b = a
+            a = 2
+
+        if b <= a:
+            return
+
+        if b > self._list[-1]:
+            self.extend(b)
+
+        i = self.search(a)
+        if isinstance(i, tuple):
+            i = i[1]
+
+        nprimes = len(self._list)
+        while i < nprimes:
+            n = self._list[i]
+            i += 1
+            if n <= b:
+                yield n
+            else:
+                return
+
+    @property
+    def list(self):
+        return self._list
+
+    @property
+    def tail(self):
+        return self._list[-1]
+
+
+primesieve = Sieve()
 
 
 def miller_rabin(n, k=40):
@@ -141,8 +272,22 @@ def isprime(n):
     if n < 2:
         return False
 
+    if n < 10:
+        return bool([0, 0, 1, 1, 0, 1, 0, 1, 0, 0, 0][n])
+
+    # check for odds
     if not n & 1:
         return False
+
+    # check for all other instances n != 6k +/- 1
+    if not n % 3:
+        return False
+
+    # this step is pretty useless unless primesieve is being used for something else or is
+    # being purposefully generated, since it is constructed only with first 6 primes
+    global primesieve
+    if n in primesieve:
+        return True
 
     if n < 2047:
         return miller_rabin_bases([2], n)
@@ -172,25 +317,34 @@ def isprime(n):
     return miller_rabin(n, k=40) and baillie_psw(n, mr=False)
 
 
-def randprime(*args):
-    """Uses combination of Miller-Rabin and Baillie-PSW primality tests to generate random prime"""
+def randprime(a: int, b: int = None):
+    """Uses combination of Miller-Rabin and Baillie-PSW primality tests to generate random prime
 
-    base_2 = False
+    :param a: integer starting point of range for random prime
+    :param b: integer stopping point of range for random prime (exclusive)
+    """
 
     # determines if user entered a lower and upper limit or just an upper
-    if len(args) not in [1, 2]:
-        raise ValueError("Usage: RandomPrime(limit->int) or RandomPrime(base->int, limit->int)")
-    base, limit = (args[0], args[1]) if len(args) == 2 else (3, args[0])
+    if b is None:
+        b = a
+        a = 3
 
-    if base == 2:
-        base_2 = True
+    base_2 = a == 2
+    a = a | 1  # if base_2, a isn't used, if not base 2 then even a is not prime so adjust to odd affects nothing
 
-    base = base | 1
+    global primesieve
+    if b <= primesieve.tail:
+        start, stop = primesieve.search(a), primesieve.search(b)
+        if isinstance(start, tuple):
+            start = start[1]
+        if isinstance(stop, tuple):
+            stop = stop[0]
+        return choice(primesieve[start:stop])
 
     # if base_2, uses 2 as a base and increments by 1 (default) for generating random int
     # if base =/= 2, generates random int starting at lower limit, incrementing by 2
     while True:
-        prime = randrange(2, limit) if base_2 else randrange(base, limit, 2)
+        prime = randrange(2, b) if base_2 else randrange(a, b, 2)
         if isprime(prime):
             return prime
 
@@ -199,8 +353,9 @@ def all_factors(n):
     """Uses infinitely deterministic primality test, checking if candidate has factors
     of any primes <= square root of candidate"""
 
-    if res := known_prime(n) is not None:
-        return res
+    global primesieve
+    if n in primesieve:
+        return True
 
     for num in range(3, isqrt(n) + 2, 2):
         if n % num == 0:
@@ -212,8 +367,9 @@ def confirm_prime(n):
     """Uses infinitely deterministic AKS (Agrawal-Kayal-Saxena) primality test which
     returns True if-and-only-if n is prime"""
 
-    if res := known_prime(n) is not None:
-        return res
+    global primesieve
+    if n in primesieve:
+        return True
 
     # generates the n-th row of Pascal's triangle, if any of the coefficients != 0 mod n, n is not prime
     for k in range(1, (n + 1) // 2):
@@ -231,60 +387,133 @@ def confirm_prime(n):
 def next_prime(n):
     """Returns first prime after number given"""
 
-    if n == 1:
+    if n < 2:
         return 2
 
-    # ensures n is odd to start so that can increment by 2
-    n = (n + 1) | 1
+    if n < 11:
+        return [2, 2, 3, 5, 5, 7, 7, 11, 11, 11, 11][n]
+
+    if n < primesieve.tail:
+        i = primesieve.search(n)
+        if isinstance(i, tuple):
+            i = i[1]
+        else:
+            i += 1
+        return primesieve[i]
+
+    # ensures that n starts at the nearest 6k + 1
+    r = n % 6
+    if not r:
+        n += 1
+    elif r == 1:
+        n += 4
+        # if 6k - 1 is prime, return, otherwise move to the next 6k + 1
+        if isprime(n):
+            return n
+        n += 2
+    elif r <= 4:
+        n -= r
+        n += 5
+        if isprime(n):
+            return n
+        n += 2
+    elif r == 5:
+        n += 2
+
+    # iterate up through each 6k +/- 1
     while 1:
         if isprime(n):
             return n
         n += 2
+        if isprime(n):
+            return n
+        n += 4
 
 
 def prev_prime(n):
     """Returns first prime before number given"""
 
     if n < 3:
-        return None
+        raise ValueError(f"no primes exist < {n}")
 
-    if n == 3:
-        return 2
+    if n < 11:
+        return [0, 0, 0, 0, 3, 3, 5, 5, 7, 7, 7][n]
 
-    # ensures n is odd to start so that can decrement by 2
-    n = (n - 2) | 1
+    if n <= primesieve.tail:
+        i = primesieve.search(n)
+        if isinstance(i, tuple):
+            i = i[0]
+        else:
+            i -= 1
+        return primesieve[i]
+
+    # ensures that n starts at the nearest 6k - 1 below
+    r = n % 6
+    if not r:
+        n -= 1
+    elif r == 1:
+        n -= 2
+    elif r <= 4:
+        n -= r
+        if isprime(n + 1):
+            return n + 1
+        n -= 1
+    elif r == 5:
+        n -= 4
+        if isprime(n):
+            return n
+        n -= 2
+
     while True:
+        if isprime(n):
+            return n
+        n -= 4
         if isprime(n):
             return n
         n -= 2
 
 
-def primes_lt(limit):
-    if limit < 2:
-        raise ValueError("Must enter a number greater than the smallest prime (2)")
-    primes = []
+def primerange(a, b=None):
+    """Constructs list of primes < limit"""
+    if b is None:
+        b = a
+        a = 1
 
-    n = next_prime(1)
-    while n <= limit:
-        primes.append(n)
+    if b < 2:
+        return []
+
+    global primesieve
+    if b <= primesieve.tail:
+        if a < 2:
+            a = 2
+        indices = primesieve.search(a, b)
+        start, stop = indices[0], indices[1]
+        if isinstance(start, tuple):
+            start = start[1]
+        if isinstance(stop, tuple):
+            stop = stop[1]
+        return primesieve[start:stop]
+
+    _primes = []
+
+    n = next_prime(a)
+    while n <= b:
+        _primes.append(n)
         n = next_prime(n)
-    return primes
+    return _primes
 
 
-def primes_lt_gen(limit):
-    """Creates generator for all primes lte p"""
-
-    return primes_gen(2, limit)
-
-
-def primes_gen(start, stop):
+def primes_gen(a, b=None):
     """Creates generator for all primes p in range [start, stop)"""
+    if b is None:
+        b = a
+        a = 2
 
-    if start >= stop or start < 2:
-        raise ValueError(f"invalid arguments for iteration over primes: {start}, {stop}")
+    if a >= b or a < 2:
+        raise ValueError(f"invalid arguments for iteration over primes: {a}, {b}")
 
-    n = next_prime(start - 1)
-    while n < stop:
+    n = next_prime(a - 1)
+    while n < b:
         yield n
         n = next_prime(n)
 
@@ -293,11 +522,54 @@ def prime_pi(limit):
     """Returns number of primes <= given number"""
 
     if limit < 2:
-        raise ValueError("Must enter a number greater than the smallest prime (2)")
+        return 0
 
-    count = 0
+    if limit <= primesieve.tail:
+        i = primesieve.search(limit)
+        if isinstance(i, tuple):
+            i = i[1]
+        return len(primesieve[:i])
+
+    prime_count = 0
     n = next_prime(1)
     while n <= limit:
-        count += 1
+        prime_count += 1
         n = next_prime(n)
+    return prime_count
+
+
+def trailing(n):
+    """
+    Computes the number of trailing 'zeros' of given integer in binary
+    representation. Equivalent to asking the question: how many times can
+    I right shift this integer until it becomes odd (or what is the largest
+    positive integer m s.t. 2**m | n).
+    """
+    count = 0
+    while not n & 1:
+        count += 1
+        n >>= 1
     return count
+
+
+def multiplicity(p, n):
+    """
+    Computes smallest integer m s.t. p**m | n. Returns 0 if p does not
+    divide n.
+
+    Continuously squares the base until it no longer divides n, then decrements
+    the base by p until it again divides n. Most efficient when searching n for m
+    s.t. p**m | n for m >= 17
+    """
+    b = p
+    m = 1
+    while not n % b:
+        b *= b
+        m *= 2
+
+    while n % b:
+        b //= p
+        m -= 1
+
+    return m
+

@@ -1,45 +1,58 @@
 from math import sqrt, log, gcd, prod, isqrt
 from sympy.ntheory.primetest import is_square
-from .prime import isprime, primes_lt
+from .prime import isprime, multiplicity
 from .linalg import dot, matrix, Array, BinaryMatrix
 
 
 search_time = None
+nprimes = 0
+primes = []  # primes specifically less than B
 
 
-def exp_value(exp, primes):
+def exp_value(exp):
     """Calculates the value of a list of powers of primes. If only p is given, assumes list of primes to be
     from 2 to largest prime <= p. If list of exponents does not match the powers of the continuous ascending
     list of primes, this will compute incorrectly."""
+
+    global primes
 
     # raises each prime to the corresponding power in list exp, then reduces that list with multiplication
     return prod(map(lambda p, e: pow(p, e), primes, exp))
 
 
-def factor_if_smooth(n, primes):
+def factor_if_smooth(n):
     """Helper function for quadratic sieve that returns factors of n if n can be factored
     only by list of given primes, returning None otherwise."""
 
-    exp = [0] * len(primes)
+    global primes, nprimes
+
+    exp = [0] * nprimes
 
     for i, p in enumerate(primes):
+        r = 0
         while n % p == 0:
             n //= p
-            exp[i] += 1
+            r += 1
+            if r >= 20:
+                rr = multiplicity(p, n)
+                n //= p ** rr
+                r += rr
+        if r:
+            exp[i] = r
 
     return exp if n == 1 else None
 
 
-def find_perfect_squares(n, primes):
+def find_perfect_squares(n):
     """Helper function for Quadratic Sieve that generates N = len(primes) integers that minus p are perfect squares
     and are also B-smooth.
 
     :param n: int
-    :param primes: list of primes
     :return: tuple of perfect squares"""
 
+    global nprimes
     # attempt to not have to generate a lot of extra rows for smaller n, tweak this
-    extra_rows = len(primes) // 10
+    extra_rows = isqrt(nprimes)
 
     a = isqrt(n) + 1
 
@@ -54,9 +67,9 @@ def find_perfect_squares(n, primes):
     if isinstance(search_time, int):
         from time import time
         curr = time()
-        while i < len(primes) + extra_rows:
+        while i < nprimes + extra_rows:
             b = pow(a, 2) - n
-            factors = factor_if_smooth(b, primes)
+            factors = factor_if_smooth(b)
             if factors is not None:
                 perfect_sq_base.append(a)
                 perfect_sq_exp.append(Array(factors))
@@ -64,13 +77,13 @@ def find_perfect_squares(n, primes):
                 curr = time()
 
             # if too hard to find b smooth nums just try with already found, needs to be at least square matrix
-            if i >= len(primes) and time() - curr > search_time:
+            if time() - curr > search_time:
                 return perfect_sq_base, perfect_sq_exp
             a += 1
     else:
-        while i < len(primes) + extra_rows:
+        while i < nprimes + extra_rows:
             b = pow(a, 2) - n
-            factors = factor_if_smooth(b, primes)
+            factors = factor_if_smooth(b)
             if factors is not None:
                 perfect_sq_base.append(a)
                 perfect_sq_exp.append(Array(factors))
@@ -110,12 +123,15 @@ def quadratic_sieve(n, B=None, force=60):
         L = pow(e, sqrt(log(n) * log(log(n))))
         B = int(pow(L, 1 / sqrt(2)))
 
-    primes = primes_lt(B)
+    global nprimes, primesieve, primes
+    primesieve.extend(B)
+    primes = primesieve[:B]
+    nprimes = len(primes)
 
     global search_time
     search_time = force
 
-    bases, exp = find_perfect_squares(n, primes)  # bases list of a s.t. a^2 is b smooth, exp is powers of b smooth num
+    bases, exp = find_perfect_squares(n)  # bases list of a s.t. a^2 is b smooth, exp is powers of b smooth num
 
     mat = matrix(exp).transpose()  # mat needs to be transpose and kernel also wants transpose so do this step now
 
@@ -127,14 +143,13 @@ def quadratic_sieve(n, B=None, force=60):
         e = map(lambda x: x // 2, map(lambda y: dot(v, y), mat))
         a = dot(v, bases)
 
-        b = exp_value(e, primes)
+        b = exp_value(e)
         p, q = gcd(a + b, n), gcd(a - b, n)
 
-        # if one solution is non-trivial factor, _factor_with_known will take care of the rest
         if 1 < p < n:
-            return {p: 1, n//p: 1}
+            return p
         if 1 < q < n:
-            return {q: 1, n//q: 1}
+            return q
 
     # this return statement should never hit, if it does consider adding more rows to matrix in function find_perf_sq
     return None

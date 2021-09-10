@@ -8,13 +8,9 @@ from abc import abstractmethod
 from math import sqrt, gcd
 from functools import reduce
 from typing import Any, overload
-from sympy.ntheory.primetest import is_square
-from math import nan
 from decimal import Decimal
 
-from .crypto_functions import factor
-from .tools import lcm, number_to_integer
-from .prime import isprime
+from .factor import factor
 
 
 # val inside radical cannot be decimal with leading 0., even though this would be valid square root
@@ -34,35 +30,79 @@ _SQUARE_ROOT_FORMAT = re.compile(r"""
 
 
 def sqrt_gcd(*args):
-    def _gcd(a, b):
-        if isinstance(a, SquareRoot):
-            a = a._scalar
-        if isinstance(b, SquareRoot):
-            b = b._scalar
-        return gcd(a, b)
-
+    def _gcd(a: 'SquareRoot', b: 'SquareRoot'):
+        return gcd(a.radicand, b.radicand)
     return reduce(lambda i, c: _gcd(i, c), args)
 
 
 def reduce_sqrt(operand, s=1):
     factors = factor(operand)
 
-    if factors is None or factors == {operand: 1}:
+    if factors == {operand: 1} or factors is None:
         return operand, s
 
     for f in factors:
         if factors[f] > 1:  # if there is a square or greater in the factors, push it to the coeff
             power = pow(f, factors[f] // 2)
             s *= power
-            operand //= pow(power, 2)
+            operand //= (power * power)
     return operand, s
+
+
+def try_sqrt(v, c=None):
+    """
+    Helper function for SquareRoot.__new__() that attempts to return square root of parameters
+    given, throwing a more helpful error if a problem occurs.
+    """
+    try:
+        return sqrt(v) if c is None else (c * sqrt(v))
+    except TypeError:
+        raise TypeError(f"all input(s) must be rational not type(s): {type(v)}" +
+                        f", {type(c)}" if c is not None else "")
+    except OverflowError:
+        raise ValueError(f"{v} too large to be converted to SquareRoot")
 
 
 class SquareRoot(Real):
 
-    __slots__ = ('_scalar', '_value')  # sets data stored in RAM to just these two vals (not using python dict)
+    __slots__ = ('_value', '_scalar')
 
     def __new__(cls, operand, coefficient=None, _normalize=True):
+        """
+        Constructs new immutable instance of SquareRoot object.
+
+        Parsing of input is done such that the most common instances require the least
+        if-statements. A table of the costs are listed below for each combination of types.
+
+        Notes
+        -----
+        Cost Table [operand, coefficient] - the value of each cost is the number of boolean statements
+        to be evaluated prior to returning. type/int refers to a float or rational that has a value
+        of an integer (i.e. float.is_integer() or Rational.denominator == 1). Costs are not given in
+        a visually logical order, not in order of cost (but are in general order of frequency as integer
+        operands are expected to be most common).
+
+        [int, None]: 4;
+        [int, int]: 5;
+        [int, float/int]: 8;
+        [int, Rational/int]: 10;
+        [float/int, None]: 6;
+        [float/int, int]: 9;
+        [float/int, float/int]: 10;
+        [float/int, Rational/int]: 12;
+        [Rational/int, None]: 8;
+        [Rational/int, int]: 11;
+        [Rational/int, float/int]: 13;
+        [Rational/int, Rational/int]: 15;
+        [str, None]: 11;
+
+        Note
+        ----
+        The largest cost of creating the SquareRoot object is the normalization, taking out all prime powers > 2
+        inside operand. This step requires a complete factorization of the operand, then several
+        multiplications to normalize the expression. Simply put, if efficiency is at question, provide
+        prime integers or composite integers with all prime powers < 2 as the operand, and _normalize=False.
+        """
 
         self = super().__new__(cls)
 
@@ -70,11 +110,11 @@ class SquareRoot(Real):
             if isinstance(operand, int):
                 self._value, self._scalar = reduce_sqrt(operand) if _normalize else (operand, 1)
                 return self._scalar if self._value == 1 else self
-            elif isinstance(operand, float):
-                if operand.is_integer():
-                    self._value, self._scalar = reduce_sqrt(int(operand)) if _normalize else (int(operand), 1)
-                    return self._scalar if self._value == 1 else self
-                return sqrt(operand)
+            elif (isinstance(operand, float) and operand.is_integer()) or \
+                    (isinstance(operand, Rational) and operand.denominator == 1):
+                operand = int(operand)
+                self._value, self._scalar = reduce_sqrt(operand) if _normalize else (operand, 1)
+                return self._scalar if self._value == 1 else self
             elif isinstance(operand, str):
                 match = _SQUARE_ROOT_FORMAT.match(operand)
                 if not match:
@@ -93,49 +133,22 @@ class SquareRoot(Real):
                         else (int(value), int(scalar))
                     return self._scalar if self._value == 1 else self
                 else:
-                    res = float(scalar * sqrt(value))
-                    return int(res) if res.is_integer() else res
-            # if rational but denominator can be removed or is 1
-            elif isinstance(operand, Rational) and operand.denominator == 1:
-                self._value, self._scalar = reduce_sqrt(operand.numerator) if _normalize else (operand.numerator, 1)
-                return self._scalar if self._value == 1 else self
-            elif isinstance(operand, Complex) and operand.imag == 0:
-                operand = operand.real
-                if isinstance(operand, int) or (isinstance(operand, float) and operand.is_integer()):
-                    self._value, self._scalar = reduce_sqrt(int(operand)) if _normalize else (int(operand), 1)
-                    return self._scalar if self._value == 1 else self
-                raise ValueError(f"complex numbers must have imaginary value of 0")
+                    return try_sqrt(value, scalar)
             else:
-                try:
-                    return sqrt(operand)
-                except TypeError:
-                    raise ValueError(f"invalid argument(s) for {__class__.__name__}: {operand}")
-        elif isinstance(operand, int) and isinstance(coefficient, int):
-            pass
-        elif isinstance(operand, (float, Complex, Rational)) or isinstance(coefficient, (float, Complex, Rational)):
-            operand = number_to_integer(operand)
-            coefficient = number_to_integer(coefficient)
-            if isinstance(operand, int) and isinstance(coefficient, int):
-                pass
+                return try_sqrt(operand)
 
-            # only instance of when operand can't be converted into integer but still is valid is if denominator
-            # can be pulled out of square root
-            elif isinstance(coefficient, int) and isinstance(operand, Rational) and is_square(operand.denominator):
-                if coefficient % sqrt(operand.denominator) == 0:
-                    operand = int(operand.numerator)
-                    coefficient //= int(sqrt(operand.denominator))
-            else:
-                try:
-                    return coefficient * sqrt(operand)
-                except TypeError:
-                    raise ValueError(f"invalid argument(s) for {__class__.__name__}: "
-                                     f"operand={operand}, coefficient={coefficient}")
+        # if statement in this order allows for quicker evaluation, since it is more common that coefficient
+        # will not be int than operand
+        elif isinstance(coefficient, int) and isinstance(operand, int):
+            pass
+        elif (isinstance(operand, int) or ((isinstance(operand, float) and operand.is_integer()) or
+              (isinstance(operand, Rational) and operand.denominator == 1))) and \
+                (isinstance(coefficient, int) or ((isinstance(coefficient, float) and coefficient.is_integer()) or
+                 (isinstance(coefficient, Rational) and coefficient.denominator == 1))):
+            operand = int(operand)
+            coefficient = int(coefficient)
         else:
-            try:
-                return coefficient * sqrt(operand)
-            except TypeError:
-                raise ValueError(f"invalid argument(s) for {__class__.__name__}: "
-                                 f"operand={operand}, coefficient={coefficient}")
+            return try_sqrt(operand, coefficient)
 
         # at this point, every input has either been returned, an error raised, or converted into at int, meaning
         # values here are guaranteed to be integers
@@ -143,257 +156,335 @@ class SquareRoot(Real):
         self._value, self._scalar = reduce_sqrt(operand, coefficient) if _normalize else (operand, coefficient)
         return self._scalar if self._value == 1 else self
 
-    def _operator_fallbacks(square_root_operator: Callable[['SquareRoot', Number], Number],
-                            standard_operator: Callable[[Any, Any], Any]):
+    @property
+    def eval(self):
+        return sqrt(self._value) * self._scalar
+
+    @property
+    def radicand(self):
+        return self._value
+
+    @property
+    def coefficient(self):
+        return self._scalar
+
+    def _operator_fallbacks(sr_operator: Callable[['SquareRoot', 'SquareRoot'], Real], std_operator):
+        """
+        Takes in two callable operators and returns two callable operators analogous to __op__, and
+        __rop__
+
+        :param sr_operator: square root operator: _op (ex. _add())
+        :param std_operator: standard operator __op__ (ex. __add__())
+        """
         def forward(a, b):
-            if isinstance(b, (int, float, SquareRoot)):
-                return square_root_operator(a, b)
+            if isinstance(b, SquareRoot):
+                return sr_operator(a, b)
+            elif isinstance(b, (int, float)):
+                return std_operator(float(a), b)
             elif isinstance(b, complex):
-                return standard_operator(complex(a), b)
+                return std_operator(complex(a), b)
             else:
+                return NotImplemented
 
-                # if can't match to a known type, convert sqrt to float (nearest type) and try again
-                return standard_operator(float(a), b)
-
-        forward.__name__ = '__' + standard_operator.__name__ + '__'
-        forward.__doc__ = square_root_operator.__doc__
+        forward.__name__ = '__' + std_operator.__name__ + '__'
+        forward.__doc__ = sr_operator.__doc__
 
         def reverse(b, a):
             if isinstance(a, SquareRoot):
-                return square_root_operator(a, b)
-            elif isinstance(a, (int, float)):
-                return standard_operator(a, float(b))
+                return sr_operator(a, b)
             elif isinstance(a, Real):
-                return standard_operator(float(a), float(b))
+                return std_operator(float(a), float(b))
             elif isinstance(a, Complex):
-                return standard_operator(complex(a), complex(b))
+                return std_operator(complex(a), complex(b))
             else:
 
-                # if can't match to a known type, convert sqrt to float (nearest type) and try again
-                return standard_operator(a, float(b))
+                # since there is nothing to fall back on, instead of returning not implemented, operation
+                # is attempted with square root being converted to nearest type: float, incase the other
+                # type knows how to deal with floats
+                return std_operator(a, float(b))
 
-        reverse.__name__ = '__r' + standard_operator.__name__ + '__'
-        reverse.__doc__ = square_root_operator.__doc__
+        reverse.__name__ = '__r' + std_operator.__name__ + '__'
+        reverse.__doc__ = sr_operator.__doc__
 
         return forward, reverse
 
+    def _add(a, b: 'SquareRoot'):
+        ar = a.radicand
+        if ar == b.radicand:
+            return SquareRoot(ar, a.coefficient + b.coefficient)
+        return a.eval + b.eval
+
+    __add__, __radd__ = _operator_fallbacks(_add, operator.add)
+
+    def _sub(a, b: 'SquareRoot'):
+        ar = a.radicand
+        if ar == b.radicand:
+            return SquareRoot(ar, a.coefficient - b.coefficient)
+        return a.eval - b.eval
+
+    __sub__, __rsub__ = _operator_fallbacks(_sub, operator.sub)
+
+    def _mul(a, b: 'SquareRoot'):
+        ar, br = a.radicand, b.radicand
+        if ar == br:
+            return a.coefficient * b.coefficient * ar
+        return SquareRoot(ar * br, a.coefficient * b.coefficient)
+
+    __mul__, __rmul__ = _operator_fallbacks(_mul, operator.mul)
+
+    def _floordiv(a, b: 'SquareRoot'):
+        ar, br = a.radicand, b.radicand
+        ac, bc = a.coefficient, b.coefficient
+        if ar == br:
+            return ac // bc
+        elif not ar % br and not ac % bc:
+            return SquareRoot(ar // br, ac // bc)
+        return a.eval // b.eval
+
+    __floordiv__, __rfloordiv__ = _operator_fallbacks(_floordiv, operator.floordiv)
+
+    def _truediv(a, b: 'SquareRoot'):
+        ar, br = a.radicand, b.radicand
+        ac, bc = a.coefficient, b.coefficient
+        if ar == br:
+            return ac / bc
+        elif not ar % br and not ac % bc:
+            return SquareRoot(ar // br, ac // bc)
+        return a.eval / b.eval
+
+    __truediv__, __rtruediv__ = _operator_fallbacks(_truediv, operator.truediv)
+
+    def __mod__(self, other):
+        if isinstance(other, int):
+            r = self.radicand
+            c = self.coefficient % other
+            if c * sqrt(self.radicand) < other:
+                return SquareRoot(r, c)
+        return self.eval % other
+
+    def __rmod__(self, other):
+        return other % self.eval
+
+    def __pow__(self, power):
+        if not power % 2:
+            return pow(self.radicand, power // 2) * pow(self.coefficient, power)  # power // 2 for value inside sqrt
+        return pow(self.eval, power)
+
+    def __rpow__(self, other):
+        return self.eval.__rpow__(other)
+
+    def __float__(self):
+        return self.eval
+
+    def __int__(self):
+        return int(self.eval)
+
+    def __complex__(self):
+        return complex(self.eval)
+
+    def __trunc__(self) -> int:
+        return self.eval.__trunc__()
+
+    def __floor__(self) -> int:
+        return self.eval.__floor__()
+
+    def __ceil__(self) -> int:
+        return self.eval.__ceil__()
+
+    def __abs__(self):
+        return SquareRoot(self.radicand, abs(self.coefficient), _normalize=False)
+
+    def __neg__(self):
+        return SquareRoot(self.radicand, -self.coefficient, _normalize=False)
+
+    def __pos__(self):
+        return SquareRoot(self._value, self._scalar, _normalize=False)
+
+    def __hash__(self):
+        return self.eval.__hash__()
+
+    def __round__(self, ndigits=None):
+        return self.eval.__round__(ndigits=ndigits)
+
     def __str__(self):
-        if self._value == 1:
-            return str(self._scalar)
-        return f'({self._scalar}*sqrt({self._value}))' if self._scalar != 1 else f'sqrt({self._value})'
+        r, c = self.radicand, self.coefficient
+        return f'sqrt({r})' if c == 1 else f'({c}*sqrt({r}))'
 
     def __repr__(self):
         return f'SquareRoot({self._value}, {self._scalar})'
 
-    def __int__(self):
-        return int(self.value)
-
-    def __float__(self):
-        return float(self.value)
-
-    def __complex__(self):
-        return complex(self.value)
-
-    def __abs__(self):
-        return SquareRoot(self._value, abs(self._scalar))
-
-    def __pos__(self):
-        return SquareRoot(self._value, self._scalar)
-
-    def __neg__(self):
-        return SquareRoot(self._value, -self._scalar)
-
     def __eq__(self, other):
         if isinstance(other, SquareRoot):
-
-            # second part of or should never be true if first part is false, there as a fail safe
-            return (other._value == self._value and other._scalar == self._scalar) or (self.value == other.value)
-        return self.value == other
+            return other.radicand == self.radicand and other.coefficient == self.coefficient
+        return self.eval == other
 
     def __ne__(self, other):
-        return not self.__eq__(other)
+        if isinstance(other, SquareRoot):
+            return not (other.radicand == self.radicand or other.coefficient == self.coefficient)
+        return self.eval != other
 
-    def _add(a, b):
-        if isinstance(b, SquareRoot) and a._value == b._value:
-            return SquareRoot(a._value, a._scalar + b._scalar)
-        return a.value + b
+    def _compare(self, other, op):
+        if isinstance(other, SquareRoot):
+            return op(self.eval, other.eval)
+        return op(self.eval, other)
 
-    __add__, __radd__ = _operator_fallbacks(_add, operator.add)
+    def __lt__(self, other):
+        return self._compare(other, operator.lt)
 
-    def _sub(a, b):
-        if isinstance(b, SquareRoot) and a._value == b._value:
-            return SquareRoot(a._value, a._scalar - b._scalar)
-        return a.value - b
+    def __le__(self, other):
+        return self._compare(other, operator.le)
 
-    __sub__, __rsub__ = _operator_fallbacks(_sub, operator.sub)
+    def __gt__(self, other):
+        return self._compare(other, operator.gt)
 
-    def _mul(a, b):
-        if isinstance(b, SquareRoot):
-            if a._value == b._value:
-                return a._scalar * b._scalar * a._value
-            return SquareRoot(a._value * b._value, a._scalar * b._scalar)
-        elif isinstance(b, int):
-            return SquareRoot(a._value, a._scalar * b)
-        return a.value * b
+    def __ge__(self, other):
+        return self._compare(other, operator.ge)
 
-    __mul__, __rmul__ = _operator_fallbacks(_mul, operator.mul)
 
-    def _floordiv(a, b):
-        if isinstance(b, SquareRoot):
-            if a._value == b._value:
-                return a._scalar // b._scalar
-            elif a._value % b._value == 0:
-                return SquareRoot(a._value // b._value, a._scalar // b._scalar)
-            return a.value // b.value
-        elif isinstance(b, int) and a._scalar % b == 0:
-            return SquareRoot(a._value, a._scalar // b)
-        return a.value // b
+class Fraction(Rational):
+    __slots__ = '_numerator', '_denominator'
 
-    __floordiv__, __rfloordiv__ = _operator_fallbacks(_floordiv, operator.floordiv)
+    # the , *, allows for numerator and denominator to be passed as positional arguments, but anything past
+    # that (i.e. _normalize) must be passed explicitly as a kwarg
+    def __new__(cls, numerator, denominator=None, *, _normalize=True):
 
-    def _truediv(a, b):
-        if isinstance(b, SquareRoot):
-            if a._value == b._value:
-                return a._scalar / b._scalar
-            elif a._value % b._value == 0 and a._scalar % b._scalar == 0:
-                return SquareRoot(a._value // b._value, a._scalar / b._scalar)
-            return a.value / b.value
-        elif isinstance(b, int) and a._scalar % b == 0:
-            return SquareRoot(a._value, a._scalar / b)
-        return a.value / b
+        self = super().__new__(cls)
 
-    __truediv__, __rtruediv__ = _operator_fallbacks(_truediv, operator.truediv)
+        if denominator is None:
+            if type(numerator) is int:
+                self._numerator = numerator
+                self._denominator = 1
+                return self
 
-    def __hash__(self) -> int:
-        return float(self.value).__hash__()
+            elif isinstance(numerator, Rational):
+                self._numerator = numerator.numerator
+                self._denominator = numerator.denominator
+                return self
+
+            elif isinstance(numerator, (float, Decimal)):
+                # Exact conversion
+                self._numerator, self._denominator = numerator.as_integer_ratio()
+                return self
+
+            elif isinstance(numerator, str):
+                # Handle construction from strings.
+                m = None  # _RATIONAL_FORMAT.match(numerator)
+                if m is None:
+                    raise ValueError
+                numerator = int(m.group('num') or '0')
+                denom = m.group('denom')
+                if denom:
+                    denominator = int(denom)
+                else:
+                    denominator = 1
+                    decimal = m.group('decimal')
+                    if decimal:
+                        pass
+                    exp = m.group('exp')
+                    if exp:
+                        exp = int(exp)
+                        if exp >= 0:
+                            pass
+                        else:
+                            pass
+                if m.group('sign') == '-':
+                    pass
+
+            else:
+                raise TypeError
+
+        elif type(numerator) is int is type(denominator):
+            pass  # *very* normal case
+
+        elif (isinstance(numerator, Rational) and isinstance(denominator, Rational)):
+            pass
+        else:
+            raise TypeError("both arguments should be "
+                            "Rational instances")
+
+        if denominator == 0:
+            pass
+        if _normalize:
+            pass
+        self._numerator = numerator
+        self._denominator = denominator
+        return self
+
+    @property
+    def numerator(self) -> int:
+        pass
+
+    @property
+    def denominator(self) -> int:
+        pass
 
     def __trunc__(self) -> int:
-        return float(self.value).__trunc__()
+        pass
 
     def __floor__(self) -> int:
-        return float(self.value).__floor__()
+        pass
 
     def __ceil__(self) -> int:
-        return float(self.value).__ceil__()
+        pass
 
+    @abstractmethod
     @overload
     def __round__(self, ndigits: None = ...) -> Integral: ...
 
+    @abstractmethod
     @overload
     def __round__(self, ndigits: int = ...) -> Real: ...
 
-    def __round__(self, ndigits: int = None) -> Any:
-        return float(self.value).__round__(ndigits=ndigits)
-
-    def __mod__(self, other: Any) -> Any:
-        return float(self.value).__mod__(other)
-
-    def __rmod__(self, other: Any) -> Any:
-        return float(self.value).__rmod__(other)
-
-    def __lt__(self, other: Any) -> bool:
-        return float(self.value).__lt__(other)
-
-    def __le__(self, other: Any) -> bool:
-        return float(self.value).__le__(other)
-
-    def __pow__(self, power):
-        if power % 2 == 0:
-            return pow(self._value, power // 2) * pow(self._scalar, power)  # power // 2 for value since inside sqrt
-        return pow(self.value, power)
-
-    def __rpow__(self, other):
-        return float(self.value).__rpow__(other)
-
-    @property
-    def value(self):
-        if self._value == 1:
-            return self._scalar
-        return sqrt(self._value) * self._scalar
-
-
-class Fraction:
-    def __init__(self, num, denom=1.0):
-
-        # attempts to check if number if is a square root, creating SR obj if it is
-        if isinstance(denom, float) and not denom.is_integer():
-            if abs(int(k := pow(denom, 2)) / k) < 1 + pow(10, -6):  # if less than .000001% away from sqrt, it is sqrt
-                denom = SquareRoot(int(k))
-            else:
-                raise ValueError(f"denominator must be rational or square root value")
-        if isinstance(num, float) and not num.is_integer():
-            if abs(int(k := pow(num, 2)) / k) < 1 + pow(10, -6):  # if less than .000001% away from sqrt, it is sqrt
-                num = SquareRoot(int(k))
-            else:
-                raise ValueError(f"denominator must be rational or square root value")
-
-        # square root in denominator, move to numerator
-        if isinstance(denom, SquareRoot):
-            f = SquareRoot(denom._value)
-            denom *= f
-            num *= f
-
-        # make sure integers, if float then guaranteed to be integer-float
-        self.numerator = num if isinstance(num, SquareRoot) else int(num)
-        self.denominator = int(denom)
-
-        g = sqrt_gcd(self.numerator, self.denominator)  # if fraction can be reduced, do it, use sqrt_gcd for sqrt objs
-        self.numerator //= g
-        self.denominator //= g
-
-    def __str__(self):
-        return f'{self.numerator}/{self.denominator}'
-
-    def __repr__(self):
-        return f'Fraction({self.numerator}, {self.denominator})'
-
-    def __eq__(self, other):
-        if isinstance(other, Fraction):
-            return self.numerator == other.numerator and self.denominator == other.denominator
-        return self.eval() == other
-
-    def __add__(self, other):
-        if isinstance(other, Fraction):
-            f = lcm(self.denominator, other.denominator)
-            numer = self.numerator * (f // self.denominator) + other.numerator * (f // other.denominator)
-            return Fraction(numer, f)
-
-        return Fraction(self.numerator + other * self.denominator, self.denominator)
-
-    def __radd__(self, other):
-        return self.__add__(other)
-
-    def __sub__(self, other):
-        if isinstance(other, Fraction):
-            f = lcm(self.denominator, other.denominator)
-            numer = self.numerator * (f // self.denominator) - other.numerator * (f // other.denominator)
-            return Fraction(numer, f)
-
-        return Fraction(self.numerator - other * self.denominator, self.denominator)
-
-    def __rsub__(self, other):
-        if isinstance(other, Fraction):
-            f = lcm(self.denominator, other.denominator)
-            numer = other.numerator * (f // other.denominator) - self.numerator * (f // self.denominator)
-            return Fraction(numer, f)
-
-        return Fraction(self.numerator - other * self.denominator, self.denominator)
-
-    def __mul__(self, other):
-        if isinstance(other, Fraction):
-            return Fraction(self.numerator * other.numerator, self.denominator * other.denominator)
-        return Fraction(self.numerator * other, self.denominator)
-
-    def __rmul__(self, other):
-        return self.__mul__(other)
-
-    def __truediv__(self, other):
-        if isinstance(other, Fraction):
-            return Fraction(self.numerator * other.denominator, self.denominator * other.numerator)
-        return Fraction(self.numerator, self.denominator * other)
-
-    def __rtruediv__(self, other):
+    def __round__(self, ndigits: None = ...) -> int:
         pass
 
-    def eval(self):
-        return self.numerator / self.denominator
+    def __floordiv__(self, other: Any) -> int:
+        pass
+
+    def __rfloordiv__(self, other: Any) -> int:
+        pass
+
+    def __mod__(self, other: Any) -> Any:
+        pass
+
+    def __rmod__(self, other: Any) -> Any:
+        pass
+
+    def __lt__(self, other: Any) -> bool:
+        pass
+
+    def __le__(self, other: Any) -> bool:
+        pass
+
+    def __add__(self, other: Any) -> Any:
+        pass
+
+    def __radd__(self, other: Any) -> Any:
+        pass
+
+    def __neg__(self) -> Any:
+        pass
+
+    def __pos__(self) -> Any:
+        pass
+
+    def __mul__(self, other: Any) -> Any:
+        pass
+
+    def __rmul__(self, other: Any) -> Any:
+        pass
+
+    def __truediv__(self, other: Any) -> Any:
+        pass
+
+    def __rtruediv__(self, other: Any) -> Any:
+        pass
+
+    def __pow__(self, exponent: Any) -> Any:
+        pass
+
+    def __rpow__(self, base: Any) -> Any:
+        pass
+
+    def __hash__(self) -> int:
+        pass

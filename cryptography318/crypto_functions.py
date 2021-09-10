@@ -3,7 +3,7 @@ from math import gcd, isqrt, sqrt, prod, log
 from sympy.ntheory.primetest import is_square
 from functools import reduce
 
-from .prime import isprime, primes_lt, primes_lt_gen
+from .prime import isprime, primerange, primes_gen
 from .tools import join_dict, dot
 from .quadratic_sieve import quadratic_sieve
 from .array import ArrayMod, Array
@@ -479,7 +479,7 @@ def index_calculus_dlp(g, h, p):
     L = pow(e, sqrt(log(p) * log(log(p))))
     B = int(pow(L, 1 / sqrt(2)))
 
-    primes = primes_lt(B)
+    primes = primes(B)
 
     # currently brute forces solutions to log_g_x with x for each prime <= B
     logs = {}
@@ -592,7 +592,7 @@ def b_smooth(n, b=None, factors=None):
     """Returns True if all prime factors of given number are <= B"""
 
     if factors is None:
-        factors = primes_lt_gen(b)
+        factors = primes_gen(b)
 
     for p in factors:
         while n % p == 0:
