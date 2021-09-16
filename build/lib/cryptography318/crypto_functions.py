@@ -86,24 +86,24 @@ class Elliptic:
         x2, y2 = other.point
 
         # if points add to identity, return identity (Elliptic with point = None)
-        if (x1 - x2) % self.E.mod == 0 and (y1 + y2) % self.E.mod == 0:
+        if (x1 - x2) % self.E._mod == 0 and (y1 + y2) % self.E._mod == 0:
             return Elliptic(self.E)
 
         # two try/catch clauses allow for information to be obtained if crash occurs, mostly useful in
         # lenstra's elliptic curve factorization algorithm
-        if (x1 - x2) % self.E.mod == 0 and (y1 - y2) % self.E.mod == 0:
+        if (x1 - x2) % self.E._mod == 0 and (y1 - y2) % self.E._mod == 0:
             try:
-                slope = ((3 * pow(x1, 2) + self.E.a) * pow(2 * y1, -1, self.E.mod)) % self.E.mod
+                slope = ((3 * pow(x1, 2) + self.E.a) * pow(2 * y1, -1, self.E._mod)) % self.E._mod
             except ValueError as e:
                 raise ValueError(str(e) + f" base: {2 * y1}")
         else:
             try:
-                slope = ((y2 - y1) * pow(x2 - x1, -1, self.E.mod)) % self.E.mod
+                slope = ((y2 - y1) * pow(x2 - x1, -1, self.E._mod)) % self.E._mod
             except ValueError as e:
                 raise ValueError(str(e) + f" base: {x2 - x1}")
 
-        x3 = (pow(slope, 2) - x1 - x2) % self.E.mod
-        y3 = (slope * (x1 - x3) - y1) % self.E.mod
+        x3 = (pow(slope, 2) - x1 - x2) % self.E._mod
+        y3 = (slope * (x1 - x3) - y1) % self.E._mod
         return Elliptic(self.E, x3, y3)
 
     def __radd__(self, other):
@@ -212,10 +212,10 @@ def NumToString(n, base=128):
 def StringToElliptic(E, s):
     for i in range(100):
         x = StringToNum(s) * 100 + i
-        x_term = pow(x, 3, E.mod) + E.a * x + E.b
-        if quadratic_residue(x_term, E.mod):
+        x_term = pow(x, 3, E._mod) + E.a * x + E.b
+        if quadratic_residue(x_term, E._mod):
             y = 1
-            while pow(y, 2, E.mod) != x_term:
+            while pow(y, 2, E._mod) != x_term:
                 y += 1
             return E.point(x, y)
     return None
@@ -312,7 +312,7 @@ def baby_step_giant_step(g, h, p, order=None):
 
 def elliptic_bsgs(P, Q, order=None):
     if order is None:
-        order = P.E.mod + 1 + 2 * isqrt(P.E.mod)
+        order = P.E._mod + 1 + 2 * isqrt(P.E._mod)
 
     n = isqrt(order)
 

@@ -1,5 +1,5 @@
-from cryptography318.crypto_functions import *
-from cryptography318.linear_algebra import Matrix, aslist, dot
+from cryptography318.numbers.crypto_functions import *
+from cryptography318.linalg.linear_algebra import Matrix, aslist, dot
 import numpy
 
 
