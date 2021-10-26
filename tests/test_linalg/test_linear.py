@@ -1,6 +1,6 @@
 from cryptography318.linalg.linear_algebra import *
 from cryptography318.core.tools import *
-from cryptography318.linalg.array import *
+from cryptography318.linalg.array_old import *
 from random import randrange
 import pytest
 import timeit

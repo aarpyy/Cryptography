@@ -1,8 +1,9 @@
 from random import randrange
 from math import gcd, isqrt, sqrt, prod
+from functools import reduce
 
 from .prime import primes_gen
-from cryptography318.linalg.array import ArrayMod, Array
+from cryptography318.linalg.array_old import ArrayMod, Array
 
 
 # classes and methods for working with elliptic curve cryptography
@@ -171,6 +172,18 @@ class Elliptic:
 
     def copy(self):
         return Elliptic(self.E, self.point[0], self.point[1])
+
+
+def strnum(s):
+    return reduce(lambda r, c: (r << 7) | ord(c), s, 0)
+
+
+def numstr(n):
+    s = ''
+    while n:
+        s = chr(n & 127) + s
+        n >>= 7
+    return s
 
 
 def string_to_elliptic(curve, s):

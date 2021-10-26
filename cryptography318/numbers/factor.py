@@ -2,7 +2,7 @@ from math import isqrt, sqrt, log, gcd
 from random import randrange
 from sympy.ntheory.primetest import is_square
 
-from cryptography318.prime import isprime, primesieve, multiplicity, trailing
+from cryptography318.numbers.prime import isprime, primesieve, multiplicity, trailing
 from .elliptic import lenstra_ecm
 from cryptography318.numbers.quadratic_sieve import quadratic_sieve
 

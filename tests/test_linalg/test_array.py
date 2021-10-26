@@ -1,6 +1,6 @@
 from random import randrange
 
-from cryptography318.linalg.array import *
+from cryptography318.linalg.array_old import *
 from functools import reduce
 import numpy
 import pytest

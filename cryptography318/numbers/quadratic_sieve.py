@@ -1,12 +1,28 @@
+from abc import abstractmethod
 from math import sqrt, log, gcd, prod, isqrt
 from sympy.ntheory.primetest import is_square
-from .prime import isprime, multiplicity
-from cryptography318.linalg.linalg import dot, matrix, Array, BinaryMatrix
+from .prime import isprime, multiplicity, primesieve
+from cryptography318.linalg.linalg import matrix, Array, BinaryMatrix
+from cryptography318.linalg.qsarray import bmatrix, barray
+from typing import Sequence, overload, MutableSequence
+from numbers import Integral
 
 
 search_time = None
 nprimes = 0
 primes = []  # primes specifically less than B
+
+
+def bits(n):
+    count = 0
+    while n:
+        n &= n - 1
+        count += 1
+    return count
+
+
+def dot(a, b):
+    return sum(y for x, y in zip(a, b) if x)
 
 
 def exp_value(exp):
@@ -27,6 +43,7 @@ def factor_if_smooth(n):
     global primes, nprimes
 
     exp = [0] * nprimes
+    bval = 0
 
     for i, p in enumerate(primes):
         r = 0
@@ -37,10 +54,16 @@ def factor_if_smooth(n):
                 rr = multiplicity(p, n)
                 n //= p ** rr
                 r += rr
-        if r:
-            exp[i] = r
 
-    return exp if n == 1 else None
+        if r & 1:
+            exp[i] = r
+            bval = (bval << 1) | 1
+        elif r:
+            exp[i] = r
+        else:
+            bval <<= 1
+
+    return (exp, barray(bval, _len=nprimes)) if n == 1 else (None, None)
 
 
 def find_perfect_squares(n):
@@ -59,6 +82,7 @@ def find_perfect_squares(n):
     i = 0
     perfect_sq_base = []
     perfect_sq_exp = []
+    perfect_sq_bin = []
 
     # finds + extra_rows so that resulting matrix will have more rows than columns which increases the chances of each
     # row being linearly dependent mod 2
@@ -69,10 +93,11 @@ def find_perfect_squares(n):
         curr = time()
         while i < nprimes + extra_rows:
             b = pow(a, 2) - n
-            factors = factor_if_smooth(b)
+            factors, binary = factor_if_smooth(b)
             if factors is not None:
                 perfect_sq_base.append(a)
-                perfect_sq_exp.append(Array(factors))
+                perfect_sq_exp.append(factors)
+                perfect_sq_bin.append(binary)
                 i += 1
                 curr = time()
 
@@ -83,14 +108,15 @@ def find_perfect_squares(n):
     else:
         while i < nprimes + extra_rows:
             b = pow(a, 2) - n
-            factors = factor_if_smooth(b)
+            factors, binary = factor_if_smooth(b)
             if factors is not None:
                 perfect_sq_base.append(a)
-                perfect_sq_exp.append(Array(factors))
+                perfect_sq_exp.append(factors)
+                perfect_sq_bin.append(binary)
                 i += 1
             a += 1
 
-    return perfect_sq_base, perfect_sq_exp
+    return perfect_sq_base, perfect_sq_exp, bmatrix(perfect_sq_bin)
 
 
 def quadratic_sieve(n, B=None, force=60):
@@ -123,7 +149,7 @@ def quadratic_sieve(n, B=None, force=60):
         L = pow(e, sqrt(log(n) * log(log(n))))
         B = int(pow(L, 1 / sqrt(2)))
 
-    global nprimes, primesieve, primes
+    global nprimes, primes
     primesieve.extend(B)
     primes = primesieve[:B]
     nprimes = len(primes)
@@ -131,16 +157,20 @@ def quadratic_sieve(n, B=None, force=60):
     global search_time
     search_time = force
 
-    bases, exp = find_perfect_squares(n)  # bases list of a s.t. a^2 is b smooth, exp is powers of b smooth num
+    bases, exp, bin_exp = find_perfect_squares(n)  # bases list of a s.t. a^2 is b smooth, exp is powers of b smooth num
 
-    mat = matrix(exp).transpose()  # mat needs to be transpose and kernel also wants transpose so do this step now
+    print(f"bases: \n{bases}")
+    print(f"exp: \n{exp}")
+    print(f"bin: \n{bin_exp}")
 
-    basis = BinaryMatrix(
-        list(map(lambda r: r._mod(2), mat.array))  # use BinaryMatrix instead of matrix to reduce parse time of object
-    ).kernel().transpose()  # basis of kernel as matrix
+    basis = bin_exp.kernel()
+
+    print(f"kernel: \n{basis}")
+
+    return
 
     for v in basis:  # iterate over basis of kernel
-        e = map(lambda x: x // 2, map(lambda y: dot(v, y), mat))
+        e = map(lambda x: x // 2, map(lambda y: dot(v, y), exp))
         a = dot(v, bases)
 
         b = exp_value(e)

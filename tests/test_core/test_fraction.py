@@ -4,6 +4,7 @@ from timeit import timeit
 from random import randrange
 from numbers import *
 from math import sqrt
+from cryptography318.core.sqrt import Sqrt
 import pytest
 
 
@@ -42,13 +43,13 @@ def test_constructor():
     assert isinstance(x.numerator, int) and isinstance(x.denominator, int)
     assert x == 2.5 and x.numerator == 5 and x.denominator == 2
 
-    x = Fraction(sqrt(2), 2)
+    x = Fraction(Sqrt(2), 2)
     assert isinstance(x, float) and abs(x - sqrt(2)/2) < pow(10, -6)
 
-    x = Fraction(SquareRoot(2, 2), 3)
+    x = Fraction(Sqrt(2), 3)
     assert isinstance(x, Fraction) and isinstance(x, Rational)
-    assert isinstance(x.numerator, SquareRoot) and isinstance(x.denominator, int)
-    assert x == 2 * sqrt(2) / 3
+    assert isinstance(x.numerator, Sqrt) and isinstance(x.denominator, int)
+    assert x == sqrt(2) / 3
 
     with pytest.raises(TypeError) as exc:
         x = Fraction(complex(1, 0))
@@ -66,7 +67,7 @@ def test_constructor():
 
     x = Fraction('sqrt(2) / 5')
     assert isinstance(x, Fraction) and isinstance(x, Rational)
-    assert isinstance(x.numerator, SquareRoot) and isinstance(x.denominator, int)
+    assert isinstance(x.numerator, Sqrt) and isinstance(x.denominator, int)
     assert x == sqrt(2) / 5
 
     x = Fraction('1.25E2')
@@ -87,7 +88,7 @@ def test_add():
     c = a + b
     assert c == 1 and isinstance(c, Fraction)
 
-    b = Fraction(SquareRoot(2, 2), 5)
+    b = Fraction(Sqrt(2, 2), 5)
     c = a + b
     assert abs(c - (2 + 2 * sqrt(2)) / 5) < pow(10, -6) and isinstance(c, float)
 
@@ -102,11 +103,11 @@ def test_add():
     c = a + 2.1
     assert isinstance(c, float) and c == 2.5
 
-    a = Fraction(SquareRoot(5, 2), 7)
+    a = Fraction(Sqrt(5), 7)
 
-    b = Fraction(SquareRoot(5, 7), 9)
+    b = Fraction(Sqrt(5), 9)
     c = a + b
-    assert isinstance(c, Fraction) and isinstance(c.numerator, SquareRoot) and c.denominator == 63
+    assert isinstance(c, Fraction) and isinstance(c.numerator, Sqrt) and c.denominator == 63
 
 
 def test_sub():
@@ -116,7 +117,7 @@ def test_sub():
     c = a - b
     assert c == .2 and isinstance(c, Fraction)
 
-    b = Fraction(SquareRoot(2, 2), 5)
+    b = Fraction(Sqrt(2, 2), 5)
     c = a - b
     assert abs(c - (2 - 2 * sqrt(2)) / 5) < pow(10, -6) and isinstance(c, float)
 
@@ -131,11 +132,11 @@ def test_sub():
     c = a - 1.4
     assert isinstance(c, float) and c + 1.0 < pow(10, -6)
 
-    a = Fraction(SquareRoot(5, 2), 7)
+    a = Fraction(Sqrt(5, 2), 7)
 
-    b = Fraction(SquareRoot(5, 7), 9)
+    b = Fraction(Sqrt(5, 7), 9)
     c = a - b
-    assert isinstance(c, Fraction) and isinstance(c.numerator, SquareRoot) and c.denominator == 63
+    assert isinstance(c, Fraction) and isinstance(c.numerator, Sqrt) and c.denominator == 63
 
 
 def test_mul():
@@ -151,22 +152,22 @@ def test_mul():
     c = a * 2.0
     assert isinstance(c, Fraction) and c.numerator == 4 and c.denominator == 5
 
-    b = SquareRoot(2, 2)
+    b = Sqrt(2, 2)
     c = a * b
-    assert isinstance(c, Fraction) and c.numerator == SquareRoot(2, 4) and c.denominator == 5
+    assert isinstance(c, Fraction) and c.numerator == Sqrt(2, 4) and c.denominator == 5
 
-    a = Fraction(SquareRoot(2, 2), 5)
+    a = Fraction(Sqrt(2, 2), 5)
 
     b = Fraction(2, 5)
     c = a * b
-    assert isinstance(c, Fraction) and c.numerator == SquareRoot(2, 4) and c.denominator == 25
+    assert isinstance(c, Fraction) and c.numerator == Sqrt(2, 4) and c.denominator == 25
 
-    b = Fraction(SquareRoot(2, 5), 5)
+    b = Fraction(Sqrt(2, 5), 5)
     c = a * b
     assert isinstance(c, Fraction) and isinstance(c.numerator, int)
     assert c.numerator == 4 and c.denominator == 5
 
-    b = Fraction(SquareRoot(2, 7), 5)
+    b = Fraction(Sqrt(2, 7), 5)
     c = a * b
     assert isinstance(c, Fraction) and isinstance(c.numerator, int)
     assert c.numerator == 28 and c.denominator == 25
@@ -186,10 +187,10 @@ def test_div():
     c = a // b
     assert isinstance(c, int) and c == 1
 
-    b = Fraction(SquareRoot(17))
+    b = Fraction(Sqrt(17))
     c = 1 / b
-    assert isinstance(c, Fraction) and isinstance(c.numerator, SquareRoot)
-    assert c.numerator == SquareRoot(17) and c.denominator == 17
+    assert isinstance(c, Fraction) and isinstance(c.numerator, Sqrt)
+    assert c.numerator == Sqrt(17) and c.denominator == 17
 
 
 def test_mod():
@@ -200,7 +201,7 @@ def test_mod():
     assert isinstance(c, Fraction) and c.numerator == 1 and c.denominator == 5
 
     # modding by square root should just return float even in fraction
-    b = Fraction(SquareRoot(2, 2), 5)
+    b = Fraction(Sqrt(2, 2), 5)
     c = a % b
     assert isinstance(c, float)
 

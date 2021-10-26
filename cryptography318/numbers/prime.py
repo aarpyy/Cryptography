@@ -144,7 +144,7 @@ def miller_rabin(n, k=40):
 
     d = n - 1
     r = 0
-    while d % 2 == 0:
+    while not d & 1:
         r += 1
         d >>= 1
 
@@ -192,12 +192,12 @@ def _miller_rabin_base_a(a, n):
     if a >= n:
         a %= n
 
-    if a == 0:
+    if not a:
         return True
 
     q = n - 1
     k = 0
-    while q % 2 == 0:
+    while not q & 1:
         q >>= 1
         k += 1
 
@@ -272,15 +272,15 @@ def isprime(n):
     if n < 2:
         return False
 
-    if n < 10:
+    elif n < 10:
         return bool([0, 0, 1, 1, 0, 1, 0, 1, 0, 0, 0][n])
 
     # check for odds
-    if not n & 1:
+    elif not n & 1:
         return False
 
     # check for all other instances n != 6k +/- 1
-    if not n % 3:
+    elif not n % 3:
         return False
 
     # this step is pretty useless unless primesieve is being used for something else or is
@@ -288,33 +288,32 @@ def isprime(n):
     global primesieve
     if n in primesieve:
         return True
-
-    if n < 2047:
+    elif n < 2047:
         return miller_rabin_bases([2], n)
-    if n < 1373653:
+    elif n < 1373653:
         return miller_rabin_bases([2, 3], n)
-    if n < 9080191:
+    elif n < 9080191:
         return miller_rabin_bases([31, 73], n)
-    if n < 1050535501:
+    elif n < 1050535501:
         return miller_rabin_bases([336781006125, 9639812373923155], n)
-    if n < 3215031751:
+    elif n < 3215031751:
         return miller_rabin_bases([2, 3, 5, 7], n)
-    if n < 4759123141:
+    elif n < 4759123141:
         return miller_rabin_bases([2, 7, 61], n)
-    if n < 1122004669633:
+    elif n < 1122004669633:
         return miller_rabin_bases([2, 13, 23, 1662803], n)
-    if n < 55245642489451:
+    elif n < 55245642489451:
         return miller_rabin_bases([2, 141889084524735, 1199124725622454117, 11096072698276303650], n)
-    if n < 7999252175582851:
+    elif n < 7999252175582851:
         return miller_rabin_bases([2, 4130806001517, 149795463772692060, 186635894390467037, 3967304179347715805], n)
-    if n < 18446744073709551616:
+    elif n < 18446744073709551616:
         return miller_rabin_bases([2, 325, 9375, 28178, 450775, 9780504, 1795265022], n)
-    if n < 318665857834031151167461:
+    elif n < 318665857834031151167461:
         return miller_rabin_bases([2, 3, 5, 7, 11, 13, 17, 19, 23, 29, 31, 37], n)
-    if n < 3317044064679887385961981:
+    elif n < 3317044064679887385961981:
         return miller_rabin_bases([2, 3, 5, 7, 11, 13, 17, 19, 23, 29, 31, 37, 41], n)
-
-    return miller_rabin(n, k=40) and baillie_psw(n, mr=False)
+    else:
+        return miller_rabin(n, k=40) and baillie_psw(n, mr=False)
 
 
 def randprime(a: int, b: int = None):
@@ -343,7 +342,7 @@ def randprime(a: int, b: int = None):
 
     # if base_2, uses 2 as a base and increments by 1 (default) for generating random int
     # if base =/= 2, generates random int starting at lower limit, incrementing by 2
-    while True:
+    while 1:
         prime = randrange(2, b) if base_2 else randrange(a, b, 2)
         if isprime(prime):
             return prime
@@ -358,7 +357,7 @@ def all_factors(n):
         return True
 
     for num in range(3, isqrt(n) + 2, 2):
-        if n % num == 0:
+        if not n % num:
             return False
     return True
 

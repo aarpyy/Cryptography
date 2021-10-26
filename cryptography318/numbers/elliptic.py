@@ -3,8 +3,8 @@ from abc import ABCMeta, abstractmethod
 from typing import overload, Union
 from math import gcd, log, isqrt, floor
 
-from cryptography318.numbers.crypto_functions import find_roots
-from cryptography318.prime import isprime
+from .crypto_functions import find_roots
+from .prime import isprime
 
 
 rndm = Random()

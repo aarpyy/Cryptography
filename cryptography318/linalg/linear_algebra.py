@@ -3,7 +3,7 @@ from random import randint, randrange
 from math import gcd, sqrt
 from itertools import combinations
 from cryptography318.core.tools import string_reduce, deprecated, python_number, fraction, isnumber, dot
-from cryptography318.linalg.array import where
+from cryptography318.linalg.array_old import where
 
 
 def aslist(obj):

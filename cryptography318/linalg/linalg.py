@@ -1,4 +1,4 @@
-from cryptography318.linalg.array import Array, ArrayMod, where
+from cryptography318.linalg.array_old import Array, ArrayMod, where
 from cryptography318.core.tools import dot, python_number, string_reduce, fraction, r_append
 from random import randrange
 from numpy import ndarray
@@ -663,7 +663,8 @@ class Matrix:
             return self.construct([], *self.attr)
 
         # maps indices of columns to inner map that returns the value at that index for each row
-        return self.construct(list(map(lambda i: Array(map(lambda r: r[i], self)), range(len(self[0])))), *self.attr)
+        # return self.construct(list(map(lambda i: Array(map(lambda r: r[i], self)), range(len(self[0])))), *self.attr)
+        return self.construct(list(map(lambda *a: Array([*a]), *self)))
 
     def to_fraction(self):
         """Returns object with fractional instead of float values where possible."""
@@ -1016,7 +1017,7 @@ class Matrix:
         return columns
 
     def trace(self):
-        """Calculates the tracer (diagonal sum) of a Matrix."""
+        """Calculates the trace (diagonal sum) of a Matrix."""
 
         i = 0
         trace_sum = 0
@@ -1423,9 +1424,11 @@ class ModularMatrix(Matrix):
             return self.construct([], *self.attr)
 
         # maps indices of columns to inner map that returns the value at that index for each row
-        return self.construct(
-            list(map(lambda i: ArrayMod(map(lambda r: r[i], self), self.mod), range(len(self[0])))), *self.attr
-        )
+        # return self.construct(
+        #     list(map(lambda i: ArrayMod(map(lambda r: r[i], self), self.mod), range(len(self[0])))), *self.attr
+        # )
+        # return self.construct(list(map(lambda *a: ArrayMod([*a], self.mod), *self)), *self.attr)
+        return self.construct(list(map(lambda a: ArrayMod([*a], self.mod), zip(*self))), *self.attr)
 
     def rref(self):
         matrix = self[:]  # deep copy

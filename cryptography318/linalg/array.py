@@ -1,462 +1,1023 @@
-from cryptography318.core.tools import python_number
-from numpy import ndarray, asarray
-from math import gcd
+from .arrayabc import ABCArray, DimensionError, get_dtype
+from typing import Sequence, Iterable
+from numbers import Integral, Real
+from math import gcd, inf
+from sympy.core.expr import Expr
 from functools import reduce
-from numbers import Number
+import operator
 
 
-def where(array):
-    """
-    Evaluates boolean values of array.
+# Binary-array -> array consisting of just (0, 1)
+class bitarray(ABCArray):
 
-    :param array: array_like to be evaluated
-    :return: tuple containing list of indices of true values, two lists if array nested
+    _masks = {}
 
-    Example
-    -------
+    __slots__ = '_len',
 
-    >>> a = Array([1, 2, 3, 0, 1, 0])
-    >>> where(a)
-    ([0, 1, 2, 4],)
-
-    Notes
-    -----
-
-    Limited extension of numpy,where() that provides functionality of evaluating
-    array values as boolean, and returning column and row indices of truth values.
-    This where, evaluates using numpy.where() but returns output as type list. Does
-    not extend any further functionality from numpy.where()."""
-
-    # where usually returns tuple of np.array of row and column indices, this converts them into python integers
-    # inside a python list, so that numpy library does not extend past this function
-    return tuple(map(lambda arr: list(map(lambda n: int(n), arr)), asarray(array).nonzero()))
-
-
-class Array:
-    def __init__(self, array):
-        if isinstance(array, ndarray):
-            array = array.tolist()
-        elif isinstance(array, map):
-            array = list(array)
-
-        # checks if array is list item and non-empty and not nested
-        if isinstance(array, list) and not array:
-            self.array = array
-        elif isinstance(array, list) and not isinstance(array[0], list):
-            self.array = array
-        # if nested list is flat row vector, take it
-        elif isinstance(array, list) and len(array) == 1:
-            self.array = array[0]
-        elif isinstance(array, Number) and not isinstance(array, complex):
-            self.array = [python_number(array)]
+    def __init__(self, arg, *, _len=None):
+        super().__init__()
+        if isinstance(arg, int) and isinstance(_len, int):
+            self._array = arg
+            self._len = _len
+        elif isinstance(arg, Sequence):
+            self._array = self.as_integer(arg)
+            self._len = len(arg)
         else:
-            raise TypeError("Array requires input object to be non-empty list")
+            raise TypeError(f"invalid arguments for binary array")
 
-    def __eq__(self, other):
-        if isinstance(other, Number) and not isinstance(other, complex):
-            return Array(list(map(lambda e: 1 if e == other else 0, self)))
-        if isinstance(other, set):
-            return Array(list(map(lambda e: 1 if e in other else 0, self)))
-        return not any(map(lambda e1, e2: 0 if e1 == e2 else 1, self, other))
+        if self._len and self._len not in bitarray._masks:
+            mask = 1
+            for i in range(1, self._len):
+                if i in bitarray._masks:
+                    continue
+                bitarray._masks[i] = mask
+                mask <<= 1
 
-    def __ne__(self, other):
-        result = self.__eq__(other)
-        if isinstance(result, Array):
-            return Array(list(map(lambda e: (e + 1) % 2, result)))
-        return not result
+        # dtype always integers since either 0 or 1
+        self._dtype = int
 
-    def __lt__(self, other):
-        if isinstance(other, Number) and not isinstance(other, complex):
-            return Array(list(map(lambda e: 1 if e < other else 0, self)))
-        return Array(list(map(lambda e1, e2: 1 if e1 < e2 else 0, self, other)))
+    @property
+    def int(self):
+        return self._array
 
-    def __le__(self, other):
-        if isinstance(other, Number) and not isinstance(other, complex):
-            return Array(list(map(lambda e: 1 if e <= other else 0, self)))
-        return Array(list(map(lambda e1, e2: 1 if e1 <= e2 else 0, self, other)))
+    def invert(self):
+        return bitarray(self.int ^ ((bitarray._masks[len(self)] << 1) - 1), _len=len(self))
 
-    def __gt__(self, other):
-        if isinstance(other, Number) and not isinstance(other, complex):
-            return Array(list(map(lambda e: 1 if e > other else 0, self)))
-        return Array(list(map(lambda e1, e2: 1 if e1 > e2 else 0, self, other)))
+    def copy(self):
+        return +self
 
-    def __ge__(self, other):
-        if isinstance(other, Number) and not isinstance(other, complex):
-            return Array(list(map(lambda e: 1 if e >= other else 0, self)))
-        return Array(list(map(lambda e1, e2: 1 if e1 >= e2 else 0, self, other)))
+    @property
+    def bits(self):
+        return sum(self)
 
-    def __len__(self):
-        return len(self.array)
+    @property
+    def array(self):
+        return list(self)
+
+    @staticmethod
+    def as_integer(a):
+        # converts any Integral-iterable into integer value
+        return int(''.join(str(e & 1) for e in a), 2) if a else 0  # empty list returns as 0
 
     def __str__(self):
-        return str(self.array)
+        return "[" + ", ".join(str(e) for e in self) + "]"
 
     def __repr__(self):
-        return f"Array({self.array})"
+        return f"{self.__class__.__name__}({self.int}, _len={len(self)})"
 
     def __iter__(self):
-        return iter(self.array)
-
-    def __getitem__(self, item):
-        # if full slice of array, return a deep copy of array instead of list slice
-        if isinstance(item, slice):
-            return Array(self.array[item])
-        return self.array[item]
+        if len(self):
+            mask = 1 << (len(self) - 1)
+            while mask:
+                yield 1 if mask & self._array else 0
+                mask >>= 1
+        else:
+            return
 
     def __setitem__(self, key, value):
-        self.array[key] = value
+        if key < -len(self) or key > len(self) - 1:
+            raise IndexError(f"{self.__class__.__name__} index out of range")
 
-    def __contains__(self, item):
-        return self.array.__contains__(item)
+        value &= 1
+        # first shift mask so that its 1 is at beginning of list, then shift by key to get to index
+        mask = bitarray._masks[len(self) - (key % len(self))]
 
-    def __neg__(self):
-        return Array(list(map(lambda e: -e, self)))
+        # get the bit at the index
+        _key_bit = mask & self._array
+        # if the bit at index: key == value, then no need to change anything
+        if bool(_key_bit) == bool(value):
+            pass
+        else:
+            # _mask is 1 at index: key, 0's everywhere else, so XOR makes all 1's in self stay 1's
+            # if index: key is 1, then XOR will perform 1 ^ 1 which sets to 0 which is our value (we know since
+            # if it was 1 first if statement would have run)
+            # if index: key is 0 then XOR will perform 1 ^ 0 which sets to 1 which is our value
+            self._array ^= mask
 
     def __add__(self, other):
-        if isinstance(other, Number) and not isinstance(other, complex):
-            return Array(list(map(lambda e: e + other, self)))
-        elif isinstance(other, (list, Array)):
-            return Array(list(map(lambda x, y: x + y, self, other)))
-        raise TypeError(f"unsupported operation for type(s): {type(self)} and {type(other)}")
+        if isinstance(other, Integral):
+            if other & 1:
+                return self.invert()
+            else:
+                return +self
+        elif isinstance(other, Sequence):
+            if len(other) == len(self):
+                if isinstance(other, bitarray):
+                    return bitarray(self._array ^ other.int, _len=len(self))
+                else:
+                    return bitarray(self._array ^ self.as_integer(other), _len=len(self))
+            else:
+                raise ValueError(f"unsupported operation for arrays of length(s): {len(self)} and {len(other)}")
+        else:
+            return NotImplemented
 
     def __radd__(self, other):
-        return self.__add__(other)
+        if isinstance(other, Integral):
+            if other & 1:
+                return self.invert()
+            else:
+                return +self
+        elif isinstance(other, Sequence):
+            if len(other) == len(self):
+                return bitarray(self._array ^ self.as_integer(other), _len=len(self))
+            else:
+                raise ValueError(f"unsupported operation for arrays of length(s): {len(self)} and {len(other)}")
+        else:
+            return NotImplemented
 
-    def __sub__(self, other):
-        if isinstance(other, Number) and not isinstance(other, complex):
-            return Array(list(map(lambda e: e - other, self)))
-        elif isinstance(other, (list, Array)):
-            return Array(list(map(lambda x, y: x - y, self, other)))
-        raise TypeError(f"unsupported operation for type(s): {type(self)} and {type(other)}")
-
-    def __rsub__(self, other):
-        if isinstance(other, Number) and not isinstance(other, complex):
-            return Array(list(map(lambda e: other - e, self)))
-        elif isinstance(other, (list, Array)):
-            return Array(list(map(lambda x, y: x - y, other, self)))
-        raise TypeError(f"unsupported operation for type(s): {type(self)} and {type(other)}")
+    # -1 == 1 and -0 == 0 mod 2 so subtraction is the same as addition
+    __sub__, __rsub__ = __add__, __radd__
 
     def __mul__(self, other):
-        if isinstance(other, Number) and not isinstance(other, complex):
-            return Array(list(map(lambda e: e * other, self)))
-        elif isinstance(other, (Array, list)):
-            if len(self) != len(other):
-                raise AttributeError(f"unsupported operation for objects of length(s): {len(self)} and {len(other)}")
-            return Array(list(map(lambda x, y: x * y, self, other)))
+        if isinstance(other, bitarray):
+            if len(self) == len(other):
+                return bitarray(self.int & other.int, _len=len(self))
+            else:
+                raise ValueError(f"unsupported operation for arrays of length(s): {len(self)} and {len(other)}")
+        elif isinstance(other, Sequence):
+            if len(other) == len(self):
+                # if a is 1 and b & 1 is 1, then product is 1, otherwise its 0
+                return bitarray(list(map(lambda a, b: 1 if a and b & 1 else 0, self, other)))
+            else:
+                raise ValueError(f"unsupported operation for arrays of length(s): {len(self)} and {len(other)}")
+        elif isinstance(other, Integral):
+            # any value % 2 == 0 will result in full 0 array,
+            if not other & 1:
+                return bitarray(0, _len=len(self))
+            # otherwise it will just return same array
+            else:
+                return +self
+        else:
+            return NotImplemented
 
     def __rmul__(self, other):
-        return self.__mul__(other)
-
-    def __floordiv__(self, other):
-        if isinstance(other, Number) and not isinstance(other, complex):
-            return Array(list(map(lambda e: e // other, self)))
-        if len(self) != len(other):
-            raise AttributeError(f"unsupported operation for objects of length(s): {len(self)} and {len(other)}")
-        return Array(list(map(lambda x, y: x // y, self, other)))
-
-    def __rfloordiv__(self, other):
-        if isinstance(other, Number) and not isinstance(other, complex):
-            return Array(list(map(lambda e: e // other, self)))
-        if len(self) != len(other):
-            raise AttributeError(f"unsupported operation for objects of length(s): {len(self)} and {len(other)}")
-        return Array(list(map(lambda x, y: x // y, other, self)))
-
-    def __truediv__(self, other):
-        if isinstance(other, Number) and not isinstance(other, complex):
-            return Array(list(map(lambda e: e / other, self)))
-        if len(self) != len(other):
-            raise AttributeError(f"unsupported operation for objects of length(s): {len(self)} and {len(other)}")
-        return Array(list(map(lambda x, y: x / y, self, other)))
-
-    def __rtruediv__(self, other):
-        if isinstance(other, Number) and not isinstance(other, complex):
-            return Array(list(map(lambda e: e / other, self)))
-        if len(self) != len(other):
-            raise AttributeError(f"unsupported operation for objects of length(s): {len(self)} and {len(other)}")
-        return Array(list(map(lambda x, y: x / y, other, self)))
-
-    def __pow__(self, power, modulo=None):
-        return Array(list(map(lambda e: pow(e, power, modulo), self)))
-
-    def __mod__(self, other):
-        return Array(list(map(lambda e: e % other, self)))
-
-    def __abs__(self):
-        return Array(list(map(abs, self)))
-
-    def __bool__(self):
-        return bool(self.array)
-
-    def append(self, item):
-        self.array.append(item)
-
-    def copy(self):
-        return Array(self.array[:])
-
-    def mod(self, mod):
-        return ArrayMod(self.array[:], mod)
-
-    def index(self, item):
-        return self.array.index(item)
-
-    def to_ndarray(self):
-        return ndarray(self.array)
-
-    def make_pivot(self, index=None, copy=False):
-        if index is None:
-            index = where(self)[0][0]
-        if copy:
-            return self.__truediv__(self[index])
-        self.array = list(map(lambda n: n / self[index], self.array))
-
-    def shift_elements(self, shift, copy=False):
-        """Performs a logical shift of elements in array.
-
-        Examples
-        --------
-        >>> a = Array([1, 2, 3, 4])
-        >>> a.shift_elements(shift=-1)
-        [2, 3, 4, 1]
-
-        >>> a.shift_elements(shift=2)
-        [4, 1, 2, 3]
-
-        >>> a = Array([1, 2, 3, 4])
-        >>> b = a.shift_elements(shift=-1, copy=True)
-        >>> b
-        [2, 3, 4, 1]
-
-        >>> b.shift_elements(3)
-        [3, 4, 1, 2]
-
-        :param shift: integer which determines how many indices to shift by
-        :param copy: boolean dictates if instance is shifted or if new instance is created, shifted, then returned
-        :return: shifted array if copy is True, otherwise nothing is returned
-        """
-
-        if copy:
-            array = self.copy()
-            array.shift_elements(shift, copy=False)
-            return array
-        shift = -shift % len(self)
-        if shift > 0:
-            self.array = self.array[shift:] + self.array[:shift]
-
-    def contains_only(self, elements=None):
-        if elements is None:
-            elements = (0, 1)
-        if getattr(elements, '__iter__', None) is not None:
-            for e in self.array:
-                if e not in elements:
-                    return False
+        if isinstance(other, Sequence):
+            if len(other) == len(self):
+                # if a is 1 and b & 1 is 1, then product is 1, otherwise its 0
+                return bitarray(list(map(lambda a, b: 1 if a & 1 and b else 0, other, self)))
+            else:
+                raise ValueError(f"unsupported operation for arrays of length(s): {len(self)} and {len(other)}")
+        elif isinstance(other, Integral):
+            # any value % 2 == 0 will result in full 0 array,
+            if not other & 1:
+                return bitarray(0, _len=len(self))
+            # otherwise it will just return same array
+            else:
+                return +self
         else:
-            for e in self.array:
-                if e != elements:
-                    return False
-        return True
+            return NotImplemented
 
+    def dot(self, other):
 
-class ArrayMod(Array):
-    def __init__(self, array, mod):
-        super().__init__(array)
-        self.mod = mod
-        self.array = list(map(lambda e: e % mod, self.array))
+        def bits(n):
+            count = 0
+            while n:
+                n &= n - 1
+                count += 1
+            return count
 
-    def __getitem__(self, item):
-        # if full slice of array, return a deep copy of array instead of list slice
-        if isinstance(item, slice):
-            return ArrayMod(self.array[item], self.mod)
-        return self.array[item]
+        if isinstance(other, bitarray):
+            return bits(self.int & other.int)
+        elif isinstance(other, Sequence):
+            return bits(self.int & self.as_integer(other))
+        else:
+            return NotImplemented
 
     def __eq__(self, other):
-        if isinstance(other, ArrayMod) and other.mod != self.mod:
-            return False
-        if isinstance(other, str) and other == 'inv':
-            return list(map(lambda e: 1 if gcd(e, self.mod) == 1 else 0, self))
-        if isinstance(other, Number) and not isinstance(other, complex) and other < 0:
-            other %= self.mod
-        return super().__eq__(other)
+        if isinstance(other, Sequence):
+            if len(self) == len(other):
+                if isinstance(other, bitarray):
+                    # if any are not the same value, XOR will return positive integer value, so not that is False
+                    return not bool(self._array ^ other.int)
+                else:
+                    return all(e1 == e2 for e1, e2 in zip(self, other))
+            else:
+                return False
+        elif isinstance(other, int):
+            if other == 1:
+                return +self
+            elif other == 0:
+                return self.invert()
+            else:
+                return bitarray(0, _len=len(self))
+        else:
+            return NotImplemented
 
-    def __ne__(self, other):
-        if isinstance(other, ArrayMod) and other.mod != self.mod:
-            return True
-        if isinstance(other, str) and other == 'inv':
-            return list(map(lambda e: 0 if gcd(e, self.mod) == 1 else 1, self))
-        if isinstance(other, Number) and not isinstance(other, complex) and other < 0:
-            other %= self.mod
-        return super().__ne__(other)
+    def _compare(a, b, op):
+        if isinstance(b, Integral):
+            b &= 1
+            return bitarray([op(e, b) for e in a])
+        elif isinstance(b, Sequence):
+            if len(a) == len(b):
+                return bitarray([op(x, y) for x, y in zip(a, b)])
+            else:
+                raise ValueError(f"unsupported operation for arrays of length(s): {len(a)} and {len(b)}")
+        else:
+            return NotImplemented
 
-    def __lt__(self, other):
-        if isinstance(other, Number) and not isinstance(other, complex) and other < 0:
-            other %= self.mod
-        return super().__lt__(other)
-
-    def __le__(self, other):
-        if isinstance(other, Number) and not isinstance(other, complex) and other < 0:
-            other %= self.mod
-        return super().__le__(other)
-
-    def __gt__(self, other):
-        if isinstance(other, Number) and not isinstance(other, complex) and other < 0:
-            other %= self.mod
-        return super().__gt__(other)
-
-    def __ge__(self, other):
-        if isinstance(other, Number) and not isinstance(other, complex) and other < 0:
-            other %= self.mod
-        return super().__ge__(other)
-
-    def __repr__(self):
-        return f"ArrayMod({self.array}, mod={self.mod})"
+    def __pos__(self):
+        return bitarray(self._array, _len=len(self))
 
     def __neg__(self):
-        return ArrayMod(list(map(lambda e: -e % self.mod, self)), self.mod)
+        # -1 == 1 and -0 == 0 so no changes from __pos__()
+        return bitarray(self._array, _len=len(self))
 
-    def __add__(self, other):
-        if isinstance(other, Number) and not isinstance(other, complex):
-            return ArrayMod(list(map(lambda e: (e + other) % self.mod, self)), self.mod)
-        if not isinstance(other, (list, Array)):
-            raise TypeError(f"unsupported operation for type(s): {type(self)} and {type(other)}")
-        return ArrayMod(list(map(lambda x, y: (x + y) % self.mod, self, other)), self.mod)
+    def append(self, value):
+        self._array = (self._array << 1) | (value & 1)
+        self._len += 1
+        if self._len not in bitarray._masks:
+            bitarray._masks[self._len] = bitarray._masks[self._len - 1] << 1
 
-    def __radd__(self, other):
-        return self.__add__(other)
+    def reverse(self):
+        val = self._array
+        self._array = 0
+        for _ in range(len(self)):
+            self._array <<= 1
+            self._array |= val & 1
+            val >>= 1
 
-    def __sub__(self, other):
-        if isinstance(other, Number) and not isinstance(other, complex):
-            return ArrayMod(list(map(lambda e: (e - other) % self.mod, self)), self.mod)
-        if not isinstance(other, (list, Array)):
-            raise TypeError(f"unsupported operation for type(s): {type(self)} and {type(other)}")
+    def extend(self, values):
+        if isinstance(values, Sequence):
+            _len = len(values)
+            if isinstance(values, bitarray):
+                self._array = (self._array << _len) | values.int
+            else:
+                self._array = (self._array << _len) | self.as_integer(values)
+            if (k := self._len + _len) not in bitarray._masks:
+                mask = bitarray._masks[len(self)]
+                for i in range(self._len + 1, k):
+                    mask <<= 1
+                    bitarray._masks[i] = mask
+            self._len = k
+        else:
+            return NotImplemented
 
-        return ArrayMod(list(map(lambda x, y: (x - y) % self.mod, self, other)), self.mod)
+    def pop(self, index=None):
+        if not len(self):
+            raise IndexError(f"pop from empty {self.__class__.__name__}")
+        elif index is None:
+            mask = bitarray._masks[len(self)]
+            k = self._array & mask
+            self._array &= mask - 1
+        else:
+            k = None
+            mask = bitarray._masks[len(self)]
+            val = 0
+            for i in range(len(self)):
+                v = self._array & mask
+                mask >>= 1
+                if index == i:
+                    k = v
+                else:
+                    val <<= 1
+                    val |= 1 if v else 0
+            if k is None:
+                raise IndexError(f"{self.__class__.__name__} index out of range")
+            self._array = val
+        self._len -= 1
+        # if no index given, k will be some large value if the popped value is 1 (ex. [1, 0, 0].pop(), k = 100 = 4)
+        return 1 if k else 0
 
-    def __rsub__(self, other):
-        if isinstance(other, Number) and not isinstance(other, complex):
-            return ArrayMod(list(map(lambda e: (other - e) % self.mod, self)), self.mod)
-        if not isinstance(other, (list, Array)):
-            raise TypeError(f"unsupported operation for type(s): {type(self)} and {type(other)}")
-        return ArrayMod(list(map(lambda x, y: (y - x) % self.mod, self, other)), self.mod)
+    def remove(self, value):
+        found = 0
+        val = 0
+        if not len(self):
+            raise ValueError(f"unable to remove from empty {self.__class__.__name__}")
+        elif value == 1:
+            mask = 1 << (len(self) - 1)
+            while mask:
+                v = self._array & mask
+                mask >>= 1
+                if not found and v:
+                    found = 1
+                else:
+                    val <<= 1
+                    val |= 1 if v else 0
+        elif not value:
+            mask = 1 << (len(self) - 1)
+            while mask:
+                v = self._array & mask
+                mask >>= 1
+                if not found and not v:
+                    found = 1
+                else:
+                    val <<= 1
+                    val |= 1 if v else 0
+        if not found:
+            raise ValueError(f"{value} is not in {self.__class__.__name__}")
+        self._array = val
+        self._len -= 1
 
-    def __mul__(self, other):
-        if isinstance(other, Number) and not isinstance(other, complex):
-            return ArrayMod(list(map(lambda e: (e * other) % self.mod, self)), self.mod)
-        elif len(self) != len(other):
-            raise AttributeError(f"unsupported operation for objects of length(s): {len(self)} and {len(other)}")
-        return ArrayMod(list(map(lambda x, y: (x * y) % self.mod, self, other)), self.mod)
+    def insert(self, index, value):
+        if not len(self):
+            self._len = 1
+            self._array = value & 1
+        elif index == 0:
+            # only need to do anything if value inserted is 1
+            if value & 1:
+                self._array |= 1 << len(self)
+            self._len += 1
+        elif 0 < index < len(self):
+            mask = (1 << (len(self) - index - 1)) - 1
+            lower = self._array & mask
+            upper = self._array ^ lower
 
-    def __floordiv__(self, other: int):
-        """Attempts to multiply array by modular inverse of given number or divide by gcd, raising an
-        error if no inverse exists or no greatest common divisor greater than 1 exists. If a divisor
-        partially divides the array, and the remainder after partial division is invertible given the modulus,
-        then both steps will be performed, first dividing the entire array by the gcd of all elements and divisor,
-        then multiplying array by modular inverse of remaining divisor after initial division (see examples
-        for more details on how this works/its purpose).
+            if value & 1:
+                self._array = (upper << 1) | (1 << (len(self) - index)) | lower
+            else:
+                self._array = (upper << 1) | lower
 
-        Examples
-        --------
+            self._len += 1
+        elif index == len(self):
+            self.append(value)
+        else:
+            raise IndexError(f"{self.__class__.__name__} index out of range")
 
-        [1]
+    def __getitem__(self, item):
+        if isinstance(item, slice):
+            # use builtin list slicing since a lot easier to deal w/ and understand
+            return bitarray(list(self)[item])
+        elif isinstance(item, int):
+            if -len(self) <= item < len(self):
+                return 1 if self._array & (1 << (len(self) - item - 1)) else 0
+            else:
+                raise IndexError(f"{self.__class__.__name__} index out of range")
+        else:
+            raise TypeError(f"{self.__class__.__name__} indices must be integers or slices, not {type(item)}")
 
-        >>> a = ArrayMod([2, 4, 6, 8, 10], 14)
-        >>> repr(a // 6)
-        ArrayMod([5, 10, 1, 6, 11], mod=14)
+    def __delitem__(self, item):
+        self.remove(item)
 
-        [2]
+    def __len__(self):
+        return self._len
 
-        >>> a = ArrayMod([2, 4, 6, 8, 10], 14)
-        >>> a // 4
-        ValueError: division cannot be performed because 2 is not invertible mod 14 or it does not divide the array
-        >>> repr(a // 2)
-        ArrayMod([1, 2, 3, 4, 5], mod=14)
 
-        Notes
-        -----
-        The full trace of dividing ArrayMod([2, 4, 6, 8, 10], 14) by 6 is as follows: first, 2 is found to be
-        the gcd of the divisor and all elements of the array. Both the divisor (6) and the array are divided
-        by this gcd, and then floor divison is attempted once more, with the goal of multiplying the array
-        by the modular inverse of the remaining divisor. In this case, this is possible, since the resulting array
-        after floor divison by 2 is ArrayMod([1, 2, 3, 4, 5], 14) and the remaining divisor (3) is invertible
-        mod 14. The array is then mutliplied by the modular inverse, and final array is as shown in example 1.
-        This is built like this for the specific reason of being able to convert an array value to 1, even if
-        it is not directly invertible with the given modulus. In the final array, after dividing
-        ArrayMod([2, 4, 6, 8, 10], 14) by 6, the 3rd element is 1, since division by 6 achieves the goal of
-        converting all elements of value 6 into 1, either through direct multiplication by inverse, or through
-        floor division followed by multiplication. This is integral in providing support for the function
-        ArrayMod.make_pivot(), as it allows for a pivot to be constructed even if it requires more than one
-        standard operator.
-        """
+# Binary-array -> array consisting of just (0, 1)
+class binarray(ABCArray):
 
-        if isinstance(other, Number) and not isinstance(other, complex):
-            if gcd(other, self.mod) == 1:
-                inverse = pow(other, -1, self.mod)
-                return ArrayMod(list(map(lambda e: (e * inverse) % self.mod, self)), self.mod)
+    def __init__(self, array):
+        super().__init__()
+        if isinstance(array, list):
+            self._array = array
+        elif isinstance(array, binarray):
+            self._array = array.array
+        elif isinstance(array, Integral):
+            self._array = [int(array)]
+        elif isinstance(array, Iterable):
+            self._array = list(array)
+        else:
+            raise TypeError(f"{self.__class__.__name__} must be constructed from list or array"
+                            f" instance")
 
-            # gcd of other and elements of row is checked, if row can be divided it is done, and remainder of
-            # divisor is then used to try and divide fully again, this allows for division by a number not
-            # invertible given the modulus but
-            if (d := gcd(other, *self.array)) > 1:
-                return ArrayMod(list(map(lambda e: e // d, self)), self.mod) // (other // d)
-            raise ValueError(f"division cannot be performed because {other} is not invertible mod {self.mod} or "
-                             f"it does not divide the array")
-        raise ValueError(f"unsupported operation for type(s): {type(self)} and {type(other)}")
+        self._dtype = int
+        self._array = list(e & 1 for e in self._array)
 
-    def __rfloordiv__(self, other):
-        raise ValueError(f"unsupported operation for object of type: {__class__.__name__}")
+    def __str__(self):
+        return str(self._array)
 
-    def __truediv__(self, other):
-        if isinstance(other, Number) and not isinstance(other, complex):
-            if (m := gcd(*(*self.array, self.mod, other))) == 1:
-                raise ValueError(f"{repr(self)} is not divisible by {other}")
-            array = self.copy()
-            array.mod = self.mod // m
-            return array // other
+    def __repr__(self):
+        return f"{self.__class__.__name__}({self._array})"
 
-        raise ValueError(f"unsupported operation for type(s): {type(self)} and {type(other)}")
-
-    def __rtruediv__(self, other):
-        raise ValueError(f"unsupported operation for object of type: {__class__.__name__}")
-
-    def __pow__(self, power, modulo=None):
-        mod = self.mod if modulo is None else modulo
-        return ArrayMod(list(map(lambda e: pow(e, power, mod), self)), self.mod)
-
-    def __mod__(self, other=None):
-        """Computes each element of the array mod an integer. If no input is given, will compute mod
-        the mod attribute of the instance. If an input is given, the array is converted to a new
-        instance of ArrayMod with mod attribute equal to input integer."""
-
-        mod = self.mod if other is None else other
-        return ArrayMod(list(map(lambda e: e % mod, self)), mod)
-
-    def __abs__(self):
-        return ArrayMod(list(map(lambda e: e % self.mod, self)), self.mod)  # abs redundant, in case of negatives: mod
+    @property
+    def complement(self):
+        return binarray([e ^ 1 for e in self._array])
 
     def copy(self):
-        return ArrayMod(self.array[:], self.mod)
+        return binarray(self._array[:])
 
-    def make_pivot(self, index=None, copy=False):
-        """Attempts to divide instance array by integer given using floor division. If complete
-        division fails, instead of throwing an error, False is returned. If division successful,
-        result of division is returned."""
+    def __iter__(self):
+        return iter(self._array)
 
-        if index is None:
-
-            # iterates over list backwards, if current value is invertible return it, otherwise
-            # return prev value, initial value as False so if value never gets changed, can be evaluated
-            # as bool to determine if any elements in array are invertible
-            g = gcd(*self.array)
-            pivot = reduce(lambda i, c: c if (
-                    gcd(c, self.mod) == 1 or (g > 1 and gcd(c//g, self.mod) == 1)
-            ) else i, self.array[::-1], False)
-            if not pivot:
-                raise ValueError(f"no elements of {repr(self)} divide the array")
+    def __setitem__(self, key, value):
+        if isinstance(value, int):
+            self._array[key] = value & 1
         else:
-            pivot = self[index]
+            raise ValueError(f"all {self.__class__.__name__} items must be integers not {type(value)}")
 
-        try:
-            if copy:
-                return self // pivot
-            array = self // pivot
-            self.array = array.array
-        except ValueError:
-            return False
+    def __add__(self, other):
+        if isinstance(other, Integral):
+            other = int(other) & 1
+            if other:
+                return self.complement
+            else:
+                return self.copy()
+        elif isinstance(other, Sequence):
+            if len(self) == len(other):
+                if isinstance(other, binarray):
+                    return binarray([x ^ y for x, y in zip(self, other)])
+                else:
+                    return binarray([(x + y) & 1 for x, y in zip(self, other)])
+            else:
+                raise DimensionError(self, other, op=operator.add)
+        else:
+            return NotImplemented
+
+    # sub/add are same with binary array
+    __radd__, __sub__, __rsub__ = __add__, __add__, __add__
+
+    def __mul__(self, other):
+        if isinstance(other, Integral):
+            other = int(other) & 1
+            if other:
+                return self.copy()
+            else:
+                return binarray([0] * len(self))
+        elif isinstance(other, Sequence):
+            if len(self) == len(other):
+                return binarray([x * y for x, y in zip(self, other)])
+            else:
+                raise DimensionError(self, other, op=operator.mul)
+        else:
+            return NotImplemented
+
+    __rmul__ = __mul__
+
+    def dot(self, other):
+        return sum(y for x, y in zip(self, other) if x)
+
+    def __eq__(self, other):
+        if isinstance(other, Integral):
+            return binarray([1 if e == other else 0 for e in self])
+        elif isinstance(other, Sequence):
+            if len(self) == len(other):
+                return binarray([1 if x == y else 0 for x, y in zip(self, other)])
+            else:
+                return False
+        else:
+            return NotImplemented
+
+    def _compare(a, b, op):
+        if isinstance(b, Integral):
+            return binarray([1 if op(e, b) else 0 for e in a])
+        elif isinstance(b, Sequence):
+            if len(a) == len(b):
+                return binarray([1 if op(x, y) else 0 for x, y in zip(a, b)])
+            else:
+                raise DimensionError(a, b, op=op)
+        else:
+            return NotImplemented
+
+    def __pos__(self):
+        return binarray([+e for e in self])
+
+    def __neg__(self):
+        return binarray([-e for e in self])
+
+    def append(self, value):
+        if isinstance(value, Integral):
+            self._array.append(int(value) & 1)
+        else:
+            raise NotImplementedError(f"{self.__class__.__name__}.{self.append.__name__}() is not implemented for "
+                                      f"non-Integral values")
+
+    def reverse(self):
+        self._array.reverse()
+
+    def extend(self, values):
+        if all(isinstance(v, Integral) for v in values):
+            self._array.extend(int(e) & 1 for e in values)
+        else:
+            raise NotImplementedError(f"{self.__class__.__name__}.{self.extend.__name__}() is not implemented for "
+                                      f"non-Integral values")
+
+    def pop(self, index=None):
+        return self._array.pop()
+
+    def remove(self, value):
+        if isinstance(value, Integral):
+            self._array.remove(int(value))
+        else:
+            raise NotImplementedError(f"{self.__class__.__name__}.{self.remove.__name__}() is not implemented for "
+                                      f"non-Integral values")
+
+    def insert(self, index, value):
+        if isinstance(value, Integral):
+            self._array.insert(index, int(value) & 1)
+        else:
+            raise NotImplementedError(f"{self.__class__.__name__}.{self.insert.__name__}() is not implemented for "
+                                      f"non-Integral values")
+
+    def __getitem__(self, item):
+        if isinstance(item, slice):
+            # if slice, return smaller marray, otherwise just return the value
+            return binarray(self._array[item])
+        else:
+            return self._array[item]
+
+    def __delitem__(self, item):
+        del self._array[item]
+
+    def __len__(self):
+        return len(self._array)
+
+
+# Real-array -> array consisting of Real instances
+class rarray(ABCArray):
+
+    def __init__(self, array):
+        super().__init__()
+        if isinstance(array, Iterable):
+            self._array = list(array)
+        else:
+            raise TypeError(f"{self.__class__.__name__} must be constructed from Iterable")
+
+        _types = set()
+        for v in self._array:
+            if isinstance(v, Expr):
+                continue
+            elif isinstance(v, float) and v.is_integer():
+                _types.add(int)
+            else:
+                _types.add(type(v))
+
+        # array could be non-empty but _types empty if consisting only of sympy Expr's
+        self._dtype = get_dtype(*_types) if self._array and _types else int
+        self.astype(self._dtype, _update=True)
+
+    def astype(self, dtype, *, _update=False):
+        if _update:
+            self._array = [e if isinstance(e, Expr) else dtype(e) for e in self]
+            self._dtype = dtype
+        else:
+            return rarray([e if isinstance(e, Expr) else dtype(e) for e in self])
+
+    def copy(self):
+        return rarray(self._array[:])
+
+    def __str__(self):
+        return str(self._array)
+
+    def __repr__(self):
+        return f"{self.__class__.__name__}({self._array})"
+
+    def __iter__(self):
+        return iter(self._array)
+
+    def __setitem__(self, key, value):
+        self._array[key] = value
+        if not isinstance(value, (self._dtype, Expr)):
+            self._dtype = get_dtype(self._dtype, type(value))
+            self.astype(self._dtype, _update=True)
+
+    def __add__(self, other):
+        if isinstance(other, Real):
+            other = float(other)
+            return rarray(list(map(lambda a: a + other, self._array)))
+        elif isinstance(other, Expr):
+            return rarray(list(map(lambda a: a + other, self._array)))
+        elif isinstance(other, Sequence):
+            if len(other) == len(self):
+                return rarray(list(map(lambda a, b: a + b, self._array, other)))
+            else:
+                raise DimensionError(self, other, op=operator.add)
+        else:
+            return NotImplemented
+
+    def __radd__(self, other):
+        return self + other
+
+    def __sub__(self, other):
+        if isinstance(other, Real):
+            other = float(other)
+            return rarray(list(map(lambda a: a - other, self._array)))
+        elif isinstance(other, Expr):
+            return rarray(list(map(lambda a: a - other, self._array)))
+        elif isinstance(other, Sequence):
+            if len(other) == len(self):
+                return rarray(list(map(lambda a, b: a - b, self._array, other)))
+            else:
+                raise DimensionError(self, other, op=operator.sub)
+        else:
+            return NotImplemented
+
+    def __rsub__(self, other):
+        return other + -self
+
+    def __mul__(self, other):
+        if isinstance(other, Real):
+            other = float(other)
+            return rarray(list(map(lambda a: a * other, self._array)))
+        elif isinstance(other, Expr):
+            return rarray(list(map(lambda a: a * other, self._array)))
+        elif isinstance(other, Sequence):
+            if len(other) == len(self):
+                return rarray(list(map(lambda a, b: a * b, self._array, other)))
+            else:
+                raise DimensionError(self, other, op=operator.mul)
+        else:
+            return NotImplemented
+
+    __rmul__ = __mul__
+
+    def dot(self, other):
+        if len(self) == len(other):
+            return sum(x * y for x, y in zip(self, other))
+        else:
+            raise DimensionError(self, other, op=self.dot)
+
+    def __truediv__(self, other):
+        if isinstance(other, Real):
+            other = float(other)
+            if other.is_integer():
+                other = int(other)
+            return rarray([e / other for e in self])
+        elif isinstance(other, Sequence):
+            if len(self) == len(other):
+                return rarray([x / y for x, y in zip(self, other)])
+            else:
+                raise DimensionError(self, other, op=operator.truediv)
+        else:
+            return NotImplemented
+
+    def __floordiv__(self, other):
+        if isinstance(other, Real):
+            return rarray(list(e // float(other) for e in self))
+        elif isinstance(other, Sequence):
+            if len(self) == len(other):
+                return rarray([x // float(y) for x, y in zip(self, other)])
+            else:
+                raise DimensionError(self, other, op=operator.floordiv)
+        else:
+            return NotImplemented
+
+    def __mod__(self, other):
+        if isinstance(other, Real):
+            other = float(other)
+            return rarray([e % other for e in self])
+        elif isinstance(other, Sequence):
+            if len(self) == len(other):
+                return rarray([x % float(y) for x, y in zip(self, other)])
+            else:
+                raise DimensionError(self, other, op=operator.mod)
+        else:
+            return NotImplemented
+
+    def __eq__(self, other):
+        if isinstance(other, Sequence):
+            if len(self) == len(other):
+                return all(a == b for a, b in zip(self._array, other))
+            else:
+                return False
+        elif isinstance(other, Real):
+            return bitarray([1 if e == other else 0 for e in self._array])
+        else:
+            return NotImplemented
+
+    def _compare(a, b, op):
+        if isinstance(b, Real):
+            return bitarray([1 if op(e, b) else 0 for e in a])
+        elif isinstance(b, Sequence):
+            if len(a) == len(b):
+                return bitarray([1 if op(x, y) else 0 for x, y in zip(a, b)])
+            else:
+                raise DimensionError(a, b, op=op)
+        else:
+            return NotImplemented
+
+    def __abs__(self):
+        return rarray(list(map(lambda a: abs(a), self._array)))
+
+    def __pos__(self):
+        return rarray(list(e for e in self._array))
+
+    def __neg__(self):
+        return rarray(list(-e for e in self._array))
+
+    def insert(self, index, value):
+        if isinstance(value, (Real, Expr)):
+            self._array.insert(index, value)
+            if not isinstance(value, (self._dtype, Expr)):
+                self._dtype = get_dtype(self._dtype, type(value))
+                self.astype(self._dtype, _update=True)
+        else:
+            raise NotImplementedError
+
+    def __getitem__(self, item):
+        return self._array[item]
+
+    def __delitem__(self, item):
+        del self._array[item]
+
+    def __len__(self):
+        return len(self._array)
+
+    def append(self, value):
+        if isinstance(value, Real):
+            value = float(value)
+            if value.is_integer():
+                value = int(value)
+            if not self._array:
+                self._array.append(value)
+                self._dtype = type(value)
+            else:
+                self._array.append(self._dtype(value))
+        elif isinstance(value, Expr):
+            self._array.append(value)
+        else:
+            raise NotImplementedError
+
+    def reverse(self):
+        self._array.reverse()
+
+    def extend(self, values):
+        if isinstance(values, Sequence):
+            _types = set()
+            for v in values:
+                if isinstance(v, (Expr, self._dtype)):
+                    continue
+                elif isinstance(v, float) and v.is_integer():
+                    _types.add(int)
+                else:
+                    _types.add(type(v))
+
+            # _types only has non-expr/non-dtype types, so if they are all expr/same as dtype then this doesn't run
+            if _types:
+                self._dtype = get_dtype(self._dtype, *_types)
+                self.astype(self._dtype, _update=True)
+            self._array.extend(values)
+        else:
+            return NotImplemented
+
+    def pop(self, index=None):
+        return self._array.pop(index)
+
+    def remove(self, value):
+        del self[value]
+
+    def __iadd__(self, other):
+        if isinstance(other, Real):
+            other = self._dtype(other)
+            for i in range(len(self)):
+                self._array[i] += other
+            return self
+        elif isinstance(other, Expr):
+            for i in range(len(self)):
+                self._array[i] += other
+            return self
+        elif isinstance(other, Sequence):
+            return self + other
+        else:
+            return NotImplemented
+
+    def make_pivot(self, index=None):
+        if index is None:
+            index = reduce(lambda r, c: c if self[c] and c < r else r, range(len(self)), inf)
+
+        value = self[index]
+        self._array = [e / value for e in self._array]
+
+
+# Modulus-array -> array with a specific modulus consisting of integers
+class marray(ABCArray):
+
+    __slots__ = '_mod',
+
+    def __init__(self, array, modulus):
+        super().__init__()
+        if isinstance(array, list):
+            self._array = array
+        elif isinstance(array, ABCArray):
+            self._array = array.array
+        elif isinstance(array, Integral):
+            self._array = [int(array)]
+        elif isinstance(array, Iterable):
+            self._array = list(array)
+        else:
+            raise TypeError(f"{self.__class__.__name__} must be constructed from list or array"
+                            f" instance")
+
+        self._dtype = int
+        if not all(isinstance(e, (Integral, Expr)) for e in self) or not isinstance(modulus, int):
+            raise TypeError(f"{self.__class__.__name__} must be constructed from list of integers and integer modulus")
+        else:
+            self._array = [e % modulus if isinstance(e, Expr) else int(e) % modulus for e in self]
+        self._mod = modulus
+
+    @property
+    def mod(self):
+        return self._mod
+
+    def modulo(self, m):
+        self._mod = m
+
+    def __str__(self):
+        return str(self._array)
+
+    def __repr__(self):
+        return f"{self.__class__.__name__}({self._array}, {self._mod})"
+
+    def copy(self):
+        return rarray(self._array[:])
+
+    def __iter__(self):
+        return iter(self._array)
+
+    def __setitem__(self, key, value):
+        if isinstance(value, Integral):
+            self._array[key] = int(value) % self.mod
+        elif isinstance(value, Expr):
+            self._array[key] = value % self.mod
+        else:
+            raise ValueError(f"all {self.__class__.__name__} items must be integers not {type(value)}")
+
+    def __add__(self, other):
+        if isinstance(other, Integral):
+            other = int(other)
+            return marray([e + other for e in self], self._mod)
+        elif isinstance(other, Sequence):
+            if len(self) == len(other):
+                return marray([x + y for x, y in zip(self, other)], self._mod)
+            else:
+                raise DimensionError(self, other, op=operator.add)
+        else:
+            return NotImplemented
+
+    __radd__ = __add__
+
+    def __sub__(self, other):
+        if isinstance(other, Integral):
+            other = int(other)
+            return marray([e - other for e in self], self._mod)
+        elif isinstance(other, Sequence):
+            if len(self) == len(other):
+                return marray([x - y for x, y in zip(self, other)], self._mod)
+            else:
+                raise DimensionError(self, other, op=operator.sub)
+        else:
+            return NotImplemented
+
+    def __rsub__(self, other):
+        if isinstance(other, Integral):
+            other = int(other)
+            return marray([other - e for e in self], self._mod)
+        elif isinstance(other, Sequence):
+            if len(self) == len(other):
+                return marray([x - y for x, y in zip(other, self)], self._mod)
+            else:
+                raise DimensionError(self, other, op=operator.sub)
+        else:
+            return NotImplemented
+
+    def __mul__(self, other):
+        if isinstance(other, Integral):
+            other = int(other)
+            return marray([e * other for e in self], self._mod)
+        elif isinstance(other, Sequence):
+            if len(self) == len(other):
+                return marray([x * y for x, y in zip(self, other)], self._mod)
+            else:
+                raise DimensionError(self, other, op=operator.mul)
+        else:
+            return NotImplemented
+
+    __rmul__ = __mul__
+
+    def dot(self, other):
+        if len(self) == len(other):
+            return sum((x * y) % self._mod for x, y in zip(self, other)) % self._mod
+        else:
+            raise DimensionError(self, other, self.dot)
+
+    def __truediv__(self, other):
+        if isinstance(other, Integral):
+            other = int(other)
+            g = gcd(other, self._mod)
+            if g == 1:
+                return self * pow(other, -1, self._mod)
+            elif (k := gcd(*self._array, g)) > 1:
+                return marray([e // k for e in self], self._mod // k) / (other // k)
+            else:
+                raise ValueError(f"{self} is not divisible by {other}")
+        elif isinstance(other, Sequence):
+            if len(self) == len(other):
+                if all(gcd(e, self.mod) == 1 for e in other):
+                    return marray([x * pow(y, -1, self._mod) for x, y in zip(self, other)], self._mod)
+                else:
+                    raise ValueError(f"{self} is not divisible by {other}")
+            else:
+                raise DimensionError(self, other, op=operator.truediv)
+
+        else:
+            return NotImplemented
+
+    def __floordiv__(self, other):
+        if isinstance(other, Integral):
+            other = int(other)
+            if gcd(other, self._mod) == 1:
+                return self * pow(other, -1, self._mod)
+            else:
+                raise ValueError(f"{self} is not divisible by {other}")
+        elif isinstance(other, Sequence):
+            if len(self) == len(other):
+                if all(gcd(e, self.mod) == 1 for e in other):
+                    return marray([x * pow(y, -1, self._mod) for x, y in zip(self, other)], self._mod)
+                else:
+                    raise ValueError(f"{self} is not divisible by {other}")
+            else:
+                raise DimensionError(self, other, op=operator.floordiv)
+        else:
+            return NotImplemented
+
+    def __mod__(self, other):
+        if isinstance(other, Integral):
+            other = int(other)
+            return marray([e % other for e in self], self.mod)
+        elif isinstance(other, Sequence):
+            if not all(isinstance(e, Integral) for e in other):
+                raise ValueError(f"all modulus must be Integrals")
+            elif len(self) == len(other):
+                return marray([x % int(y) for x, y in zip(self, other)], self.mod)
+            else:
+                raise DimensionError(self, other, op=operator.mod)
+        else:
+            return NotImplemented
+
+    def __eq__(self, other):
+        if isinstance(other, Integral):
+            return bitarray([1 if e == other else 0 for e in self])
+        elif isinstance(other, Sequence):
+            if len(self) == len(other):
+                return all(x == y for x, y in zip(self, other))
+            else:
+                return False
+        else:
+            return NotImplemented
+
+    def _compare(a, b, op):
+        if isinstance(b, Integral):
+            return bitarray([1 if op(e, b) else 0 for e in a])
+        elif isinstance(b, Sequence):
+            if len(a) == len(b):
+                return bitarray([1 if op(x, y) else 0 for x, y in zip(a, b)])
+            else:
+                raise DimensionError(a, b, op=op)
+        else:
+            return NotImplemented
+
+    def __pos__(self):
+        return marray([+e for e in self], self._mod)
+
+    def __neg__(self):
+        return marray([-e for e in self], self._mod)
+
+    def append(self, value):
+        if isinstance(value, Integral):
+            self._array.append(int(value) % self.mod)
+        elif isinstance(value, Expr):
+            self._array.append(value % self.mod)
+        else:
+            raise NotImplementedError(f"{self.__class__.__name__}.{self.append.__name__}() is not implemented for "
+                                      f"non-Integral values")
+
+    def reverse(self):
+        self._array.reverse()
+
+    def extend(self, values):
+        if all(isinstance(v, (Integral, Expr)) for v in values):
+            self._array.extend(e % self.mod if isinstance(e, Expr) else int(e) % self.mod for e in values)
+        else:
+            raise NotImplementedError(f"{self.__class__.__name__}.{self.extend.__name__}() is not implemented for "
+                                      f"non-Integral values")
+
+    def pop(self, index=None):
+        return self._array.pop()
+
+    def remove(self, value):
+        if isinstance(value, Integral):
+            self._array.remove(int(value))
+        else:
+            raise NotImplementedError(f"{self.__class__.__name__}.{self.remove.__name__}() is not implemented for "
+                                      f"non-Integral values")
+
+    def insert(self, index, value):
+        if isinstance(value, Integral):
+            self._array.insert(index, int(value) % self.mod)
+        elif isinstance(value, Expr):
+            self._array.insert(index, value % self.mod)
+        else:
+            raise NotImplementedError(f"{self.__class__.__name__}.{self.insert.__name__}() is not implemented for "
+                                      f"non-Integral values")
+
+    def __getitem__(self, item):
+        if isinstance(item, slice):
+            # if slice, return smaller marray, otherwise just return the value
+            return marray(self._array[item], self._mod)
+        else:
+            return self._array[item]
+
+    def __delitem__(self, item):
+        del self._array[item]
+
+    def __len__(self):
+        return len(self._array)
+
+    def __iadd__(self, other):
+        if isinstance(other, Integral):
+            other = int(other)
+            for i, e in enumerate(self):
+                self._array[i] = (e + other) % self.mod
+            return self
+        elif isinstance(other, Sequence):
+            return self + other
+        else:
+            return NotImplemented

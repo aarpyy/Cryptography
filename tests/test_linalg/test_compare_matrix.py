@@ -1,4 +1,4 @@
-from cryptography318.linalg.array import *
+from cryptography318.linalg.array_old import *
 from cryptography318.linalg.linear_algebra import Matrix as Matrix2
 import operator
 from cryptography318.core.tools import *
@@ -76,11 +76,11 @@ def test_inverse(time=False):
         length = randrange(2, 8)
         a = Matrix(rows=length, cols=length, rand=True)
         b = Matrix2(a.tolist())
-        assert a.invert() == b.invert()
+        assert a.complement() == b.invert()
         assert isinstance(a, Matrix) and isinstance(a[0], Array) and isinstance(a[0][0], (int, float))
 
     if time:
-        mat = timeit.timeit(lambda: a.invert(), number=10000)
+        mat = timeit.timeit(lambda: a.complement(), number=10000)
         mat2 = timeit.timeit(lambda: b.invert(), number=10000)
         print(f"Matrix took: {mat:.2f}s")
         print(f"Matrix2 took: {mat2:.2f}s")

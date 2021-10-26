@@ -7,12 +7,13 @@ import operator
 from typing import *
 from numbers import *
 
-from math import gcd, isnan, isinf
+from math import gcd, isnan, isinf, prod
 from decimal import Decimal
 
 from fractions import Fraction as PyFraction
 
-from .expr import Expr, Add, Sqrt, Mul
+from .expr import Expr, Add, Mul
+from .sqrt import Sqrt
 
 __all__ = ['Fraction']
 
@@ -56,13 +57,16 @@ class Fraction(Rational):
 
         if denominator is None:
             if isinstance(numerator, (int, Expr)):
-                self._numerator, self._denominator = numerator, 1
+                self._numerator, self._denominator = numerator.simplify(), 1
                 return self
             elif isinstance(numerator, Rational):
                 self._numerator, self._denominator = numerator.numerator, numerator.denominator
                 return self
             elif isinstance(numerator, (float, Decimal)):
                 self._numerator, self._denominator = numerator.as_integer_ratio()  # built in conversion
+                return self
+            elif isinstance(numerator, Sqrt):
+                self._numerator, self._denominator = Mul(numerator), 1
                 return self
             elif isinstance(numerator, str):
                 if 'sqrt' in numerator:
@@ -71,7 +75,7 @@ class Fraction(Rational):
                         raise ValueError(f"invalid string literal for {__class__.__name__}: {numerator}")
                     coeff, radicand = int(m.group('coeff') or '1'), int(m.group('num'))
                     denominator = int(m.group('denom') or '1')
-                    numerator = Add(Sqrt(radicand, coeff))
+                    numerator = Mul(coeff, Sqrt(radicand))
                 else:
                     m = _FRACTION_FORMAT.match(numerator)
                     if m is None:
@@ -99,31 +103,70 @@ class Fraction(Rational):
                     numerator = -numerator
             else:
                 raise TypeError(f"all input(s) must be rational not type: {type(numerator)}")
-        elif isinstance(numerator, (int, Expr)) and isinstance(denominator, int):
-            pass
-        elif isinstance(numerator, Rational) and isinstance(denominator, Rational):
-            self._numerator = numerator.numerator * denominator.denominator
-            self._denominator = numerator.denominator * denominator.numerator
-            return self
         else:
-            try:
-                return numerator / denominator
-            except TypeError:
+            if isinstance(numerator, Sqrt):
+                numerator = Mul(numerator)
+            if isinstance(numerator, (int, Expr)) and isinstance(denominator, (int, Expr, Sqrt)):
+                pass
+            elif isinstance(numerator, Rational) and isinstance(denominator, Rational):
+                self._numerator = numerator.numerator * denominator.denominator
+                self._denominator = numerator.denominator * denominator.numerator
+                return self
+            else:
                 raise TypeError(f"all input(s) must be rational not type(s): {type(numerator)}, {type(denominator)}")
 
         if denominator == 0:
             raise ZeroDivisionError(f"fraction invalid with denominator equal to zero")
         if _normalize:
-            if isinstance(numerator, Add):
-                g = 1
-            elif isinstance(numerator, Mul):
-                g = gcd(numerator.integer, denominator)
+            if isinstance(denominator, Sqrt):
+                numerator *= denominator
+                denominator = denominator.radicand
+            # if both are expressions, try to reduce first by gcd
+            if isinstance(numerator, Expr) and isinstance(denominator, Expr):
+                g = gcd(numerator.gcd, denominator.gcd)
+
+                # if both greater than 1 and a % b == 0
+                if g > 1:
+                    numerator /= g
+                    denominator /= g
+                numerator.simplify(_update=True)
+                denominator.simplify(_update=True)
+
+            if (n := isinstance(numerator, Expr)) or isinstance(denominator, Expr):
+                # if both are expr, they have already been simplified, otherwise its just one so figure out which
+                if n:
+                    numerator.simplify(_update=True)
+                else:
+                    denominator.simplify(_update=True)
+
+                # regardless of if denominator is expr, try to divide, if succeeded return new numerator
+                # otherwise return num/denom as they are
+                try:
+                    _try = numerator / denominator
+                except ValueError:
+                    self._numerator, self._denominator = numerator, denominator
+                    return self
+                else:
+                    _try.simplify(_update=True)
+                    if int in _try.dict and len(_try.dict) == 1:
+                        if isinstance(_try, Add):
+                            self._numerator = sum(_try.dict[int])
+                        elif isinstance(_try, Mul):
+                            self._numerator = prod(_try.dict[int])
+                        else:
+                            self._numerator = _try
+                    else:
+                        self._numerator = _try
+
+                    self._denominator = 1
+                    return self
             else:
                 g = gcd(numerator, denominator)
             if denominator < 0:
                 g = -g
             numerator //= g
             denominator //= g
+
         self._numerator = numerator
         self._denominator = denominator
         return self
@@ -157,7 +200,7 @@ class Fraction(Rational):
     def __repr__(self: 'Fraction'):
         return f'{self.__class__.__name__}({self._numerator}, {self._denominator})'
 
-    def _operator_fallbakcs(fraction_operator: Callable, std_operator):
+    def _operator_fallbacks(fraction_operator, std_operator):
 
         def forward(a, b):
             if isinstance(b, (int, Fraction, PyFraction, Expr)):
@@ -197,41 +240,41 @@ class Fraction(Rational):
         da, db = a.denominator, b.denominator
         return Fraction(a.numerator * db + b.numerator * da, da * db)
 
-    __add__, __radd__ = _operator_fallbakcs(_add, operator.add)
+    __add__, __radd__ = _operator_fallbacks(_add, operator.add)
 
     def _sub(a, b):
         da, db = a.denominator, b.denominator
         return Fraction(a.numerator * db - b.numerator * da, da * db)
 
-    __sub__, __rsub__ = _operator_fallbakcs(_sub, operator.sub)
+    __sub__, __rsub__ = _operator_fallbacks(_sub, operator.sub)
 
     def _mul(a, b):
         return Fraction(a.numerator * b.numerator, a.denominator * b.denominator)
 
-    __mul__, __rmul__ = _operator_fallbakcs(_mul, operator.mul)
+    __mul__, __rmul__ = _operator_fallbacks(_mul, operator.mul)
 
     def _floordiv(a, b):
         return (a.numerator * b.denominator) // (a.denominator * b.numerator)
 
-    __floordiv__, __rfloordiv__ = _operator_fallbakcs(_floordiv, operator.floordiv)
+    __floordiv__, __rfloordiv__ = _operator_fallbacks(_floordiv, operator.floordiv)
 
     def _truediv(a, b):
         return Fraction(a.numerator * b.denominator, a.denominator * b.numerator)
 
-    __truediv__, __rtruediv__ = _operator_fallbakcs(_truediv, operator.truediv)
+    __truediv__, __rtruediv__ = _operator_fallbacks(_truediv, operator.truediv)
 
     def _mod(a, b):
         da, db = a.denominator, b.denominator
         return Fraction((a.numerator * db) % (da * b.numerator), da * db)
 
-    __mod__, __rmod__ = _operator_fallbakcs(_mod, operator.mod)
+    __mod__, __rmod__ = _operator_fallbacks(_mod, operator.mod)
 
     def _divmod(a, b):
         da, db = a.denominator, b.denominator
         d, r = divmod(a.numerator * db, da * b.numerator)
         return d, Fraction(r, da * db)
 
-    __divmod__, __rdivmod__ = _operator_fallbakcs(_divmod, divmod)
+    __divmod__, __rdivmod__ = _operator_fallbacks(_divmod, divmod)
 
     def _pow(a, b):
         if b.denominator == 1 and isinstance(b.numerator, int):
@@ -322,7 +365,12 @@ class Fraction(Rational):
             return self._numerator == other and self._denominator == 1
         elif isinstance(other, (Rational, Add)):
             return self._numerator == other.numerator and self._denominator == other.denominator
-        if isinstance(other, Complex) and other.imag == 0:
+        elif isinstance(other, Expr):
+            if self._denominator == 1:
+                return other == self._numerator
+            else:
+                return float(self) == other.eval
+        elif isinstance(other, Complex) and other.imag == 0:
             other = other.real
         if isinstance(other, float):
             if isnan(other) or isinf(other):
@@ -330,6 +378,7 @@ class Fraction(Rational):
                 # following recommendations from fractions that all finite values should compare to inf/nan as float(0)
                 return 0.0 == other
             return float(self) == other
+
         else:
             return NotImplemented
 

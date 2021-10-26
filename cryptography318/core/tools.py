@@ -47,6 +47,10 @@ def string_reduce(n):
     return str(n)
 
 
+def isnumber(*args):
+    return NotImplemented
+
+
 def r_append(obj: list, item) -> list:
     """Appends item to object and returns object. Helper function for lambda's
     involving appending."""
@@ -55,25 +59,29 @@ def r_append(obj: list, item) -> list:
     return obj
 
 
-def join_dict(*args: dict) -> dict:
+def join_dict(a: dict, b: dict, *args: dict, _null=0) -> dict:
     """Joins multiple dictionaries in a way that sums values of shared keys. Assumes all values
-    are Numbers that support + method."""
+    are Numbers that support + method.
+
+    :param a: first dictionary
+    :param b: second dictionary
+    :param args: any further dictionaries
+    :param _null: default value for retrieving dictionary value
+    """
 
     def join(dict1, dict2):
         for key in dict2:
-            dict1[key] = dict1.get(key, 0) + dict2[key]
+            dict1[key] = dict1.get(key, _null) + dict2[key]
         return dict1
 
-    return reduce(lambda a, b: join(a, b), args)
+    return reduce(lambda x, y: join(x, y), args, join(a, b))
 
 
 def replace_all(string: str, values: str, replace: str = '') -> str:
     """Replaces all instances of items from string values with string replace, default is to remove all items
     from values."""
 
-    for v in values:
-        string = string.replace(v, replace)
-    return string
+    return reduce(lambda r, c: r.replace(c, replace), values, string)
 
 
 def read_mm_int(fname='mathematica_numbers.txt'):
@@ -127,12 +135,6 @@ def python_number(number):
         return int(number)
     else:
         return number
-
-
-def isnumber(obj):
-    types = (int, float, int16, int32, int64, float16,
-             float32, float64, Fraction)
-    return isinstance(obj, types)
 
 
 def number_to_integer(number):
