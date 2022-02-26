@@ -1,7 +1,7 @@
-from cryptography318.numbers.crypto_functions import *
-from cryptography318.numbers.prime import randprime
-from cryptography318.numbers.elliptic import *
-from cryptography318.numbers.factor import *
+from cryptography318.number.crypto_functions import *
+from cryptography318.number.prime import randprime
+from cryptography318.number.elliptic import *
+from cryptography318.number.factor import *
 from timeit import timeit
 from time import time
 from sympy.ntheory.ecm import Point as syPoint

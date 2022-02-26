@@ -20,45 +20,77 @@
   </component>
   <component name="ChangeListManager">
     <list default="true" id="6ea76c49-18d8-4974-9f94-c2171563dd51" name="Default Changelist" comment="working on primality test, miller-rabin">
-      <change afterPath="$PROJECT_DIR$/COVIDSummaryData.csv" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/cryptography318/core/sqrt.py" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/cryptography318/core/sqrt.pyi" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/cryptography318/deprecated/expr_deprecated.py" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/cryptography318/deprecated/expr_deprecated.pyi" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/cryptography318/linalg/array_old.py" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/cryptography318/linalg/arrayabc.py" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/cryptography318/linalg/binaryarray.py" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/cryptography318/linalg/matrix.py" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/cryptography318/linalg/qsarray.py" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/tests/test_core/test_expr2.py" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/tests/test_core/test_expr_frctn.py" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/tests/test_linalg/test_barray.py" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/tests/test_linalg/test_binary_array.py" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/tests/test_linalg/test_qsarray.py" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/tests/test_linalg/test_rarray.py" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/tests/test_linalg/test_rmatrix.py" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/cryptography318/linalg.py" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/cryptography318/qs_bruteforce.py" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/cryptography318/quadratic_sieve.py" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/cryptography318/utils.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/.idea/.name" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/.name" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/.idea/cryptography318.iml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/cryptography318.iml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/.idea/misc.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/misc.xml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/README.md" beforeDir="false" afterPath="$PROJECT_DIR$/README.md" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/cryptography318/core/expr.py" beforeDir="false" afterPath="$PROJECT_DIR$/cryptography318/core/expr.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/cryptography318/core/expr.pyi" beforeDir="false" afterPath="$PROJECT_DIR$/cryptography318/core/expr.pyi" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/cryptography318/core/fraction.py" beforeDir="false" afterPath="$PROJECT_DIR$/cryptography318/core/fraction.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/cryptography318/core/fraction.pyi" beforeDir="false" afterPath="$PROJECT_DIR$/cryptography318/core/fraction.pyi" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/cryptography318/core/tools.py" beforeDir="false" afterPath="$PROJECT_DIR$/cryptography318/core/tools.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/cryptography318/linalg/array.py" beforeDir="false" afterPath="$PROJECT_DIR$/cryptography318/linalg/array.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/cryptography318/linalg/linalg.py" beforeDir="false" afterPath="$PROJECT_DIR$/cryptography318/linalg/linalg.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/cryptography318/linalg/linear_algebra.py" beforeDir="false" afterPath="$PROJECT_DIR$/cryptography318/linalg/linear_algebra.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/cryptography318/numbers/bailliepsw_helper.py" beforeDir="false" afterPath="$PROJECT_DIR$/cryptography318/numbers/bailliepsw_helper.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/cryptography318/numbers/crypto_functions.py" beforeDir="false" afterPath="$PROJECT_DIR$/cryptography318/numbers/crypto_functions.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/cryptography318/numbers/elliptic.py" beforeDir="false" afterPath="$PROJECT_DIR$/cryptography318/numbers/elliptic.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/cryptography318/numbers/factor.py" beforeDir="false" afterPath="$PROJECT_DIR$/cryptography318/numbers/factor.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/cryptography318/numbers/prime.py" beforeDir="false" afterPath="$PROJECT_DIR$/cryptography318/numbers/prime.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/cryptography318/numbers/quadratic_sieve.py" beforeDir="false" afterPath="$PROJECT_DIR$/cryptography318/numbers/quadratic_sieve.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/tests/test_core/test_expr.py" beforeDir="false" afterPath="$PROJECT_DIR$/tests/test_core/test_expr.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/build/lib/cryptography318/crypto_functions.py" beforeDir="false" afterPath="$PROJECT_DIR$/build/lib/cryptography318/crypto_functions.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/build/lib/cryptography318/linear_algebra.py" beforeDir="false" afterPath="$PROJECT_DIR$/build/lib/cryptography318/linear_algebra.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/build/lib/cryptography318/linear_algebra_deprecated.py" beforeDir="false" afterPath="$PROJECT_DIR$/build/lib/cryptography318/linear_algebra_deprecated.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/build/lib/cryptography318/tools.py" beforeDir="false" afterPath="$PROJECT_DIR$/build/lib/cryptography318/tools.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/cryptography318/__init__.py" beforeDir="false" afterPath="$PROJECT_DIR$/cryptography318/__init__.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/cryptography318/core/__init__.py" beforeDir="false" afterPath="$PROJECT_DIR$/.gitignore" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/cryptography318/core/expr.py" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/cryptography318/core/expr.pyi" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/cryptography318/core/fraction.py" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/cryptography318/core/fraction.pyi" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/cryptography318/core/sqrt.py" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/cryptography318/core/sqrt.pyi" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/cryptography318/core/tools.py" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/cryptography318/deprecated/__init__.py" beforeDir="false" afterPath="$PROJECT_DIR$/cryptography318/dlp.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/cryptography318/deprecated/array_mod.py" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/cryptography318/deprecated/crypto_deprecated.py" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/cryptography318/deprecated/expr_deprecated.py" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/cryptography318/deprecated/expr_deprecated.pyi" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/cryptography318/deprecated/linear_algebra_deprecated.py" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/cryptography318/deprecated/matrix_deprecated.py" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/cryptography318/deprecated/qs_deprecated.py" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/cryptography318/linalg/__init__.py" beforeDir="false" afterPath="$PROJECT_DIR$/cryptography318/siqs.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/cryptography318/linalg/array.py" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/cryptography318/linalg/array_old.py" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/cryptography318/linalg/arrayabc.py" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/cryptography318/linalg/binaryarray.py" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/cryptography318/linalg/linalg.py" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/cryptography318/linalg/linalgabc.py" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/cryptography318/linalg/linear_algebra.py" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/cryptography318/linalg/matrix.py" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/cryptography318/linalg/qsarray.py" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/cryptography318/numbers/__init__.py" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/cryptography318/numbers/bailliepsw_helper.py" beforeDir="false" afterPath="$PROJECT_DIR$/cryptography318/bailliepsw_helper.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/cryptography318/numbers/crypto_functions.py" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/cryptography318/numbers/elliptic.py" beforeDir="false" afterPath="$PROJECT_DIR$/cryptography318/elliptic.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/cryptography318/numbers/factor.py" beforeDir="false" afterPath="$PROJECT_DIR$/cryptography318/factor.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/cryptography318/numbers/prime.py" beforeDir="false" afterPath="$PROJECT_DIR$/cryptography318/prime.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/cryptography318/numbers/quadratic_sieve.py" beforeDir="false" />
       <change beforePath="$PROJECT_DIR$/tests/test_core/test_fraction.py" beforeDir="false" afterPath="$PROJECT_DIR$/tests/test_core/test_fraction.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/tests/test_linalg/test_array.py" beforeDir="false" afterPath="$PROJECT_DIR$/tests/test_linalg/test_array.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/tests/test_linalg/test_arraymod.py" beforeDir="false" afterPath="$PROJECT_DIR$/tests/test_linalg/test_arraymod.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/tests/test_linalg/test_compare_matrix.py" beforeDir="false" afterPath="$PROJECT_DIR$/tests/test_linalg/test_compare_matrix.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/tests/test_linalg/test_linear.py" beforeDir="false" afterPath="$PROJECT_DIR$/tests/test_linalg/test_linear.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/tests/test_core/test_square_root.py" beforeDir="false" afterPath="$PROJECT_DIR$/tests/test_core/test_square_root.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/tests/test_core/test_tools.py" beforeDir="false" afterPath="$PROJECT_DIR$/tests/test_core/test_tools.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/tests/test_linalg/__init__.py" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/tests/test_linalg/test_array.py" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/tests/test_linalg/test_arraymod.py" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/tests/test_linalg/test_arraymod_old.py" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/tests/test_linalg/test_barray.py" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/tests/test_linalg/test_binary_array.py" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/tests/test_linalg/test_compare_matrix.py" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/tests/test_linalg/test_linalg.py" beforeDir="false" afterPath="$PROJECT_DIR$/tests/test_linalg/test_linalg.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/tests/test_linalg/test_linear.py" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/tests/test_linalg/test_matrix.py" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/tests/test_linalg/test_qsarray.py" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/tests/test_linalg/test_rarray.py" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/tests/test_linalg/test_rmatrix.py" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/tests/test_numbers/cryptography_final.py" beforeDir="false" afterPath="$PROJECT_DIR$/tests/test_numbers/cryptography_final.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/tests/test_numbers/test_cryptofunc.py" beforeDir="false" afterPath="$PROJECT_DIR$/tests/test_numbers/test_cryptofunc.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/tests/test_numbers/test_dlp.py" beforeDir="false" afterPath="$PROJECT_DIR$/tests/test_numbers/test_dlp.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/tests/test_numbers/test_elliptic.py" beforeDir="false" afterPath="$PROJECT_DIR$/tests/test_numbers/test_elliptic.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/tests/test_numbers/test_factor.py" beforeDir="false" afterPath="$PROJECT_DIR$/tests/test_numbers/test_factor.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/tests/test_numbers/test_prime.py" beforeDir="false" afterPath="$PROJECT_DIR$/tests/test_numbers/test_prime.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/tests/test_numbers/test_primesieve.py" beforeDir="false" afterPath="$PROJECT_DIR$/tests/test_numbers/test_primesieve.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/tests/test_numbers/test_qs.py" beforeDir="false" afterPath="$PROJECT_DIR$/tests/test_numbers/test_qs.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/tests/test_numbers/test_random.py" beforeDir="false" afterPath="$PROJECT_DIR$/tests/test_numbers/test_random.py" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -100,9 +132,6 @@
       <filtered-out-file-type name="COMMIT_BY_MESSAGE" />
     </file-type-list>
   </component>
-  <component name="HighlightingSettingsPerFile">
-    <setting file="file://$PROJECT_DIR$/cryptography318/core/fraction.py" root0="FORCE_HIGHLIGHTING" />
-  </component>
   <component name="ProblemsViewState">
     <option name="selectedIndex" value="4" />
   </component>
@@ -124,24 +153,25 @@
     <property name="cf.first.check.clang-format" value="false" />
     <property name="cidr.known.project.marker" value="true" />
     <property name="cmake.loaded.for.project" value="true" />
+    <property name="last.edited.regexp" value="x = 5" />
     <property name="last_opened_file_path" value="$PROJECT_DIR$" />
     <property name="node.js.detected.package.eslint" value="true" />
     <property name="node.js.detected.package.tslint" value="true" />
     <property name="node.js.selected.package.eslint" value="(autodetect)" />
     <property name="node.js.selected.package.tslint" value="(autodetect)" />
     <property name="nodejs_package_manager_path" value="npm" />
-    <property name="settings.editor.selected.configurable" value="configurable.group.tools" />
+    <property name="settings.editor.selected.configurable" value="com.jetbrains.python.configuration.PythonContentEntriesConfigurable" />
   </component>
   <component name="RecentsManager">
     <key name="MoveFile.RECENT_KEYS">
-      <recent name="$PROJECT_DIR$" />
+      <recent name="$PROJECT_DIR$/cryptography318" />
+      <recent name="$PROJECT_DIR$/cryptography318/core" />
+      <recent name="$PROJECT_DIR$/tests" />
       <recent name="$PROJECT_DIR$/cryptography318/deprecated" />
-      <recent name="$PROJECT_DIR$/tests/test_core" />
-      <recent name="$PROJECT_DIR$/tests/test_numbers" />
-      <recent name="$PROJECT_DIR$/cryptography318/numbers" />
+      <recent name="$PROJECT_DIR$" />
     </key>
   </component>
-  <component name="RunManager" selected="Python.test">
+  <component name="RunManager" selected="Python tests.Python tests for test_crypto_functions.test_from_base">
     <configuration default="true" type="CMakeRunConfiguration" factoryName="Application" REDIRECT_INPUT="false" ELEVATE="false" USE_EXTERNAL_CONSOLE="false" PASS_PARENT_ENVS_2="true">
       <method v="2">
         <option name="com.jetbrains.cidr.execution.CidrBuildBeforeRunTaskProvider$BuildBeforeRunTask" enabled="true" />
@@ -174,130 +204,99 @@
       <option name="INPUT_FILE" value="" />
       <method v="2" />
     </configuration>
-    <configuration name="backtracking" type="PythonConfigurationType" factoryName="Python" temporary="true" nameIsGenerated="true">
-      <module name="Cryptography" />
-      <option name="INTERPRETER_OPTIONS" value="" />
-      <option name="PARENT_ENVS" value="true" />
-      <envs>
-        <env name="PYTHONUNBUFFERED" value="1" />
-      </envs>
-      <option name="SDK_HOME" value="" />
-      <option name="WORKING_DIRECTORY" value="$PROJECT_DIR$" />
-      <option name="IS_MODULE_SDK" value="true" />
-      <option name="ADD_CONTENT_ROOTS" value="true" />
-      <option name="ADD_SOURCE_ROOTS" value="true" />
-      <EXTENSION ID="PythonCoverageRunConfigurationExtension" runner="coverage.py" />
-      <option name="SCRIPT_NAME" value="$PROJECT_DIR$/backtracking.py" />
-      <option name="PARAMETERS" value="" />
-      <option name="SHOW_COMMAND_LINE" value="false" />
-      <option name="EMULATE_TERMINAL" value="false" />
-      <option name="MODULE_MODE" value="false" />
-      <option name="REDIRECT_INPUT" value="false" />
-      <option name="INPUT_FILE" value="" />
-      <method v="2" />
-    </configuration>
-    <configuration name="crypto_functions" type="PythonConfigurationType" factoryName="Python" temporary="true" nameIsGenerated="true">
-      <module name="Cryptography" />
-      <option name="INTERPRETER_OPTIONS" value="" />
-      <option name="PARENT_ENVS" value="true" />
-      <envs>
-        <env name="PYTHONUNBUFFERED" value="1" />
-      </envs>
-      <option name="SDK_HOME" value="" />
-      <option name="WORKING_DIRECTORY" value="$PROJECT_DIR$" />
-      <option name="IS_MODULE_SDK" value="true" />
-      <option name="ADD_CONTENT_ROOTS" value="true" />
-      <option name="ADD_SOURCE_ROOTS" value="true" />
-      <EXTENSION ID="PythonCoverageRunConfigurationExtension" runner="coverage.py" />
-      <option name="SCRIPT_NAME" value="$PROJECT_DIR$/crypto_functions.py" />
-      <option name="PARAMETERS" value="" />
-      <option name="SHOW_COMMAND_LINE" value="false" />
-      <option name="EMULATE_TERMINAL" value="false" />
-      <option name="MODULE_MODE" value="false" />
-      <option name="REDIRECT_INPUT" value="false" />
-      <option name="INPUT_FILE" value="" />
-      <method v="2" />
-    </configuration>
-    <configuration name="ps4.2" type="PythonConfigurationType" factoryName="Python" temporary="true" nameIsGenerated="true">
-      <module name="Cryptography" />
-      <option name="INTERPRETER_OPTIONS" value="" />
-      <option name="PARENT_ENVS" value="true" />
-      <envs>
-        <env name="PYTHONUNBUFFERED" value="1" />
-      </envs>
-      <option name="SDK_HOME" value="" />
-      <option name="WORKING_DIRECTORY" value="$PROJECT_DIR$" />
-      <option name="IS_MODULE_SDK" value="true" />
-      <option name="ADD_CONTENT_ROOTS" value="true" />
-      <option name="ADD_SOURCE_ROOTS" value="true" />
-      <EXTENSION ID="PythonCoverageRunConfigurationExtension" runner="coverage.py" />
-      <option name="SCRIPT_NAME" value="$PROJECT_DIR$/ps4.2.py" />
-      <option name="PARAMETERS" value="" />
-      <option name="SHOW_COMMAND_LINE" value="false" />
-      <option name="EMULATE_TERMINAL" value="false" />
-      <option name="MODULE_MODE" value="false" />
-      <option name="REDIRECT_INPUT" value="false" />
-      <option name="INPUT_FILE" value="" />
-      <method v="2" />
-    </configuration>
-    <configuration name="ps4.5" type="PythonConfigurationType" factoryName="Python" temporary="true" nameIsGenerated="true">
-      <module name="Cryptography" />
-      <option name="INTERPRETER_OPTIONS" value="" />
-      <option name="PARENT_ENVS" value="true" />
-      <envs>
-        <env name="PYTHONUNBUFFERED" value="1" />
-      </envs>
-      <option name="SDK_HOME" value="" />
-      <option name="WORKING_DIRECTORY" value="$PROJECT_DIR$" />
-      <option name="IS_MODULE_SDK" value="true" />
-      <option name="ADD_CONTENT_ROOTS" value="true" />
-      <option name="ADD_SOURCE_ROOTS" value="true" />
-      <EXTENSION ID="PythonCoverageRunConfigurationExtension" runner="coverage.py" />
-      <option name="SCRIPT_NAME" value="$PROJECT_DIR$/ps4.5.py" />
-      <option name="PARAMETERS" value="" />
-      <option name="SHOW_COMMAND_LINE" value="false" />
-      <option name="EMULATE_TERMINAL" value="false" />
-      <option name="MODULE_MODE" value="false" />
-      <option name="REDIRECT_INPUT" value="false" />
-      <option name="INPUT_FILE" value="" />
-      <method v="2" />
-    </configuration>
-    <configuration name="test" type="PythonConfigurationType" factoryName="Python" temporary="true" nameIsGenerated="true">
+    <configuration name="Doctest minor" type="tests" factoryName="Doctests" temporary="true" nameIsGenerated="true">
       <module name="cryptography318" />
       <option name="INTERPRETER_OPTIONS" value="" />
       <option name="PARENT_ENVS" value="true" />
-      <envs>
-        <env name="PYTHONUNBUFFERED" value="1" />
-      </envs>
       <option name="SDK_HOME" value="" />
-      <option name="WORKING_DIRECTORY" value="$PROJECT_DIR$/cryptography318/tests" />
+      <option name="WORKING_DIRECTORY" value="$PROJECT_DIR$/cryptography318/linalg" />
       <option name="IS_MODULE_SDK" value="true" />
       <option name="ADD_CONTENT_ROOTS" value="true" />
       <option name="ADD_SOURCE_ROOTS" value="true" />
       <EXTENSION ID="PythonCoverageRunConfigurationExtension" runner="coverage.py" />
-      <option name="SCRIPT_NAME" value="$PROJECT_DIR$/cryptography318/tests/test.py" />
-      <option name="PARAMETERS" value="" />
-      <option name="SHOW_COMMAND_LINE" value="true" />
-      <option name="EMULATE_TERMINAL" value="false" />
-      <option name="MODULE_MODE" value="false" />
-      <option name="REDIRECT_INPUT" value="false" />
-      <option name="INPUT_FILE" value="" />
+      <option name="SCRIPT_NAME" value="$PROJECT_DIR$/cryptography318/linalg.py" />
+      <option name="CLASS_NAME" value="" />
+      <option name="METHOD_NAME" value="minor" />
+      <option name="FOLDER_NAME" value="" />
+      <option name="TEST_TYPE" value="TEST_FUNCTION" />
+      <option name="PATTERN" value="" />
+      <option name="USE_PATTERN" value="false" />
+      <method v="2" />
+    </configuration>
+    <configuration name="Python tests for test_crypto_functions.test_from_base" type="tests" factoryName="Autodetect" temporary="true" nameIsGenerated="true">
+      <module name="cryptography318" />
+      <option name="INTERPRETER_OPTIONS" value="" />
+      <option name="PARENT_ENVS" value="true" />
+      <option name="SDK_HOME" value="" />
+      <option name="WORKING_DIRECTORY" value="$PROJECT_DIR$/tests" />
+      <option name="IS_MODULE_SDK" value="true" />
+      <option name="ADD_CONTENT_ROOTS" value="true" />
+      <option name="ADD_SOURCE_ROOTS" value="true" />
+      <EXTENSION ID="PythonCoverageRunConfigurationExtension" runner="coverage.py" />
+      <option name="_new_additionalArguments" value="&quot;&quot;" />
+      <option name="_new_target" value="&quot;test_crypto_functions.test_from_base&quot;" />
+      <option name="_new_targetType" value="&quot;PYTHON&quot;" />
+      <method v="2" />
+    </configuration>
+    <configuration name="Python tests for test_linalg.test_binary_kernel" type="tests" factoryName="Autodetect" temporary="true" nameIsGenerated="true">
+      <module name="cryptography318" />
+      <option name="INTERPRETER_OPTIONS" value="" />
+      <option name="PARENT_ENVS" value="true" />
+      <option name="SDK_HOME" value="" />
+      <option name="WORKING_DIRECTORY" value="$PROJECT_DIR$/tests" />
+      <option name="IS_MODULE_SDK" value="true" />
+      <option name="ADD_CONTENT_ROOTS" value="true" />
+      <option name="ADD_SOURCE_ROOTS" value="true" />
+      <EXTENSION ID="PythonCoverageRunConfigurationExtension" runner="coverage.py" />
+      <option name="_new_additionalArguments" value="&quot;&quot;" />
+      <option name="_new_target" value="&quot;test_linalg.test_binary_kernel&quot;" />
+      <option name="_new_targetType" value="&quot;PYTHON&quot;" />
+      <method v="2" />
+    </configuration>
+    <configuration name="Python tests for test_linalg.test_matrix_slice" type="tests" factoryName="Autodetect" temporary="true" nameIsGenerated="true">
+      <module name="cryptography318" />
+      <option name="INTERPRETER_OPTIONS" value="" />
+      <option name="PARENT_ENVS" value="true" />
+      <option name="SDK_HOME" value="" />
+      <option name="WORKING_DIRECTORY" value="$PROJECT_DIR$/tests" />
+      <option name="IS_MODULE_SDK" value="true" />
+      <option name="ADD_CONTENT_ROOTS" value="true" />
+      <option name="ADD_SOURCE_ROOTS" value="true" />
+      <EXTENSION ID="PythonCoverageRunConfigurationExtension" runner="coverage.py" />
+      <option name="_new_additionalArguments" value="&quot;&quot;" />
+      <option name="_new_target" value="&quot;test_linalg.test_matrix_slice&quot;" />
+      <option name="_new_targetType" value="&quot;PYTHON&quot;" />
+      <method v="2" />
+    </configuration>
+    <configuration name="Python tests in test_linalg.py" type="tests" factoryName="Autodetect" temporary="true" nameIsGenerated="true">
+      <module name="cryptography318" />
+      <option name="INTERPRETER_OPTIONS" value="" />
+      <option name="PARENT_ENVS" value="true" />
+      <option name="SDK_HOME" value="" />
+      <option name="WORKING_DIRECTORY" value="$PROJECT_DIR$/tests" />
+      <option name="IS_MODULE_SDK" value="true" />
+      <option name="ADD_CONTENT_ROOTS" value="true" />
+      <option name="ADD_SOURCE_ROOTS" value="true" />
+      <EXTENSION ID="PythonCoverageRunConfigurationExtension" runner="coverage.py" />
+      <option name="_new_additionalArguments" value="&quot;&quot;" />
+      <option name="_new_target" value="&quot;$PROJECT_DIR$/tests/test_linalg/test_linalg.py&quot;" />
+      <option name="_new_targetType" value="&quot;PATH&quot;" />
       <method v="2" />
     </configuration>
     <list>
-      <item itemvalue="Python.backtracking" />
-      <item itemvalue="Python.crypto_functions" />
-      <item itemvalue="Python.ps4.2" />
-      <item itemvalue="Python.ps4.5" />
-      <item itemvalue="Python.test" />
+      <item itemvalue="Python tests.Python tests in test_linalg.py" />
+      <item itemvalue="Python tests.Doctest minor" />
+      <item itemvalue="Python tests.Python tests for test_linalg.test_matrix_slice" />
+      <item itemvalue="Python tests.Python tests for test_linalg.test_binary_kernel" />
+      <item itemvalue="Python tests.Python tests for test_crypto_functions.test_from_base" />
     </list>
     <recent_temporary>
       <list>
-        <item itemvalue="Python.test" />
-        <item itemvalue="Python.backtracking" />
-        <item itemvalue="Python.ps4.5" />
-        <item itemvalue="Python.crypto_functions" />
-        <item itemvalue="Python.ps4.2" />
+        <item itemvalue="Python tests.Python tests for test_crypto_functions.test_from_base" />
+        <item itemvalue="Python tests.Python tests for test_linalg.test_binary_kernel" />
+        <item itemvalue="Python tests.Python tests for test_linalg.test_matrix_slice" />
+        <item itemvalue="Python tests.Doctest minor" />
+        <item itemvalue="Python tests.Python tests in test_linalg.py" />
       </list>
     </recent_temporary>
   </component>
@@ -335,7 +334,20 @@
       <workItem from="1634512283545" duration="4875000" />
       <workItem from="1634666061800" duration="57000" />
       <workItem from="1634692186347" duration="9856000" />
-      <workItem from="1634958337764" duration="3719000" />
+      <workItem from="1634958337764" duration="13801000" />
+      <workItem from="1636569974026" duration="376000" />
+      <workItem from="1637213893147" duration="1288000" />
+      <workItem from="1637215323845" duration="4898000" />
+      <workItem from="1637430481721" duration="6977000" />
+      <workItem from="1639604104833" duration="53000" />
+      <workItem from="1639604240162" duration="1151000" />
+      <workItem from="1642915849297" duration="96000" />
+      <workItem from="1642915951942" duration="1779000" />
+      <workItem from="1643058095210" duration="1285000" />
+      <workItem from="1644096247530" duration="2309000" />
+      <workItem from="1645322828880" duration="2064000" />
+      <workItem from="1645755625051" duration="3676000" />
+      <workItem from="1645821656625" duration="17031000" />
     </task>
     <task id="LOCAL-00001" summary="wrote some stuff for ps4.5, figured out problem with pohlig-hellman, bsgs in work">
       <created>1624923163169</created>
@@ -385,5 +397,20 @@
     <MESSAGE value="began work on pohlighellman" />
     <MESSAGE value="working on primality test, miller-rabin" />
     <option name="LAST_COMMIT_MESSAGE" value="working on primality test, miller-rabin" />
+  </component>
+  <component name="XDebuggerManager">
+    <breakpoint-manager>
+      <breakpoints>
+        <line-breakpoint enabled="true" suspend="THREAD" type="python-line">
+          <url>file://$PROJECT_DIR$/cryptography318/linalg/linalg_class.py</url>
+          <line>1631</line>
+          <option name="timeStamp" value="1" />
+        </line-breakpoint>
+      </breakpoints>
+    </breakpoint-manager>
+  </component>
+  <component name="com.intellij.coverage.CoverageDataManagerImpl">
+    <SUITE FILE_PATH="coverage/Cryptography$.coverage" NAME=" Coverage Results" MODIFIED="1645844040982" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="true" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/tests" />
+    <SUITE FILE_PATH="coverage/Cryptography$Doctest_minor.coverage" NAME="Doctest minor Coverage Results" MODIFIED="1645827844754" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="true" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/cryptography318/linalg" />
   </component>
 </project>

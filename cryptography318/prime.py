@@ -1,8 +1,8 @@
-from math import isqrt
+from math import isqrt, prod
 from random import randrange, choice
 from itertools import count
 
-from cryptography318.numbers.bailliepsw_helper import LucasPseudoPrime, D_chooser
+from bailliepsw_helper import LucasPseudoPrime, D_chooser
 
 
 class Sieve:
@@ -509,7 +509,7 @@ def primes_gen(a, b=None):
         a = 2
 
     if a >= b or a < 2:
-        raise ValueError(f"invalid arguments for iteration over primes: {a}, {b}")
+        raise ValueError(f"Invalid range: [{a}, {b})")
 
     n = next_prime(a - 1)
     while n < b:
@@ -571,4 +571,90 @@ def multiplicity(p, n):
         m -= 1
 
     return m
+
+
+def sqrt_mod(a, p):
+    """Finds a solution for x to equation x^2 = a (mod p). If a solution is returned, a second
+    solution s2 will also exist where s2 = -x (mod p)."""
+
+    if not a:
+        return 0
+    elif not quadratic_residue(a, p):
+        return None
+
+    mod8 = p % 8
+    if mod8 == 1:
+        q = p - 1
+        s = 0
+        while not q & 1:
+            q >>= 1
+            s += 1
+
+        z = randrange(2, p)
+        while not quadratic_non_residue(z, p):
+            z = randrange(2, p)
+
+        m = s
+        c = pow(z, q, p)
+        t = pow(a, q, p)
+        r = pow(a, (q + 1) // 2, p)
+
+        while True:
+            if t == 0:
+                return 0
+            if t == 1:
+                return r
+
+            i = 0
+            x = t
+            while x != 1:
+                x = pow(x, 2, p)
+                i += 1
+
+            b = pow(c, pow(2, m - i - 1), p)
+            c = pow(b, 2, p)
+            m = i
+
+            t = (t * c) % p
+            r = (r * b) % p
+    elif mod8 == 5:
+        a2 = a + a
+        v = pow(a2, (p - 5) // 8, p)
+        i = (a2 * v * v) % p
+        return (a * v * (i - 1)) % p
+    else:
+        return pow(a, (p + 1) // 4, p)
+
+
+def quadratic_residue(a, p):
+    """Returns True if n is a quadratic residue mod p, False otherwise. Uses Euler's criterion to assess values.
+    Assumes p is odd prime."""
+
+    return pow(a, (p - 1) // 2, p) == 1
+
+
+def quadratic_non_residue(a, p):
+    """Returns True if n is a quadratic non-residue mod p, False otherwise. Uses Euler's criterion to assess values.
+    Assumes p is odd prime."""
+
+    return pow(a, (p - 1) // 2, p) == p - 1
+
+
+def chinese_remainder(values, moduli):
+    # initializes lists of moduli, mod = product of all moduli
+    mod = prod(moduli)
+
+    # maps list of moduli and their inverses to x and y respectively
+    x, y = [], []
+    for m in moduli:
+        mi = mod // m
+        x.append(mi)
+        y.append(pow(mi, -1, m))
+
+    # accumulates product of number and moduli and their inverses
+    acc = 0
+    for i in range(len(values)):
+        acc = (acc + values[i] * x[i] * y[i]) % mod
+
+    return acc
 

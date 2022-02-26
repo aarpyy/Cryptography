@@ -1,5 +1,5 @@
-from cryptography318.numbers.crypto_functions import *
-from cryptography318.numbers.prime import *
+from cryptography318.number.crypto_functions import *
+from cryptography318.number.prime import *
 
 
 def test_bsgs():

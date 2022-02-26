@@ -1,4 +1,4 @@
-from cryptography318.numbers.prime import *
+from cryptography318.number.prime import *
 
 range_tested = False
 iter_tested = False

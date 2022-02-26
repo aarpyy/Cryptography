@@ -29,7 +29,7 @@ def deprecated(func):
 
 
 def string_reduce(n):
-    """Reduces numbers in string form to shortest possible number for printing as matrix. Numbers
+    """Reduces number in string form to shortest possible number for printing as matrix. Numbers
     are reduces such that floats with no floating point value are printed as integers and 0's with
     a negative prefix lose the prefix (ex. 2.0 would return as 2, but 2.01 would return as 2.01)"""
 

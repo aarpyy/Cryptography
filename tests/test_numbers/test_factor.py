@@ -1,7 +1,7 @@
-from cryptography318.numbers.prime import *
-from cryptography318.numbers.crypto_functions import *
-from cryptography318.numbers.quadratic_sieve import *
-from cryptography318.numbers.factor import *
+from cryptography318.number.prime import *
+from cryptography318.number.crypto_functions import *
+from cryptography318.number.qs_bruteforce import *
+from cryptography318.number.factor import *
 import time
 import timeit
 from timeit import timeit

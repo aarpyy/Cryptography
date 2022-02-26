@@ -990,7 +990,7 @@ class Matrix:
 
     def reset_type(self):
         """Attempts to reset matrix to smaller floats or integers if possible. If matrix has
-        complex numbers they are left un-modified."""
+        complex number they are left un-modified."""
 
         matrix = aslist(self.array.astype(numpy.float64))
         for i in range(len(self)):

@@ -1,7 +1,7 @@
-from cryptography318.numbers.crypto_functions import *
-from cryptography318.numbers.prime import *
-from cryptography318.linalg.linear_algebra import *
-from cryptography318.numbers.quadratic_sieve import *
+from cryptography318.number.crypto_functions import *
+from cryptography318.number.prime import *
+from cryptography318.deprecated.linear_algebra import *
+from cryptography318.number.qs_bruteforce import *
 from timeit import timeit
 import numpy
 import pytest
@@ -54,7 +54,7 @@ def test_find_roots():
         while not quadratic_residue(a, p):
             a = randrange(2, p)
 
-        assert find_roots(a, p) is not None
+        assert sqrt_mod(a, p) is not None
 
 
 @pytest.mark.skip

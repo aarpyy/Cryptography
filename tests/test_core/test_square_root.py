@@ -4,7 +4,7 @@ import fractions
 from math import sqrt
 from random import randrange
 from timeit import timeit
-from cryptography318.numbers.factor import factor
+from cryptography318.number.factor import factor
 
 
 def test_constructor():

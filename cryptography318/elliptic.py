@@ -3,10 +3,10 @@ from abc import ABCMeta, abstractmethod
 from typing import overload, Union
 from math import gcd, log, isqrt, floor
 
-from .crypto_functions import find_roots
-from .prime import isprime
+from prime import isprime, primesieve, sqrt_mod
 
 
+# Random object created at runtime for all random elliptic points
 rndm = Random()
 
 
@@ -64,7 +64,7 @@ class Weierstrass(Curve):
         return other.modulus == self.modulus and other.a == self.a and other.b == self.b
 
     def point(self, x: int) -> 'WeierstrassPoint':
-        return WeierstrassPoint(x, find_roots((pow(x, 3, self.modulus) + self.a * x + self.b) % self.modulus, self.modulus), self)
+        return WeierstrassPoint(x, sqrt_mod((pow(x, 3, self.modulus) + self.a * x + self.b) % self.modulus, self.modulus), self)
 
     @classmethod
     def safe_curve_and_point(cls, p: int) -> tuple['Weierstrass', 'WeierstrassPoint']:
@@ -475,7 +475,6 @@ def ecm_mont_basic(N: int, B1: int = None, B2: int = None, _retry: int = 50):
     if B2 is None:
         B2 = B1 * 100
 
-    global primesieve
     primesieve.extend(B2)
 
     # with initial point P, get k to find initial Q = kP
@@ -539,7 +538,6 @@ def ecm_mont(N: int, B1: int = None, B2: int = None, _retry: int = 50):
     else:
         B2 = (B2 | 1) + 1
 
-    global primesieve
     primesieve.extend(B2)
 
     # with initial point P, get k to find initial Q = kP
@@ -548,7 +546,7 @@ def ecm_mont(N: int, B1: int = None, B2: int = None, _retry: int = 50):
         k *= floor(log(B1, p))
 
     D = isqrt(B2)
-    S = [0] * (D + 1)
+    S = [0] * (D + 1)  # type: list
 
     trials = 0
     while trials <= _retry:

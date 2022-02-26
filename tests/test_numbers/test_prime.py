@@ -1,4 +1,5 @@
-from cryptography318.numbers.prime import *
+from cryptography318.number.prime import *
+from cryptography318.number.crypto_functions import *
 import pytest
 
 
@@ -22,5 +23,26 @@ def test_is_prime():
     assert confirm_prime(n)
 
 
+def i_th_prime(i):
+    j = 1
+    prime = next_prime(1)
+    while j < i:
+        prime = next_prime(prime)
+        j += 1
+    return prime
+
+
+def temp():
+    lower = pow(10, 15)
+    upper = pow(10, 16)
+
+    a = randprime(lower, upper)
+    b = randprime(lower, upper)
+    print(f"a: {a}, b: {b}")
+
+    x = a * b
+    print(f"x : {x}; {len(str(x))}")
+
+
 if __name__ == '__main__':
-    pass
+    temp()

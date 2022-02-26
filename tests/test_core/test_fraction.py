@@ -2,7 +2,7 @@ from cryptography318.core.fraction import *
 from fractions import Fraction as PyFraction
 from timeit import timeit
 from random import randrange
-from numbers import *
+from number import *
 from math import sqrt
 from cryptography318.core.sqrt import Sqrt
 import pytest

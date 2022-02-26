@@ -1,5 +1,5 @@
 from cryptography318.core.tools import *
-from cryptography318.linalg.linear_algebra import *
+from cryptography318.deprecated.linear_algebra import *
 
 
 def test_replace_all():

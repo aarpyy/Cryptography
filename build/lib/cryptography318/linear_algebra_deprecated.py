@@ -513,7 +513,7 @@ def IsSolvable1(matrix, aug=False):
 
 def MatrixEquals(mat1, mat2):
     """Returns True if two given matrices are equal to a zero decimal point precision.
-    All numbers are converted into integers for comparison, since any two matrices
+    All number are converted into integers for comparison, since any two matrices
     that are dis-similar by less than a whole integer value, they are considered equal."""
 
     if len(mat1) != len(mat2) or len(mat1[0]) != len(mat2[0]):

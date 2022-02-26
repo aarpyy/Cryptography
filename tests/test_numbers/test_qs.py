@@ -1,4 +1,4 @@
-from cryptography318.numbers.quadratic_sieve import *
+from cryptography318.number.qs_bruteforce import *
 from timeit import timeit
 
 
