@@ -20,14 +20,12 @@
   </component>
   <component name="ChangeListManager">
     <list default="true" id="6ea76c49-18d8-4974-9f94-c2171563dd51" name="Default Changelist" comment="working on primality test, miller-rabin">
+      <change afterPath="$PROJECT_DIR$/cryptography318/icm.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/cryptography318.iml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/cryptography318.iml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/.idea/misc.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/misc.xml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/cryptography318/factor.py" beforeDir="false" afterPath="$PROJECT_DIR$/cryptography318/factor.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/cryptography318/linalg.py" beforeDir="false" afterPath="$PROJECT_DIR$/cryptography318/linalg.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/cryptography318/qs_bruteforce.py" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/cryptography318/quadratic_sieve.py" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/cryptography318/siqs.py" beforeDir="false" afterPath="$PROJECT_DIR$/cryptography318/siqs.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/cryptography318/utils.py" beforeDir="false" afterPath="$PROJECT_DIR$/cryptography318/utils.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/cryptography318/dlp.py" beforeDir="false" afterPath="$PROJECT_DIR$/cryptography318/dlp.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/cryptography318/prime.py" beforeDir="false" afterPath="$PROJECT_DIR$/cryptography318/prime.py" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -108,7 +106,7 @@
       <recent name="$PROJECT_DIR$" />
     </key>
   </component>
-  <component name="RunManager" selected="Python.siqs">
+  <component name="RunManager" selected="Python.dlp">
     <configuration default="true" type="CMakeRunConfiguration" factoryName="Application" REDIRECT_INPUT="false" ELEVATE="false" USE_EXTERNAL_CONSOLE="false" PASS_PARENT_ENVS_2="true">
       <method v="2">
         <option name="com.jetbrains.cidr.execution.CidrBuildBeforeRunTaskProvider$BuildBeforeRunTask" enabled="true" />
@@ -141,6 +139,25 @@
       <option name="INPUT_FILE" value="" />
       <method v="2" />
     </configuration>
+    <configuration name="dlp" type="PythonConfigurationType" factoryName="Python" temporary="true" nameIsGenerated="true">
+      <module name="cryptography318" />
+      <option name="INTERPRETER_OPTIONS" value="" />
+      <option name="PARENT_ENVS" value="true" />
+      <option name="SDK_HOME" value="" />
+      <option name="WORKING_DIRECTORY" value="$PROJECT_DIR$/cryptography318" />
+      <option name="IS_MODULE_SDK" value="true" />
+      <option name="ADD_CONTENT_ROOTS" value="true" />
+      <option name="ADD_SOURCE_ROOTS" value="true" />
+      <EXTENSION ID="PythonCoverageRunConfigurationExtension" runner="coverage.py" />
+      <option name="SCRIPT_NAME" value="$PROJECT_DIR$/cryptography318/dlp.py" />
+      <option name="PARAMETERS" value="" />
+      <option name="SHOW_COMMAND_LINE" value="true" />
+      <option name="EMULATE_TERMINAL" value="false" />
+      <option name="MODULE_MODE" value="false" />
+      <option name="REDIRECT_INPUT" value="false" />
+      <option name="INPUT_FILE" value="" />
+      <method v="2" />
+    </configuration>
     <configuration name="siqs" type="PythonConfigurationType" factoryName="Python" temporary="true" nameIsGenerated="true">
       <module name="cryptography318" />
       <option name="INTERPRETER_OPTIONS" value="" />
@@ -161,25 +178,6 @@
       <option name="MODULE_MODE" value="false" />
       <option name="REDIRECT_INPUT" value="false" />
       <option name="INPUT_FILE" value="" />
-      <method v="2" />
-    </configuration>
-    <configuration name="Doctest minor" type="tests" factoryName="Doctests" temporary="true" nameIsGenerated="true">
-      <module name="cryptography318" />
-      <option name="INTERPRETER_OPTIONS" value="" />
-      <option name="PARENT_ENVS" value="true" />
-      <option name="SDK_HOME" value="" />
-      <option name="WORKING_DIRECTORY" value="$PROJECT_DIR$/cryptography318/linalg" />
-      <option name="IS_MODULE_SDK" value="true" />
-      <option name="ADD_CONTENT_ROOTS" value="true" />
-      <option name="ADD_SOURCE_ROOTS" value="true" />
-      <EXTENSION ID="PythonCoverageRunConfigurationExtension" runner="coverage.py" />
-      <option name="SCRIPT_NAME" value="$PROJECT_DIR$/cryptography318/linalg.py" />
-      <option name="CLASS_NAME" value="" />
-      <option name="METHOD_NAME" value="minor" />
-      <option name="FOLDER_NAME" value="" />
-      <option name="TEST_TYPE" value="TEST_FUNCTION" />
-      <option name="PATTERN" value="" />
-      <option name="USE_PATTERN" value="false" />
       <method v="2" />
     </configuration>
     <configuration name="Python tests for test_crypto_functions.test_from_base" type="tests" factoryName="Autodetect" temporary="true" nameIsGenerated="true">
@@ -229,18 +227,18 @@
     </configuration>
     <list>
       <item itemvalue="Python.siqs" />
-      <item itemvalue="Python tests.Doctest minor" />
-      <item itemvalue="Python tests.Python tests for test_linalg.test_matrix_slice" />
-      <item itemvalue="Python tests.Python tests for test_linalg.test_binary_kernel" />
       <item itemvalue="Python tests.Python tests for test_crypto_functions.test_from_base" />
+      <item itemvalue="Python tests.Python tests for test_linalg.test_binary_kernel" />
+      <item itemvalue="Python tests.Python tests for test_linalg.test_matrix_slice" />
+      <item itemvalue="Python.dlp" />
     </list>
     <recent_temporary>
       <list>
+        <item itemvalue="Python.dlp" />
         <item itemvalue="Python.siqs" />
         <item itemvalue="Python tests.Python tests for test_crypto_functions.test_from_base" />
         <item itemvalue="Python tests.Python tests for test_linalg.test_binary_kernel" />
         <item itemvalue="Python tests.Python tests for test_linalg.test_matrix_slice" />
-        <item itemvalue="Python tests.Doctest minor" />
       </list>
     </recent_temporary>
   </component>
@@ -295,6 +293,7 @@
       <workItem from="1645903738902" duration="4683000" />
       <workItem from="1645987613801" duration="5419000" />
       <workItem from="1646021588078" duration="1281000" />
+      <workItem from="1646064638852" duration="1653000" />
     </task>
     <task id="LOCAL-00001" summary="wrote some stuff for ps4.5, figured out problem with pohlig-hellman, bsgs in work">
       <created>1624923163169</created>
@@ -357,7 +356,7 @@
     </breakpoint-manager>
   </component>
   <component name="com.intellij.coverage.CoverageDataManagerImpl">
-    <SUITE FILE_PATH="coverage/Cryptography$Doctest_minor.coverage" NAME="Doctest minor Coverage Results" MODIFIED="1645827844754" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="true" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/cryptography318/linalg" />
     <SUITE FILE_PATH="coverage/Cryptography$.coverage" NAME=" Coverage Results" MODIFIED="1645844040982" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="true" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/tests" />
+    <SUITE FILE_PATH="coverage/Cryptography$Doctest_minor.coverage" NAME="Doctest minor Coverage Results" MODIFIED="1645827844754" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="true" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/cryptography318/linalg" />
   </component>
 </project>

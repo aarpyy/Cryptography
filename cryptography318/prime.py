@@ -482,7 +482,7 @@ def primerange(a, b=None):
         return []
 
     global primesieve
-    if b <= primesieve.tail:
+    if b > primesieve.tail:
         if a < 2:
             a = 2
         indices = primesieve.search(a, b)

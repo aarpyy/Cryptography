@@ -1,7 +1,8 @@
+import random
 from math import isqrt, gcd, sqrt
 from functools import reduce
 
-from prime import primerange
+from prime import primerange, primesieve
 from utils import smooth_factor, from_base
 
 
@@ -110,15 +111,17 @@ def index_calculus_dlp(g, h, p):
 
     from math import e, log
 
-    L = pow(e, sqrt(log(p) * log(log(p))))
-    B = int(pow(L, 1 / sqrt(2)))
+    B = int(pow(e, sqrt((log(p) * log(log(p))) / 2)))
 
-    primes = primerange(B)
+    primesieve.extend(B)
+    primes = primesieve[:B]
 
     # currently brute forces solutions to log_g_x with x for each prime <= B
-    logs = {}
+    logs = []
     for n in primes:
-        logs[n] = baby_step_giant_step(g, n, p)
+        lg = baby_step_giant_step(g, n, p)
+        print(f"log {n} mod {p} = {lg}")
+        logs.append(lg)
 
     k = 0
     while 1:
@@ -126,7 +129,7 @@ def index_calculus_dlp(g, h, p):
         x = (h * pow(g, -k, p)) % p
         if (exponents := smooth_factor(x, primes)) is not None:
             # reduce sums list returned by map, which returns list of products of exponents and logs
-            return reduce(lambda a, b: a + b, list(map(lambda i, m: i * logs[m], exponents, logs))) + k
+            return reduce(lambda a, b: a + b, list(map(lambda i, l: i * l, exponents, logs))) + k
 
 
 def calculate_state(state, g, h, p):
@@ -188,3 +191,13 @@ def pohlig_hellman(g, h, p, q, exp, prog=False):
             print(f"Found X{i} = {Xi}\n")
 
     return from_base(X[::-1], q)
+
+
+if __name__ == "__main__":
+    import prime
+    p = prime.randprime(pow(10, 6), pow(10, 7))
+    g = random.randrange(2, p)
+    x = random.randrange(2, p - 1)
+    h = pow(g, x, p)
+    y = index_calculus_dlp(g, h, p)
+    print(f"y: {y}, x: {x}")
