@@ -1,3 +1,6 @@
+from math import prod
+
+
 def smooth_factor(n, factors):
     exp = [0] * len(factors)
     for i, f in enumerate(factors):
@@ -9,6 +12,15 @@ def smooth_factor(n, factors):
         return exp
     else:
         return None
+
+
+def exp_value(exp, primes):
+    """Calculates the value of a list of powers of primes. If only p is given, assumes list of primes to be
+    from 2 to largest prime <= p. If list of exponents does not match the powers of the continuous ascending
+    list of primes, this will compute incorrectly."""
+
+    # raises each prime to the corresponding power in list exp, then reduces that list with multiplication
+    return prod(map(lambda p, e: pow(p, e), primes, exp))
 
 
 def from_base(lst, base):
