@@ -29,12 +29,12 @@ def transpose(a: Sequence[Sequence]):
     return list(map(lambda i: list(map(lambda r: r[i], a)), range(len(a[0]))))
 
 
-def vecmatmul(a: Sequence, b: Sequence[Sequence]):
+def vec_matmul(a: Sequence, b: Sequence[Sequence]):
     return [dot(a, x) for x in transpose(b)]
 
 
 def matmul(a: Sequence[Sequence], b: Sequence[Sequence]):
-    return [vecmatmul(x, b) for x in a]
+    return [vec_matmul(x, b) for x in a]
 
 
 def flatten(a: Iterable):

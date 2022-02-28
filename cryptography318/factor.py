@@ -1,9 +1,11 @@
+import os
+
 from math import isqrt, sqrt, log, gcd
 from random import randrange
 from sympy.ntheory.primetest import is_square
 
 from elliptic import lenstra_ecm
-from qs_bruteforce import quadratic_sieve
+from siqs import siqs
 from prime import isprime, primesieve, multiplicity, trailing, next_prime
 
 
@@ -59,8 +61,10 @@ def factor(n, rho=True, ecm=True, p1=True, qs=True, limit=None):
 
     if qs:
 
+        file = "primes.txt" if os.path.exists("primes.txt") else None
+
         # Nothing left after quadratic sieve, so just return factors
-        _factor_further(n, quadratic_sieve(n), factors, factor_kwargs)
+        _factor_further(n, siqs(n, file=file, loud=False), factors, factor_kwargs)
         return factors
 
 
