@@ -1,12 +1,11 @@
 import os
 
-from math import isqrt, sqrt, log, gcd
+from math import sqrt, log, gcd
 from random import randrange
-from sympy.ntheory.primetest import is_square
 
 from elliptic import lenstra_ecm
 from siqs import siqs
-from prime import isprime, primesieve, multiplicity, trailing, next_prime
+from prime import isprime, primesieve, next_prime
 
 
 def factor(n, rho=True, ecm=True, p1=True, qs=True, limit=None):
@@ -37,13 +36,7 @@ def factor(n, rho=True, ecm=True, p1=True, qs=True, limit=None):
         limit = 32768
 
     factors = {}
-    k, p = factor_small(factors, n, limit)
-
-    # If factor_small didn't find anything, try to check for square before moving to other algorithms
-    if k == n and is_square(n):
-        return {isqrt(n): 2}
-
-    n = k
+    n, p = factor_small(factors, n, limit)
 
     factor_kwargs = {"rho": rho, "ecm": ecm, "p1": p1, "qs": qs, "limit": limit}
 
@@ -127,30 +120,21 @@ def factor_small(factors, n, limit):
     """
     Computes all prime factors, up to integer limit, of n when given n is small. Returns
     list of found factors and next odd integer to be checked as factor.
-
-    Notes
-    -----
-    For reducing at each 'near-prime' r = 22 is used as a switch between incremental reduction
-    and exponential reduction, as there is a 20% chance that a number with p**22 also contains
-    p**39 for n <= 499**17, and the multiplicity algorithm is most efficient when finding prime
-    powers >= 17. 499**17 is not significant other than the largest prime <= 500 and 17 being
-    the power at which multiplicity becomes most efficient. This value of 22 was chosen largely
-    because a number was required and 22 seemed decent.
     """
 
-    # remove as many powers of 2 as possible
-    t = trailing(n)
+    # Remove as many powers of 2 as possible
+    t = 0
+    while not n & 1:
+        n >>= 1
+        t += 1
+
     if t:
-        n >>= t
         factors[2] = t
 
     r = 0
-    while not n % 3:
-        n //= 3
+    while (d := divmod(n, 3))[1] == 0:
+        n = d[0]
         r += 1
-        if r == 22:
-            r += multiplicity(3, n)
-            break
 
     if r:
         factors[3] = r
@@ -159,14 +143,9 @@ def factor_small(factors, n, limit):
     p = 5
     while 1:
         r = 0
-        while not n % p:
-            n //= p
+        while (d := divmod(n, p))[1] == 0:
+            n = d[0]
             r += 1
-            if r == 22:
-                rr = multiplicity(p, n)
-                n //= p ** rr
-                r += rr
-                break
 
         if r:
             factors[p] = r
@@ -204,4 +183,3 @@ def _factor_further(n, f, factors, kwargs):
             return False
     else:
         return True
-

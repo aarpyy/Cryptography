@@ -1,6 +1,7 @@
 from math import isqrt, prod
 from random import randrange, choice
 from itertools import count
+from sympy.ntheory.primetest import is_square
 
 from bailliepsw_helper import LucasPseudoPrime, D_chooser
 
@@ -94,9 +95,8 @@ class Sieve:
         if n <= self._list[-1]:
             return
         p = next_prime(self._list[-1])
-        while p <= n:
+        while (p := next_prime(p)) <= n:
             self._list.append(p)
-            p = next_prime(p)
 
     def range(self, a, b=None):
         if b is None:
@@ -226,7 +226,7 @@ def baillie_psw(n, mr=True):
         return False
 
     # Checks if number has square root
-    if pow(isqrt(n), 2) == n:
+    if is_square(n):
         return False
 
     # Finally perform the Lucas primality test
@@ -341,25 +341,11 @@ def randprime(a: int, b: int = None):
         return choice(primesieve[start:stop])
 
     # if base_2, uses 2 as a base and increments by 1 (default) for generating random int
-    # if base =/= 2, generates random int starting at lower limit, incrementing by 2
+    # if base != 2, generates random int starting at lower limit, incrementing by 2
     while 1:
         prime = randrange(2, b) if base_2 else randrange(a, b, 2)
         if isprime(prime):
             return prime
-
-
-def all_factors(n):
-    """Uses infinitely deterministic primality test, checking if candidate has factors
-    of any primes <= square root of candidate"""
-
-    global primesieve
-    if n in primesieve:
-        return True
-
-    for num in range(3, isqrt(n) + 2, 2):
-        if not n % num:
-            return False
-    return True
 
 
 def confirm_prime(n):
@@ -376,8 +362,8 @@ def confirm_prime(n):
         if k > (n - k):
             k = n - k
         for i in range(k):
-            res = res * (n - i)
-            res = res // (i + 1)
+            res *= n - i
+            res //= i + 1
         if res % n != 0:
             return False
     return True
@@ -472,8 +458,8 @@ def prev_prime(n):
         n -= 2
 
 
-def primerange(a, b=None):
-    """Constructs list of primes < limit"""
+def prime_range(a, b=None):
+    """Constructs list of a <= primes < b"""
     if b is None:
         b = a
         a = 1
@@ -482,95 +468,18 @@ def primerange(a, b=None):
         return []
 
     global primesieve
-    if b > primesieve.tail:
-        if a < 2:
-            a = 2
-        indices = primesieve.search(a, b)
-        start, stop = indices[0], indices[1]
-        if isinstance(start, tuple):
-            start = start[1]
-        if isinstance(stop, tuple):
-            stop = stop[1]
-        return primesieve[start:stop]
+    if b < primesieve.tail:
+        primesieve.extend(b)
 
-    _primes = []
-
-    n = next_prime(a)
-    while n <= b:
-        _primes.append(n)
-        n = next_prime(n)
-    return _primes
-
-
-def primes_gen(a, b=None):
-    """Creates generator for all primes p in range [start, stop)"""
-    if b is None:
-        b = a
+    if a < 2:
         a = 2
-
-    if a >= b or a < 2:
-        raise ValueError(f"Invalid range: [{a}, {b})")
-
-    n = next_prime(a - 1)
-    while n < b:
-        yield n
-        n = next_prime(n)
-
-
-def prime_pi(limit):
-    """Returns number of primes <= given number"""
-
-    if limit < 2:
-        return 0
-
-    if limit <= primesieve.tail:
-        i = primesieve.search(limit)
-        if isinstance(i, tuple):
-            i = i[1]
-        return len(primesieve[:i])
-
-    prime_count = 0
-    n = next_prime(1)
-    while n <= limit:
-        prime_count += 1
-        n = next_prime(n)
-    return prime_count
-
-
-def trailing(n):
-    """
-    Computes the number of trailing 'zeros' of given integer in binary
-    representation. Equivalent to asking the question: how many times can
-    I right shift this integer until it becomes odd (or what is the largest
-    positive integer m s.t. 2**m | n).
-    """
-    count = 0
-    while not n & 1:
-        count += 1
-        n >>= 1
-    return count
-
-
-def multiplicity(p, n):
-    """
-    Computes smallest integer m s.t. p**m | n. Returns 0 if p does not
-    divide n.
-
-    Continuously squares the base until it no longer divides n, then decrements
-    the base by p until it again divides n. Most efficient when searching n for m
-    s.t. p**m | n for m >= 17
-    """
-    b = p
-    m = 1
-    while not n % b:
-        b *= b
-        m *= 2
-
-    while n % b:
-        b //= p
-        m -= 1
-
-    return m
+    indices = primesieve.search(a, b)
+    start, stop = indices[0], indices[1]
+    if isinstance(start, tuple):
+        start = start[1]
+    if isinstance(stop, tuple):
+        stop = stop[1]
+    return primesieve[start:stop]
 
 
 def sqrt_mod(a, p):
@@ -641,17 +550,17 @@ def quadratic_non_residue(a, p):
 
 
 def chinese_remainder(values, moduli):
-    # initializes lists of moduli, mod = product of all moduli
+    # Initializes lists of moduli, mod = product of all moduli
     mod = prod(moduli)
 
-    # maps list of moduli and their inverses to x and y respectively
+    # Maps list of moduli and their inverses to x and y respectively
     x, y = [], []
     for m in moduli:
         mi = mod // m
         x.append(mi)
         y.append(pow(mi, -1, m))
 
-    # accumulates product of number and moduli and their inverses
+    # Accumulates product of number and moduli and their inverses
     acc = 0
     for i in range(len(values)):
         acc = (acc + values[i] * x[i] * y[i]) % mod

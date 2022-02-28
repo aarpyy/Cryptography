@@ -2,7 +2,7 @@ import random
 from math import isqrt, gcd, sqrt
 from functools import reduce
 
-from prime import primerange, primesieve
+from prime import prime_range, primesieve
 from utils import smooth_factor, from_base
 
 

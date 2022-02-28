@@ -1,4 +1,10 @@
-# Credit to https://github.com/smllmn/baillie-psw for everything in this file except Jacobi function
+"""
+This file is directly from https://github.com/smllmn/baillie-psw excluding jacobi. It is
+included in a project otherwise consisting of entirely original work because my focus
+was largely on factoring, but since the Miller-Rabin primality test is only deterministic
+up to 3317044064679887385961981 and I needed to confirm that integers larger than that limit
+were composite before factoring, I included this project as a further primality test.
+"""
 
 
 def D_chooser(candidate):
