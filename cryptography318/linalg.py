@@ -5,7 +5,6 @@ from functools import reduce
 from typing import Sequence, Iterable
 from numpy import array as np_array
 from numpy.linalg import det as np_det
-
 from numpy import where
 from sympy import Symbol, im, solve
 
@@ -65,9 +64,12 @@ def make_pivot(a, index=None):
 
 
 def row_reduce(a, row, col):
-    for i in range(len(a)):
+    h = len(a)
+    w = len(a[row])
+    for i in range(h):
         if i != row:
-            a[i] -= a[row] * a[i][col]
+            for j in range(w):
+                a[i][j] -= a[row][j] * a[i][col]
 
 
 def identity_matrix(size):

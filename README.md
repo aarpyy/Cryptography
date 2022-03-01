@@ -2,14 +2,13 @@
 Cryptography318 is a package intended to provide utility for important cryptographic and
 linear algebra functions in Python. This package includes functions for generating primes, 
 primality tests including AKS, Miller-Rabin, Baillie-PSW, functions for factoring integers including
-Pollard's P-1, Quadratic Sieve, Pollard's Rho, and Lenstra's ECM factorization algorithm 
+Pollard's P-1, Self-Initializing Quadratic Sieve, Pollard's Rho, and Lenstra's ECM factorization algorithm 
 using both Montgomery curves over projective space and short Weierstrass curves, functions for solving 
-discrete logarithm problems including index calculus method, Pollard's Rho method for logarithms, 
+discrete logarithm problems including Pollard's Rho method for logarithms, 
 baby-step-giant-step, and Pohlig-Hellman, support for working with elliptic curve cryptography including 
 'fast power algorithm' and baby-step-giant-step, general algebra functions such as Chinese Remainder and the 
-Euclidean Extended Algorithm for gcd's, and support for matrices including Matrix and Linear Map objects 
-that extend numpy's array to include more functionality such as solving non-square systems, solving 
-systems over the finite field of integers, change-of-basis, etc.
+Euclidean Extended Algorithm for gcd's. In development is the index calculus method
+for solving DLP's.
 
 ## Required Packages
 * numpy

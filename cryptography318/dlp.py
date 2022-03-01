@@ -84,6 +84,8 @@ def index_calculus_dlp(g, h, p):
     """Function attempts to solve DLP through index calculus algorithm, computing a series of smaller dlp's
     used to solve the larger."""
 
+    raise NotImplementedError("ICM currently in development.")
+
     from math import e, log
 
     B = int(pow(e, sqrt((log(p) * log(log(p))) / 2)))

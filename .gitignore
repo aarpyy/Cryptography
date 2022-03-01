@@ -1,4 +1,7 @@
-tests
-mathematica_numbers.txt
-COVIDSummaryData.csv
-cryptography318/deprecated
+.mypy_cache
+.pytest_cache
+cryptography318.egg-info
+Pipfile
+Pipfile.lock
+dist
+build

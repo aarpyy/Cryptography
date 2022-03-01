@@ -11,7 +11,7 @@ setup(
     name='cryptography318',
     long_description=long_description,
     long_description_content_type='text/markdown',
-    version='0.1.8',
+    version='0.1.9',
     description='A set of functions useful in cryptography and linear algebra',
     url='https://github.com/aarpyy/Cryptography',
     author='Andrew Carpenter',
@@ -27,5 +27,6 @@ setup(
         'Operating System :: Microsoft :: Windows :: Windows 10',
         'Programming Language :: Python :: 3.8',
         'Programming Language :: Python :: 3.9',
+        'Programming Language :: Python :: 3.10'
     ],
 )
