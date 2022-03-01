@@ -20,13 +20,11 @@
   </component>
   <component name="ChangeListManager">
     <list default="true" id="6ea76c49-18d8-4974-9f94-c2171563dd51" name="Default Changelist" comment="working on primality test, miller-rabin">
-      <change beforePath="$PROJECT_DIR$/.idea/cryptography318.iml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/cryptography318.iml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/.idea/misc.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/misc.xml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/cryptography318/__init__.py" beforeDir="false" afterPath="$PROJECT_DIR$/cryptography318/__init__.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/cryptography318/bailliepsw_helper.py" beforeDir="false" afterPath="$PROJECT_DIR$/cryptography318/bailliepsw_helper.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/cryptography318/dlp.py" beforeDir="false" afterPath="$PROJECT_DIR$/cryptography318/dlp.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/cryptography318/factor.py" beforeDir="false" afterPath="$PROJECT_DIR$/cryptography318/factor.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/cryptography318/elliptic.py" beforeDir="false" afterPath="$PROJECT_DIR$/cryptography318/elliptic.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/cryptography318/linalg.py" beforeDir="false" afterPath="$PROJECT_DIR$/cryptography318/linalg.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/cryptography318/prime.py" beforeDir="false" afterPath="$PROJECT_DIR$/cryptography318/prime.py" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
@@ -108,7 +106,7 @@
       <recent name="$PROJECT_DIR$" />
     </key>
   </component>
-  <component name="RunManager" selected="Python.factor">
+  <component name="RunManager" selected="Python.dlp">
     <configuration default="true" type="CMakeRunConfiguration" factoryName="Application" REDIRECT_INPUT="false" ELEVATE="false" USE_EXTERNAL_CONSOLE="false" PASS_PARENT_ENVS_2="true">
       <method v="2">
         <option name="com.jetbrains.cidr.execution.CidrBuildBeforeRunTaskProvider$BuildBeforeRunTask" enabled="true" />
@@ -145,9 +143,6 @@
       <module name="cryptography318" />
       <option name="INTERPRETER_OPTIONS" value="" />
       <option name="PARENT_ENVS" value="true" />
-      <envs>
-        <env name="PYTHONUNBUFFERED" value="1" />
-      </envs>
       <option name="SDK_HOME" value="" />
       <option name="WORKING_DIRECTORY" value="$PROJECT_DIR$/cryptography318" />
       <option name="IS_MODULE_SDK" value="true" />
@@ -243,8 +238,8 @@
     </list>
     <recent_temporary>
       <list>
-        <item itemvalue="Python.factor" />
         <item itemvalue="Python.dlp" />
+        <item itemvalue="Python.factor" />
         <item itemvalue="Python.siqs" />
         <item itemvalue="Python tests.Python tests for test_crypto_functions.test_from_base" />
         <item itemvalue="Python tests.Python tests for test_linalg.test_binary_kernel" />
@@ -303,7 +298,7 @@
       <workItem from="1645987613801" duration="5419000" />
       <workItem from="1646021588078" duration="1281000" />
       <workItem from="1646064638852" duration="1653000" />
-      <workItem from="1646074988509" duration="3454000" />
+      <workItem from="1646074988509" duration="7217000" />
     </task>
     <task id="LOCAL-00001" summary="wrote some stuff for ps4.5, figured out problem with pohlig-hellman, bsgs in work">
       <created>1624923163169</created>

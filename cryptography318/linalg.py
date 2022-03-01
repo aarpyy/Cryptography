@@ -1,4 +1,6 @@
 import sys
+
+from typing import Callable
 from functools import reduce
 from typing import Sequence, Iterable
 from numpy import array as np_array
@@ -20,9 +22,9 @@ def dot_3_9(a: Sequence, b: Sequence):
 
 
 if sys.version.startswith("3.10"):
-    dot = dot_3_10
+    dot = dot_3_10      # type: Callable
 else:
-    dot = dot_3_9
+    dot = dot_3_9       # type: Callable
 
 
 def transpose(a: Sequence[Sequence]):

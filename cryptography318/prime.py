@@ -1,4 +1,4 @@
-from math import isqrt, prod
+from math import prod
 from random import randrange, choice
 from itertools import count
 from sympy.ntheory.primetest import is_square

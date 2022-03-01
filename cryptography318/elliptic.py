@@ -7,7 +7,7 @@ from prime import isprime, primesieve, sqrt_mod
 
 
 # Random object created at runtime for all random elliptic points
-rndm = Random()
+rand = Random()
 
 
 class Curve(metaclass=ABCMeta):
@@ -130,7 +130,7 @@ class Montgomery(Curve):
 
         Refer to section 2.3 p.4 of Gaj.pdf
         """
-        sigma = rndm.randrange(6, p - 1)
+        sigma = rand.randrange(6, p - 1)
         sig_sq = sigma * sigma
         u = (sig_sq - 5) % p
         v = (4 * sigma) % p
@@ -155,7 +155,7 @@ class Montgomery(Curve):
         coordinates x, z are optimized such that x = x / z, z = z / z, resulting in z = 1 allowing
         for the use of add_z1 and ladder_z1 methods which saves a multiplication.
         """
-        sigma = rndm.randrange(6, p - 1)
+        sigma = rand.randrange(6, p - 1)
         sig_sq = sigma * sigma
         u = (sig_sq - 5) % p
         v = (4 * sigma) % p

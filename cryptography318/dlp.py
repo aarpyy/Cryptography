@@ -2,7 +2,7 @@ import random
 from math import isqrt, gcd, sqrt
 from functools import reduce
 
-from prime import prime_range, primesieve
+from prime import primesieve
 from utils import smooth_factor, from_base
 
 
@@ -29,31 +29,6 @@ def baby_step_giant_step(g, h, p, order=None):
     match = U.pop()
     i, j = A.index(match), B.index(match)
     return i + (j * n)
-
-
-def elliptic_bsgs(point, result, order=None):
-    if order is None:
-        order = point.E.mod + 1 + 2 * isqrt(point.E.mod)
-
-    n = isqrt(order)
-
-    # creates baby-step table, P * i for i from 0 to n
-    a = list(map(lambda x: point * x, range(n)))
-    # creates giant-step table, Q - P * jn for j from 0 to n
-    b = list(map(lambda x: result + (point * (-x * n)), range(n)))
-
-    # creates sets out of lists
-    set_a, set_b = set(a), set(b)
-
-    matches = set_a.intersection(set_b)
-
-    if not matches:
-        return None
-    point = matches.pop()
-
-    # uses lists to find index of intersection
-    i, j = a.index(point), b.index(point)
-    return i + j * n
 
 
 def pollard_rho_dlp(g, h, p, order=None):
@@ -113,13 +88,17 @@ def index_calculus_dlp(g, h, p):
 
     B = int(pow(e, sqrt((log(p) * log(log(p))) / 2)))
 
+    print(f"B: {B}")
+
     primesieve.extend(B)
     primes = primesieve[:B]
+
+    print(f"primesieve extended")
 
     # currently brute forces solutions to log_g_x with x for each prime <= B
     logs = []
     for n in primes:
-        lg = baby_step_giant_step(g, n, p)
+        lg = pollard_rho_dlp(g, n, p)
         print(f"log {n} mod {p} = {lg}")
         logs.append(lg)
 
@@ -200,4 +179,4 @@ if __name__ == "__main__":
     x = random.randrange(2, p - 1)
     h = pow(g, x, p)
     y = index_calculus_dlp(g, h, p)
-    print(f"y: {y}, x: {x}")
+    print(f"g^y: {pow(g, y, p)}, g^x: {h}")
