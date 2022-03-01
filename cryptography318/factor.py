@@ -36,7 +36,14 @@ def factor(n, rho=True, ecm=True, p1=True, qs=True, limit=None):
         limit = 32768
 
     factors = {}
-    n, p = factor_small(factors, n, limit)
+    k, p = factor_small(factors, n, limit)
+    if k == 1:
+        return factors
+    elif k != n:
+        if isprime(k):
+            factors[k] = factors.get(k, 0) + 1
+            return factors
+        n = k
 
     factor_kwargs = {"rho": rho, "ecm": ecm, "p1": p1, "qs": qs, "limit": limit}
 
@@ -92,7 +99,9 @@ def pollard_p1(n, B=None, _retry=5):
 
 
 def pollard_rho_factor(n, mix=None, _retry=5):
-    if not callable(mix):
+    if n < 10:
+        return factor_small({}, n, 10)
+    elif not callable(mix):
         mix = lambda e: (pow(e, 2, n) + 1) % n
 
     y = 2
@@ -108,7 +117,7 @@ def pollard_rho_factor(n, mix=None, _retry=5):
             elif 1 < q:
                 return q
 
-        # if didn't find any, try new mixing function and starting value
+        # If didn't find any, try new mixing function and starting value
         y = randrange(0, n - 1)
         a = randrange(1, n - 3)
         mix = lambda e: (pow(e, 2, n) + a) % n

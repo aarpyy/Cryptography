@@ -1,4 +1,3 @@
-import random
 from math import isqrt, gcd, sqrt
 from functools import reduce
 
@@ -172,13 +171,3 @@ def pohlig_hellman(g, h, p, q, exp, prog=False):
             print(f"Found X{i} = {Xi}\n")
 
     return from_base(X[::-1], q)
-
-
-if __name__ == "__main__":
-    import prime
-    p = prime.randprime(pow(10, 6), pow(10, 7))
-    g = random.randrange(2, p)
-    x = random.randrange(2, p - 1)
-    h = pow(g, x, p)
-    y = index_calculus_dlp(g, h, p)
-    print(f"g^y: {pow(g, y, p)}, g^x: {h}")
