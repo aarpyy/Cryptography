@@ -7,5 +7,5 @@ dist/
 build/
 tests
 venv/
-.DS_Store
+/.DS_Store
 .idea/
