@@ -9,3 +9,5 @@ build/
 venv/
 /.DS_Store
 .idea/
+cryptography318/.idea
+cryptography318/__pycache__
