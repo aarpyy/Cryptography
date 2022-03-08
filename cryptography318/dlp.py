@@ -1,8 +1,8 @@
 from math import isqrt, gcd, sqrt
 from functools import reduce
 
-from prime import primesieve
-from utils import smooth_factor, from_base
+from .prime import primesieve
+from .utils import smooth_factor, from_base
 
 
 def baby_step_giant_step(g, h, p, order=None):

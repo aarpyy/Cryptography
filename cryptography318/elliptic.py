@@ -3,7 +3,7 @@ from abc import ABCMeta, abstractmethod
 from typing import overload, Union
 from math import gcd, log, isqrt, floor
 
-from prime import isprime, primesieve, sqrt_mod
+from .prime import isprime, primesieve, sqrt_mod
 
 
 # Random object created at runtime for all random elliptic points

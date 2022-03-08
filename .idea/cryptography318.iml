@@ -13,7 +13,7 @@
       <excludeFolder url="file://$MODULE_DIR$/cryptography318.egg-info" />
       <excludeFolder url="file://$MODULE_DIR$/build" />
     </content>
-    <orderEntry type="jdk" jdkName="Python 3.10 (venv)" jdkType="Python SDK" />
+    <orderEntry type="jdk" jdkName="Python 3.10 (Cryptography)" jdkType="Python SDK" />
     <orderEntry type="sourceFolder" forTests="false" />
   </component>
   <component name="PyDocumentationSettings">

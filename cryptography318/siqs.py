@@ -2,9 +2,9 @@ from random import Random
 from math import log2, sqrt, isqrt, gcd, ceil
 from functools import reduce
 
-from utils import n_digits, smooth_factor, eval_power
-from linalg import binary_kernel, dot
-from prime import primesieve, quadratic_residue, sqrt_mod
+from .utils import n_digits, smooth_factor, eval_power
+from .linalg import binary_kernel, dot
+from .prime import primesieve, quadratic_residue, sqrt_mod
 
 
 MIN_A_FACTOR = 2000

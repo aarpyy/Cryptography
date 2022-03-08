@@ -3,7 +3,7 @@ from random import randrange, choice
 from itertools import count
 from sympy.ntheory.primetest import is_square
 
-from bailliepsw_helper import LucasPseudoPrime, D_chooser
+from .bailliepsw_helper import LucasPseudoPrime, D_chooser
 
 
 class Sieve:

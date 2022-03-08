@@ -3,9 +3,9 @@ import os
 from math import sqrt, log, gcd
 from random import randrange
 
-from elliptic import lenstra_ecm
-from siqs import siqs
-from prime import isprime, primesieve, next_prime
+from .elliptic import lenstra_ecm
+from .siqs import siqs
+from .prime import isprime, primesieve, next_prime
 
 
 def factor(n, rho=True, ecm=True, p1=True, qs=True, limit=None):

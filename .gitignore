@@ -1,8 +1,11 @@
-.mypy_cache
-.pytest_cache
-cryptography318.egg-info
+.mypy_cache/
+.pytest_cache/
+cryptography318.egg-info/
 Pipfile
 Pipfile.lock
-dist
-build
+dist/
+build/
 tests
+venv/
+.DS_Store
+.idea/
