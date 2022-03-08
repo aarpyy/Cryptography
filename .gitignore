@@ -5,7 +5,7 @@ Pipfile
 Pipfile.lock
 dist/
 build/
-tests
+/tests
 venv/
 /.DS_Store
 .idea/
