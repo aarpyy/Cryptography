@@ -375,18 +375,18 @@ def siqs(n: int, *, file: str = None, loud: bool = True) -> int | None:
     n_poly = pow(2, len(a_factors) - 1) - 1
     i = 1
     last_printed = 0
-    increment = required_relations / 10
 
     # Initialize first polynomial, and get functions
     g, h = first_poly(n, m)
     for _ in range(TRIALS_LINALG):
+        print("Finding relations...")
         while relations_found < required_relations:
             sieve_array = sieve(m)
             trial_division(sieve_array, m, g, h)
 
-            if relations_found - last_printed > increment:
+            if relations_found >= last_printed:
                 last_printed = relations_found
-                l_print(f"{relations_found}/{required_relations} relations found")
+                l_print(f"\r{relations_found}/{required_relations}", end="")
 
             if i >= n_poly:
                 g, h = first_poly(n, m)

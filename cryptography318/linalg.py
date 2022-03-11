@@ -1,5 +1,4 @@
-import sys
-
+from sys import version
 from typing import Callable
 from functools import reduce
 from typing import Sequence, Iterable
@@ -20,7 +19,7 @@ def dot_3_9(a: Sequence, b: Sequence):
         raise ValueError(f"Lengths {len(a)} and {len(b)} differ")
 
 
-if sys.version.startswith("3.10"):
+if version.startswith("3.10"):
     dot = dot_3_10      # type: Callable
 else:
     dot = dot_3_9       # type: Callable
