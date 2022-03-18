@@ -1,8 +1,5 @@
-*
-*/
-!.gitignore
-!.gitattributes
-!requirements.txt
-!cryptography318/
-!setup.py
-!README.md
+tests/
+.pytest_cache/
+.idea/
+build/
+venv/
