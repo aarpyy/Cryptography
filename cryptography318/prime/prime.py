@@ -2,8 +2,16 @@ from math import prod
 from random import randrange, choice
 from itertools import count
 from sympy.ntheory.primetest import is_square
+from pathlib import Path
 
 from .bailliepsw_helper import LucasPseudoPrime, D_chooser
+
+
+module = Path(__file__).parent.absolute()
+if module.joinpath("primes.txt").is_file():
+    primesIO = open(str(module.joinpath("primes.txt")), "r")
+else:
+    primesIO = None
 
 
 class Sieve:
@@ -92,9 +100,22 @@ class Sieve:
             start_idx += 1
 
     def extend(self, n):
-        if n <= self._list[-1]:
+        if n <= self.tail:
             return
-        p = next_prime(self._list[-1])
+        elif primesIO is not None:
+            primesIO.seek(0)
+            add = False
+            while line := primesIO.readline():
+                p = int(line.strip("\n"))
+                if p >= n:
+                    return
+                elif add:
+                    self._list.append(p)
+                elif p > self.tail:
+                    add = True
+                    self._list.append(p)
+
+        p = self.tail
         while (p := next_prime(p)) <= n:
             self._list.append(p)
 
@@ -388,23 +409,19 @@ def next_prime(n):
 
     # ensures that n starts at the nearest 6k + 1
     r = n % 6
-    if not r:
-        n += 1
-    elif r == 1:
-        n += 4
-        # if 6k - 1 is prime, return, otherwise move to the next 6k + 1
-        if isprime(n):
-            return n
-        n += 2
-    elif r <= 4:
-        n -= r
-        n += 5
-        if isprime(n):
-            return n
-        n += 2
-    elif r == 5:
-        n += 2
+    k = n - (n % 6) - 1
+    if k < n:
+        k += 2
+        if k > n and isprime(k):
+            return k
+        k += 4
+        if k 
 
+
+    if isprime(n):
+        return n
+
+    assert n % 6 == 5
     # iterate up through each 6k +/- 1
     while 1:
         if isprime(n):
