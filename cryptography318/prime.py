@@ -68,7 +68,7 @@ class Sieve:
                 indices.append(max_idx)
                 i += 1
                 if i == nargs:
-                    return indices
+                    return tuple(*indices)
                 curr = args[i]
         except ValueError:
             pass
@@ -81,13 +81,13 @@ class Sieve:
                 indices.append(start_idx)
                 i += 1
                 if i == nargs:
-                    return indices
+                    return tuple(*indices)
                 curr = args[i]
             elif p > curr:
                 indices.append((start_idx - 1, start_idx))
                 i += 1
                 if i == nargs:
-                    return indices
+                    return tuple(*indices)
                 curr = args[i]
             start_idx += 1
 
@@ -176,11 +176,11 @@ def _mr_test(d, n):
     return False
 
 
-def miller_rabin_bases(lst_bases, n):
+def miller_rabin_bases(bases, n):
     """Helper function that allows for a list of witnesses to be tested
     using MillerRabin_base_a function"""
 
-    for a in lst_bases:
+    for a in bases:
         if not _miller_rabin_base_a(a, n):
             return False
     return True
@@ -231,7 +231,7 @@ def baillie_psw(n, mr=True):
 
     # Finally perform the Lucas primality test
     D = D_chooser(n)
-    return LucasPseudoPrime(n, D, 1, (1 - D) / 4)
+    return LucasPseudoPrime(n, D, 1, (1 - D) // 4)
 
 
 def known_prime(n):
@@ -419,7 +419,7 @@ def prev_prime(n):
     """Returns first prime before number given"""
 
     if n < 3:
-        raise ValueError(f"no primes exist < {n}")
+        raise ValueError(f"No primes exist < {n}")
 
     if n < 11:
         return [0, 0, 0, 0, 3, 3, 5, 5, 7, 7, 7][n]
@@ -566,4 +566,3 @@ def chinese_remainder(values, moduli):
         acc = (acc + values[i] * x[i] * y[i]) % mod
 
     return acc
-

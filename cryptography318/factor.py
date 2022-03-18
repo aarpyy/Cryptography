@@ -48,23 +48,23 @@ def factor(n, rho=True, ecm=True, p1=True, qs=True, limit=None):
     factor_kwargs = {"rho": rho, "ecm": ecm, "p1": p1, "qs": qs, "limit": limit}
 
     if rho:
-        if not _factor_further(n, pollard_rho_factor(n), factors, factor_kwargs):
+        if not _factor_further(n, pollard_rho_factor(n), factors, **factor_kwargs):
             return factors
 
     if ecm:
-        if not _factor_further(n, lenstra_ecm(n), factors, factor_kwargs):
+        if not _factor_further(n, lenstra_ecm(n), factors, **factor_kwargs):
             return factors
 
     if p1:
-        if not _factor_further(n, pollard_p1(n), factors, factor_kwargs):
+        if not _factor_further(n, pollard_p1(n), factors, **factor_kwargs):
             return factors
 
     if qs:
 
-        file = "primes.txt" if os.path.exists("primes.txt") else None
+        fp = "primes.txt" if os.path.exists("primes.txt") else None
 
         # Nothing left after quadratic sieve, so just return factors
-        _factor_further(n, siqs(n, file=file, loud=False), factors, factor_kwargs)
+        _factor_further(n, siqs(n, fp=fp, loud=False), factors, **factor_kwargs)
         return factors
 
 
@@ -102,7 +102,7 @@ def pollard_rho_factor(n, mix=None, _retry=5):
     if n < 10:
         return factor_small({}, n, 10)
     elif not callable(mix):
-        mix = lambda e: (pow(e, 2, n) + 1) % n
+        def mix(e): return (pow(e, 2, n) + 1) % n
 
     y = 2
     for _ in range(_retry):
@@ -120,7 +120,8 @@ def pollard_rho_factor(n, mix=None, _retry=5):
         # If didn't find any, try new mixing function and starting value
         y = randrange(0, n - 1)
         a = randrange(1, n - 3)
-        mix = lambda e: (pow(e, 2, n) + a) % n
+
+        def mix(e): return (pow(e, 2, n) + a) % n
 
     return None
 
@@ -168,7 +169,7 @@ def factor_small(factors, n, limit):
     return n, p
 
 
-def _factor_further(n, f, factors, kwargs):
+def _factor_further(n, f, factors, **kwargs):
     """
     Helper function for factor that tries to finish factoring n, having found one
     non-trivial factor f. Function also checks if f needs to be factored. Returns

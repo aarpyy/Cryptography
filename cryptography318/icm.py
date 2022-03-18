@@ -2,7 +2,7 @@ from prime import prime_range, isprime
 from utils import smooth_factor
 from factor import factor
 
-from math import sqrt, log, exp, gcd
+from math import sqrt, log, exp
 from random import Random
 from linalg import matrix_copy
 from dlp import pollard_rho_dlp
@@ -99,7 +99,3 @@ def precomp(g, n):
             # print(f"{p} = {pow(g, l % order, n)} or {pow(g, -l % order, n)}")
     else:
         factors = factor(order)
-
-
-if __name__ == "__main__":
-    precomp(4, 74)

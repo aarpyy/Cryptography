@@ -1,6 +1,7 @@
 from random import Random
 from math import log2, sqrt, isqrt, gcd, ceil
 from functools import reduce
+from collections.abc import Callable
 
 from .utils import n_digits, smooth_factor, eval_power
 from .linalg import binary_kernel, dot
@@ -19,29 +20,29 @@ relations_found = 0
 min_sieve = 0
 loud_print = True
 
-a = b = 0               # type: int
-B = []                  # type: list[int]
-primes = []             # type: list[int]
-t_sqrt = []             # type: list[int]
-log_p = []              # type: list[int]
-factor_base = []        # type: list[int]
-soln1 = []              # type: list[int]
-soln2 = []              # type: list[int]
-B_ainv_2 = []           # type: list[list[int]]
-a_factors = set()       # type: set[int]
-a_non_factors = set()   # type: set[int]
-smooth_u = []           # type: list[list[int]]
-smooth_t = []           # type: list[int]
+a = b = 0
+B = []
+primes = []
+t_sqrt = []
+log_p = []
+factor_base = []
+soln1 = []
+soln2 = []
+B_ainv_2 = []
+a_factors = set()
+a_non_factors = set()
+smooth_u = []
+smooth_t = []
 
 rand = Random()
 
 
-class QSPoly:
+class QSPoly(Callable[[int], int]):
 
     __slots__ = "args",
 
     def __new__(cls, *args):
-        self = super(QSPoly, cls).__new__(cls)
+        self = super().__new__(cls)
         self.args = [*args]
         return self
 
@@ -56,7 +57,7 @@ def l_print(*args, **kwargs):
         print(*args, **kwargs)
 
 
-def choose_f(digits: int):
+def choose_f(digits):
     if digits < 38:
         return 4200
     elif digits < 40:
@@ -81,7 +82,7 @@ def choose_f(digits: int):
         return 900000
 
 
-def choose_m(digits: int):
+def choose_m(digits):
     if digits < 45:
         return 40000
     elif digits < 52:
@@ -92,7 +93,7 @@ def choose_m(digits: int):
         return 589824
 
 
-def init_siqs(n, *, file=None):
+def init_siqs(n, *, fp=None):
 
     global factor_base, t_sqrt, log_p, primes, soln1, soln2
 
@@ -101,11 +102,11 @@ def init_siqs(n, *, file=None):
     l_print(f"F: {F}")
 
     p = 1
-    if file is None:
+    if fp is None:
         primesieve.extend(F)
         primes = primesieve[:F]
     else:
-        with open(file, "r") as prime_file:
+        with open(fp, "r") as prime_file:
             while p < F:
                 primes.append(p := int(prime_file.readline()))
 
@@ -181,7 +182,7 @@ def smooth_a(n, m):
     a_non_factors = set_fb - a_factors
 
 
-def first_poly(n: int, m: int) -> tuple[QSPoly, QSPoly]:
+def first_poly(n, m):
     """
     Given number to be factored and sieve range, compute a as the product of primes in the
     factor base, and from that b such that a | b * b - n. Use this coefficients to
@@ -284,7 +285,7 @@ def sieve(m):
     return sieve_array
 
 
-def trial_division(sieve_array, m, g: QSPoly, h: QSPoly):
+def trial_division(sieve_array, m, g, h):
     global primes, smooth_t, smooth_u, relations_found, min_sieve
 
     for i, s in enumerate(sieve_array):
@@ -339,7 +340,7 @@ def solve_matrix(n):
     return None
 
 
-def siqs(n: int, *, file: str = None, loud: bool = True) -> int | None:
+def siqs(n, *, fp=None, loud=True):
     """
     Performs the Self-Initializing Quadratic Sieve on integer n. For detailed explanation
     of algorithm and sources refer to the full project done in Java at https://github.com/aarpyy/SIQS.
@@ -353,7 +354,7 @@ def siqs(n: int, *, file: str = None, loud: bool = True) -> int | None:
     https://www.rieselprime.de/ziki/Self-initializing_quadratic_sieve
 
     :param n: number to be factored
-    :param file: file containing list of primes with newline as the delimiter
+    :param fp: file containing list of primes with newline as the delimiter
     :param loud: boolean determining if all information is printed or just factor
     :return: factor of n if one exists, otherwise None
     :rtype: int | None
@@ -364,7 +365,7 @@ def siqs(n: int, *, file: str = None, loud: bool = True) -> int | None:
 
     # Initialize factor base, square root N mod p, and log p for all primes p
     # where N is a quadratic residue mod p
-    init_siqs(n, file=file)
+    init_siqs(n, fp=fp)
     required_relations = int(len(factor_base) * REQUIRED_RELATIONS_RATIO)
 
     # Choose sieve range and minimum sieve value

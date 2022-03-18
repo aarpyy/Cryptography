@@ -1,43 +1,42 @@
-from sys import version
-from typing import Callable
+import sys
+
 from functools import reduce
-from typing import Sequence, Iterable
 from numpy import array as np_array
 from numpy.linalg import det as np_det
 from numpy import where
 from sympy import Symbol, im, solve
 
 
-def dot_3_10(a: Sequence, b: Sequence):
+def dot_3_10(a, b):
     return sum(x * y for x, y in zip(a, b, strict=True))
 
 
-def dot_3_9(a: Sequence, b: Sequence):
+def dot_3_9(a, b):
     if len(a) == len(b):
         return sum(x * y for x, y in zip(a, b))
     else:
         raise ValueError(f"Lengths {len(a)} and {len(b)} differ")
 
 
-if version.startswith("3.10"):
-    dot = dot_3_10      # type: Callable
+if sys.version_info >= (3, 10):
+    dot = dot_3_10
 else:
-    dot = dot_3_9       # type: Callable
+    dot = dot_3_9
 
 
-def transpose(a: Sequence[Sequence]):
+def transpose(a):
     return list(map(lambda i: list(map(lambda r: r[i], a)), range(len(a[0]))))
 
 
-def vec_matmul(a: Sequence, b: Sequence[Sequence]):
+def vec_matmul(a, b):
     return [dot(a, x) for x in transpose(b)]
 
 
-def matmul(a: Sequence[Sequence], b: Sequence[Sequence]):
+def matmul(a, b):
     return [vec_matmul(x, b) for x in a]
 
 
-def flatten(a: Iterable):
+def flatten(a):
     return [*reduce(lambda r1, r2: list(r1) + list(r2), a)]
 
 
@@ -238,7 +237,7 @@ def minor(a, index=None):
             a[i] = [m * a[i][j] for j in range(w) if j != index]
         return minor(a)
 
-    det = 0
+    d = 0
     sign = 1
     for j in range(w):
 
@@ -247,10 +246,10 @@ def minor(a, index=None):
         b = a[1:]
         for i in range(h):
             b[i] = [a[0][j] * b[i][k] for k in range(w) if k != j]
-        det += sign * minor(b)
+        d += sign * minor(b)
         sign *= -1
 
-    return det
+    return d
 
 
 def char_poly(a, sym='x'):
@@ -265,7 +264,7 @@ def char_poly(a, sym='x'):
         sym = Symbol(sym)
 
     h = len(a)
-    return [[a[i][j] - sym if i == j else a[i][j] for j in range(h)] for i in range(h)]
+    return minor([[a[i][j] - sym if i == j else a[i][j] for j in range(h)] for i in range(h)])
 
 
 def eigvals(a):
@@ -300,11 +299,8 @@ def eigvec(a, values=None):
     if values is None:
         values = eigvals(a)
 
-    vectors = []
+    vectors = {}
     for v in values:
         mat = [[e - v for e in row] for row in a]
-        kern = kernel(mat)
-        for vec in kern:
-            vectors.append(vec)
+        vectors[v] = kernel(mat)
     return vectors
-
