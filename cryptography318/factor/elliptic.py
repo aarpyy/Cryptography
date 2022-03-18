@@ -505,7 +505,7 @@ def ecm_mont(N, B1=None, B2=None, _retry=50):
     """
     if B1 is None:
         from math import e
-        B1 = int(pow(e, isqrt(int((log(N) * log(log(N))) / 2))))
+        B1 = int(pow(e, isqrt(int((log(N) * log(log(isqrt(N)))) / 2))))
 
     B1 = (B1 | 1) + 1  # ensures B1 is even, thus B2 also is even
 

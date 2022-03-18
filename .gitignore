@@ -1,4 +1,3 @@
-tests/
 .pytest_cache/
 .idea/
 build/
