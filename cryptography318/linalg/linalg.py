@@ -1,46 +1,47 @@
-import sys
-
+from sys import version_info
 from functools import reduce
-from numpy import array as np_array
-from numpy.linalg import det as np_det
-from numpy import where
 from sympy import Symbol, im, solve
+from typing import Iterable
+import numpy as np
 
 
-def dot_3_10(a, b):
-    return sum(x * y for x, y in zip(a, b, strict=True))
-
-
-def dot_3_9(a, b):
-    if len(a) == len(b):
-        return sum(x * y for x, y in zip(a, b))
-    else:
-        raise ValueError(f"Lengths {len(a)} and {len(b)} differ")
-
-
-if sys.version_info >= (3, 10):
-    dot = dot_3_10
+if version_info >= (3, 10):
+    def dot(a, b):
+        return sum(x * y for x, y in zip(a, b, strict=True))
 else:
-    dot = dot_3_9
+    def dot(a, b):
+        if len(a) == len(b):
+            return sum(x * y for x, y in zip(a, b))
+        else:
+            raise ValueError(f"Lengths {len(a)} and {len(b)} differ")
 
 
 def transpose(a):
     return list(map(lambda i: list(map(lambda r: r[i], a)), range(len(a[0]))))
 
 
-def vec_matmul(a, b):
-    return [dot(a, x) for x in transpose(b)]
-
-
 def matmul(a, b):
-    return [vec_matmul(x, b) for x in a]
+    T = transpose(b)
+    return [[dot(x, y) for y in T] for x in a]
 
 
 def flatten(a):
-    return [*reduce(lambda r1, r2: list(r1) + list(r2), a)]
+    if isinstance(a, Iterable):
+        return reduce(lambda r1, r2: flatten(r1) + flatten(r2), a, [])
+    else:
+        return [a]
 
 
-def matrix_slice(a, index=0):
+def matrix_slice(a, index):
+    """
+    Slices matrix by column index, returning the sliced matrix as a tuple
+    with the first argument being the matrix from column 0 to index exclusive,
+    and the second being matrix from index to last column.
+
+    :param a: matrix
+    :param index: column index of slice
+    :return: matrix [0, index), matrix [index, )
+    """
     left, right = [], []
     for row in a:
         left.append(row[:index])
@@ -55,19 +56,29 @@ def matrix_copy(a):
     return copy
 
 
+def matrix_equals(a, b):
+    if len(a) == len(b):
+        for x, y in zip(a, b):
+            if len(x) != len(y) or any(i != j for i, j in zip(x, y)):
+                return False
+        return True
+    else:
+        return False
+
+
 def make_pivot(a, index=None):
     if index is None:
-        index = where(a)[0][0]
+        index = np.where(a)[0][0]
     return list(map(lambda n: n / a[index], a))
 
 
 def row_reduce(a, row, col):
-    h = len(a)
     w = len(a[row])
-    for i in range(h):
+    for i in range(len(a)):
         if i != row:
+            k = a[i][col]
             for j in range(w):
-                a[i][j] -= a[row][j] * a[i][col]
+                a[i][j] -= a[row][j] * k
 
 
 def identity_matrix(size):
@@ -77,10 +88,18 @@ def identity_matrix(size):
     return matrix
 
 
-def rref(a):
+def rref(a, offset=0):
+    """
+    Computes the reduced row-echelon form of the matrix. If offset is provided,
+    computes the RREF ignoring the last offset columns.
+
+    :param a: matrix
+    :param offset: column index offset from last column
+    :return: matrix in RREF
+    """
     pivot_row = 0  # first pivot belongs in first row
 
-    w = len(a[0])
+    w = len(a[0]) - offset
     h = len(a)
 
     array = matrix_copy(a)
@@ -94,7 +113,7 @@ def rref(a):
             if array[i][j] != 0:
 
                 # make j'th element the pivot, reducing rest of row as well
-                make_pivot(array[i], j)
+                array[i] = make_pivot(array[i], j)
                 if i > pivot_row:  # if pivot row not already in correct position, swap
                     array[i], array[pivot_row] = array[pivot_row][:], array[i][:]
 
@@ -114,26 +133,7 @@ def kernel(a):
         row[j] = 1
         array.append(row)
 
-    array = transpose(array)
-
-    pivot_row = 0  # first pivot belongs in first row
-
-    for j in range(h):  # iterate only over current matrix, not attached identity matri
-
-        # start at looking for pivot after previous pivot row
-        for i in range(pivot_row, len(array)):
-
-            # if non-zero element, this row can become pivot row
-            if array[i][j] != 0:
-
-                # make j'th element the pivot, reducing rest of row as well
-                make_pivot(array[i], j)
-                if i > pivot_row:  # if pivot row not already in correct position, swap
-                    array[i], array[pivot_row] = array[pivot_row][:], array[i][:]
-
-                row_reduce(array, pivot_row, j)  # row reduce everything else
-                pivot_row += 1
-
+    array = rref(transpose(array), w)
     array, kern = matrix_slice(array, h)  # separates original matrix from now modified identity matrix
     basis = []
 
@@ -187,7 +187,7 @@ def binary_kernel(a):
 
 
 def det(a):
-    return float(np_det(np_array(a)))  # using numpy's det function for efficiency
+    return float(np.linalg.det(np.array(a)))  # using numpy's det function for efficiency
 
 
 def minor(a, index=None):
@@ -224,31 +224,14 @@ def minor(a, index=None):
     of the minor alternates, A.minor(1) returns -3 * -1 * det(A1,2) = -3 * -1 * B.det() = 27
     """
 
-    h = len(a)
-    if h == 2:
+    if len(s := np.shape(a)) != 2 and len(set(s)) != 1:
+        raise ValueError(f"{minor.__name__} incompatible with matrix of shape {s}")
+    elif len(a) == 2:
         return a[0][0] * a[1][1] - a[1][0] * a[0][1]
-
-    w = len(a[0])
-    if index is not None:
-        m = -a[0][index] if index % 2 else a[0][index]
-        a = a[1:]
-        for i in range(h):
-            a[i] = [m * a[i][j] for j in range(w) if j != index]
-        return minor(a)
-
-    d = 0
-    sign = 1
-    for j in range(w):
-
-        # Increment det with the product of the first row, j'th column element and the
-        # minor of a with the first row and j'th column missing
-        b = a[1:]
-        for i in range(h):
-            b[i] = [a[0][j] * b[i][k] for k in range(w) if k != j]
-        d += sign * minor(b)
-        sign *= -1
-
-    return d
+    elif index is not None:
+        return pow(-1, index % 2) * a[0][index] * minor([[e for i, e in enumerate(row) if i != index] for row in a[1:]])
+    else:
+        return sum(minor(a, j) for j in range(len(a[0])))
 
 
 def char_poly(a, sym='x'):
@@ -256,10 +239,9 @@ def char_poly(a, sym='x'):
     to A.minor() for A = instance-matrix - Identity * x, for some variable x
     [typically x = sympy.Symbol('x')]."""
 
-    if len(a) != len(a[0]):
+    if len(s := np.shape(a)) != 2 and len(set(s)) != 1:
         raise ValueError("Matrix must be square!")
-
-    if not isinstance(sym, Symbol):
+    elif not isinstance(sym, Symbol):
         sym = Symbol(sym)
 
     h = len(a)
@@ -284,7 +266,7 @@ def eigvals(a):
     [0, (2.5-1.6583123951777j), (2.5+1.6583123951777j)]
     """
 
-    if len(a) != len(a[0]):
+    if len(s := np.shape(a)) != 2 and len(set(s)) != 1:
         raise AttributeError("Matrix must be square")
 
     x = Symbol('x')
@@ -292,14 +274,17 @@ def eigvals(a):
 
 
 def eigvec(a, values=None):
-    if len(a) != len(a[0]):
+    if len(s := np.shape(a)) != 2 and len(set(s)) != 1:
         raise AttributeError("Matrix must be square")
-
-    if values is None:
+    elif values is None:
         values = eigvals(a)
 
     vectors = {}
     for v in values:
-        mat = [[e - v for e in row] for row in a]
-        vectors[v] = kernel(mat)
+        mat = [[e - v if i == j else e for i, e in enumerate(row)] for j, row in enumerate(a)]
+        vec = kernel(mat)
+        if len(vec) == 1:
+            vectors[v] = vec[0]
+        else:
+            vectors[v] = vec
     return vectors
