@@ -1,6 +1,6 @@
 from random import randrange, Random
 from abc import ABCMeta, abstractmethod
-from math import gcd, log, isqrt, floor
+from math import gcd, log, isqrt, floor, sqrt
 
 from cryptography318.prime.prime import isprime, primesieve, sqrt_mod
 
@@ -505,7 +505,8 @@ def ecm_mont(N, B1=None, B2=None, _retry=50):
     """
     if B1 is None:
         from math import e
-        B1 = int(pow(e, isqrt(int((log(N) * log(log(isqrt(N)))) / 2))))
+        q = isqrt(N)
+        B1 = int(pow(e, sqrt(log(q) * log(log(q)) * 0.5)))
 
     B1 = (B1 | 1) + 1  # ensures B1 is even, thus B2 also is even
 
@@ -513,6 +514,9 @@ def ecm_mont(N, B1=None, B2=None, _retry=50):
         B2 = B1 * 100
     else:
         B2 = (B2 | 1) + 1
+
+    B1 = 2000
+    B2 = 200000
 
     primesieve.extend(B2)
 
