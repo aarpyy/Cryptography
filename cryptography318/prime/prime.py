@@ -304,7 +304,7 @@ def isprime(n):
     elif not n % 3:
         return False
 
-    # this step is pretty useless unless primesieve is being used for something else or is
+    # This step is pretty useless unless primesieve is being used for something else or is
     # being purposefully generated, since it is constructed only with first 6 primes
     global primesieve
     if n in primesieve:
@@ -391,15 +391,13 @@ def confirm_prime(n):
 
 
 def next_prime(n):
-    """Returns first prime after number given"""
+    """Returns first probable prime after number given"""
 
     if n < 2:
         return 2
-
-    if n < 11:
+    elif n < 11:
         return [2, 2, 3, 5, 5, 7, 7, 11, 11, 11, 11][n]
-
-    if n < primesieve.tail:
+    elif n < primesieve.tail:
         i = primesieve.search(n)
         if isinstance(i, tuple):
             i = i[1]
@@ -407,22 +405,36 @@ def next_prime(n):
             i += 1
         return primesieve[i]
 
-    # ensures that n starts at the nearest 6k + 1
-    r = n % 6
-    k = n - (n % 6) - 1
-    if k < n:
-        k += 2
-        if k > n and isprime(k):
-            return k
-        k += 4
-        if k 
+    # Ensures that n starts at the nearest 6k + 1
 
+    # a is the closest 6k + 1 to n
+    a = n - (n % 6) + 1
+    if a <= n:
 
-    if isprime(n):
-        return n
+        # If a <= n, try 6k + 5, only return if that's greater than n
+        a += 4
+        if a > n and isprime(a):
+            return a
+
+        # Otherwise, get a to 6k + 1, if this is prime, it's guaranteed > n so return
+        a += 2
+        if isprime(a):
+            return a
+
+        # Otherwise, since 6k + 1 above n didn't work, set n to 6k + 5 for below loop
+        n = a + 4
+    elif isprime(a):
+
+        # If a > n and is prime, just return (this case only runs when n % 6 == 0 and n + 1 is prime)
+        return a
+    else:
+
+        # Otherwise, start off n at a + 4 which is (6k + 1) + 4
+        n = a + 4
 
     assert n % 6 == 5
-    # iterate up through each 6k +/- 1
+
+    # Iterate up through each 6k +/- 1
     while 1:
         if isprime(n):
             return n

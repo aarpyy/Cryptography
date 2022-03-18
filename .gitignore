@@ -3,3 +3,8 @@ tests/
 .idea/
 build/
 venv/
+Pipfile
+Pipfile.lock
+.DS_Store
+cryptography318.egg-info/
+dist/
