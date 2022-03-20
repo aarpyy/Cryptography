@@ -1,6 +1,7 @@
 from random import randrange, Random
 from abc import ABCMeta, abstractmethod
 from math import gcd, log, isqrt, floor, sqrt
+from typing import Union
 
 from cryptography318.prime.prime import isprime, primesieve, sqrt_mod
 
@@ -124,7 +125,7 @@ class Montgomery(Curve):
             a_sig = ((u_sub_v * u_sub_v * u_sub_v) * (3 * u + v) * pow(4 * u_3 * v, -1, p) - 2) % p
         except ValueError:
 
-            # if composite m for FF(m) then this curve is likely intended for Lenstra's ECM and gcd is factor
+            # If composite m for FF(m) then this curve is likely intended for Lenstra's ECM and gcd is factor
             return gcd(4 * u_3 * v, p)
 
         x, z = u_3 % p, (v * v * v) % p
@@ -434,7 +435,7 @@ class MontgomeryPoint(Point):
         return self.x, self.z
 
 
-def ecm_mont_basic(N, B1=None, B2=None, _retry=50):
+def ecm_mont_basic(N, *, B1=None, B2=None, retry=50):
     """
     A more basic version of the below elliptic factorization over a Montgomery form elliptic curve.
     This method opts for a direct multiplication approach for phase 2. Phase 1 is computed
@@ -459,7 +460,7 @@ def ecm_mont_basic(N, B1=None, B2=None, _retry=50):
         k *= floor(log(B1, p))
 
     trials = 0
-    while trials <= _retry:
+    while trials <= retry:
         trials += 1
 
         # get montgomery curve for phase 1
@@ -487,7 +488,7 @@ def ecm_mont_basic(N, B1=None, B2=None, _retry=50):
     return None
 
 
-def ecm_mont(N, B1=None, B2=None, _retry=50):
+def ecm_mont(N, *, B1=None, B2=None, retry=50):
     """
     Performs Lenstra's elliptic curve factorization method with elliptic curve E
     in Montgomery form over FF(N) with Suyama's parameterization.
@@ -497,26 +498,23 @@ def ecm_mont(N, B1=None, B2=None, _retry=50):
     [1] Gaj K. et al. Implementing the Elliptic Curve Method of Factoring in Reconfigurable Hardware
     https://www.hyperelliptic.org/tanja/SHARCS/talks06/Gaj.pdf
 
-    :param N: integer to be factored
-    :param B1: integer limit for phase 1; start for phase 2
-    :param B2: integer limit for phase 2
-    :param _retry: integer number of trials to be run
-    :return: one integer factor of N or None
+    :param N: number to be factored
+    :param B1: limit for phase 1; start for phase 2
+    :param B2: limit for phase 2
+    :param retry: number of trials to be run
+    :return: one non-trivial factor of N or None
     """
     if B1 is None:
         from math import e
         q = isqrt(N)
         B1 = int(pow(e, sqrt(log(q) * log(log(q)) * 0.5)))
-
-    B1 = (B1 | 1) + 1  # ensures B1 is even, thus B2 also is even
+    elif B1 & 1 == 1:
+        B1 += 1
 
     if B2 is None:
         B2 = B1 * 100
-    else:
-        B2 = (B2 | 1) + 1
-
-    B1 = 2000
-    B2 = 200000
+    elif B2 & 1 == 1:
+        B2 += 1
 
     primesieve.extend(B2)
 
@@ -525,31 +523,40 @@ def ecm_mont(N, B1=None, B2=None, _retry=50):
     for p in primesieve.range(2, B1):
         k *= floor(log(B1, p))
 
+    # Type hints for more helpful indexing by PyCharm
+    D: int
+    S: list[Union[int, MontgomeryPoint]]
+    E: Montgomery
+    P: MontgomeryPoint
+    Q: MontgomeryPoint
+    Q_0: MontgomeryPoint
+    R: MontgomeryPoint
+    D: MontgomeryPoint
+    Q_D: MontgomeryPoint
+
     D = isqrt(B2)
-    S = [0] * (D + 1)  # type: list
+    S = [0] * (D + 1)
 
-    trials = 0
-    while trials <= _retry:
-        trials += 1
+    for _ in range(retry):
 
-        # get montgomery curve for phase 1
+        # Get montgomery curve for phase 1
         res = Montgomery.safe_curve_and_point(N)
 
-        # if in finding curve a factor was found, return it
+        # If in finding curve a factor was found, return it
         if isinstance(res, int):
             return res
 
         E, P = res
         Q_0 = P.ladder(k)
 
-        # if found factor already, return, otherwise continue to phase 2
+        # If found factor already, return, otherwise continue to phase 2
         q = gcd(Q_0.z, N)
         if 1 < q < N:
             return q
 
         # Begin Phase 2
 
-        # initialize full table S (algorithm 5) where S = [Q_0, 2 * Q_0, 3 * Q_0, ..., D/2 * Q_0]
+        # Initialize full table S (algorithm 5) where S = [Q_0, 2 * Q_0, 3 * Q_0, ..., D/2 * Q_0]
         Q = Q_0
         Q_2 = Q_0.double()
         S[0] = Q
@@ -559,14 +566,14 @@ def ecm_mont(N, B1=None, B2=None, _retry=50):
 
         d = 1
 
-        R = Q_0.ladder(B1)  # B * Q
-        T = Q_0.ladder(B1 - D)  # (B - D) * Q
+        R = Q_0.ladder(B1)          # B * Q
+        T = Q_0.ladder(B1 - D)      # (B - D) * Q
         Q_D = S[D]
         for i in range(1, D + 1):
             d = (d * (R.x * S[i].z - R.z * S[i].x))
 
-            # swap T, R to keep track of difference between points for montgomery addition
-            T, R = R, R.add(Q_D, T)  # R = (B + kD)Q + DQ, T = (B + (k-1) * D)Q = diff
+            # Swap T, R to keep track of difference between points for montgomery addition
+            T, R = R, R.add(Q_D, T)     # R = (B + kD)Q + DQ, T = (B + (k-1) * D)Q = diff
 
         q = gcd(d, N)
         if 1 < q < N:
@@ -575,7 +582,7 @@ def ecm_mont(N, B1=None, B2=None, _retry=50):
     return None
 
 
-def ecm_weierstrass(N, B=None, _retry=50):
+def ecm_weierstrass(N, *, B=None, retry=50):
     """
     Lenstra's Elliptic Curve Factorization method over a short Weierstrass curve
     with parameters a, b s.t. 4a^3 + 27b^2 != 0
@@ -587,7 +594,7 @@ def ecm_weierstrass(N, B=None, _retry=50):
         B = int(pow(L, 1 / pow(2, .5)))
 
     trials = 0
-    while trials <= _retry:
+    while trials <= retry:
         trials += 1
 
         E, P = Weierstrass.safe_curve_and_point(N)
@@ -606,7 +613,7 @@ def ecm_weierstrass(N, B=None, _retry=50):
     return None
 
 
-def lenstra_ecm(N, B=None, _retry=50):
+def lenstra_ecm(N, *, B=None, retry=50):
     """
     General purpose function to compute Lenstra's elliptic curve factorization method
     on a composite integer N. If number is a 32-bit integer, use a Weierstrass curve
@@ -616,7 +623,7 @@ def lenstra_ecm(N, B=None, _retry=50):
     if isprime(N):
         return N
     if N < 0x100000000:
-        f = ecm_weierstrass(N, B, _retry)
+        f = ecm_weierstrass(N, B=B, retry=retry)
         if f:
             return f
-    return ecm_mont(N, B1=B, _retry=_retry)
+    return ecm_mont(N, B1=B, retry=retry)
