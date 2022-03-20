@@ -3,8 +3,8 @@ import os
 from math import sqrt, log, gcd
 from random import randrange
 
-from cryptography318.factor.elliptic import lenstra_ecm
-from cryptography318.factor.siqs import siqs
+from cryptography318.factor import lenstra_ecm
+from cryptography318.factor import siqs
 from cryptography318.prime.prime import isprime, primesieve, next_prime
 
 

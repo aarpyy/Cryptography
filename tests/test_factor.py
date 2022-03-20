@@ -1,4 +1,6 @@
-from cryptography318 import siqs, randprime, factor, pollard_rho_factor, pollard_p1
+from cryptography318.factor import siqs, factor, pollard_p1, pollard_rho_factor
+from cryptography318.prime import randprime
+import pytest
 
 from pathlib import Path
 
@@ -40,6 +42,7 @@ def test_factor():
     assert factors == {a: 1, b: 2, c: 2}
 
 
+@pytest.mark.skip()
 def test_all():
     test_siqs()
     test_rho()

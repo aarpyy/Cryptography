@@ -1,6 +1,6 @@
 from cryptography318.prime.prime import prime_range, isprime
 from cryptography318.utils.utils import smooth_factor
-from cryptography318.factor.factor import factor
+from cryptography318.factor import factor
 from cryptography318.linalg.linalg import matrix_copy
 from .dlp import pollard_rho_dlp
 

@@ -1,5 +1,5 @@
 from cryptography318.prime import randprime
-from cryptography318.siqs import siqs
+from cryptography318.factor.siqs import siqs
 
 from pathlib import Path
 

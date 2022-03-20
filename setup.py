@@ -1,9 +1,9 @@
 from setuptools import setup
-from os import path
+from pathlib import Path
 
 
-this_directory = path.abspath(path.dirname(__file__))
-with open(path.join(this_directory, 'README.md')) as f:
+cdir = Path(__file__).parent.absolute()
+with open(cdir.joinpath('README.md')) as f:
     long_description = f.read()
 
 

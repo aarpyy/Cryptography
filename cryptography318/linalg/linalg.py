@@ -5,6 +5,40 @@ from typing import Iterable
 import numpy as np
 
 
+def strmat(a):
+    str_array = []
+    max_len = 0
+    for i in range(len(a)):
+        str_array.append([])
+        for j in range(len(a[0])):
+            n = a[i][j]
+            if isinstance(n, float):
+                s = str(round(n, 3))
+            else:
+                s = str(n)
+            max_len = max(len(s), max_len)
+            str_array[i].append(s)
+
+    padding = (max_len + 1) | 1
+    formatted = "["
+    for i in range(l := len(str_array)):
+        if i == 0:
+            formatted += "["
+        else:
+            formatted += " ["
+        for j in range(len(str_array[0])):
+            e = str_array[i][j]
+            d = padding - len(s)
+            pad_left = d // 2
+            pad_right = d - pad_left
+            formatted += pad_left * " " + f"{e}" + " " * pad_right
+        if i == l - 1:
+            formatted += "]"
+        else:
+            formatted += "]\n"
+    return formatted + "]"
+
+
 if version_info >= (3, 10):
     def dot(a, b):
         return sum(x * y for x, y in zip(a, b, strict=True))
@@ -77,8 +111,7 @@ def row_reduce(a, row, col):
     for i in range(len(a)):
         if i != row:
             k = a[i][col]
-            for j in range(w):
-                a[i][j] -= a[row][j] * k
+            a[i] = [a[i][j] - a[row][j] * k for j in range(w)]
 
 
 def identity_matrix(size):
@@ -127,7 +160,7 @@ def rref(a, offset=0):
 def kernel(a):
     h = len(a)  # get number of rows
     w = len(a[0])
-    array = matrix_copy(a)
+    array = list(list(r) for r in a)
     for j in range(w):  # this loop appends identity matrix to bottom of instance matrix
         row = [0] * w
         row[j] = 1
@@ -234,13 +267,15 @@ def minor(a, index=None):
         return sum(minor(a, j) for j in range(len(a[0])))
 
 
-def char_poly(a, sym='x'):
+def char_poly(a, sym=None):
     """Computes the characteristic polynomial of a square matrix. Analogous
     to A.minor() for A = instance-matrix - Identity * x, for some variable x
     [typically x = sympy.Symbol('x')]."""
 
     if len(s := np.shape(a)) != 2 and len(set(s)) != 1:
         raise ValueError("Matrix must be square!")
+    elif sym is None:
+        sym = Symbol("x")
     elif not isinstance(sym, Symbol):
         sym = Symbol(sym)
 

@@ -1,5 +1,4 @@
 from typing import Optional, Iterable, Sequence
-from numbers import Real
 from random import Random
 
 MIN_A_FACTOR: int

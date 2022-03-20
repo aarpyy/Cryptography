@@ -1,7 +1,12 @@
 from cryptography318.linalg import (
     dot, flatten, matmul, rref, kernel, binary_kernel, det, eigvec, eigvals, minor, char_poly, matrix_equals
 )
-from cryptography318.linalg.linalg import matrix_copy, matrix_slice, identity_matrix, make_pivot
+from cryptography318.linalg.linalg import matrix_copy, matrix_slice, identity_matrix, make_pivot, strmat
+import pytest
+
+
+def test_print_matrix():
+    print(strmat([[1, 0, 0], [0, 1, 0], [0, 0, 1]]))
 
 
 def test_matrix_equals():
@@ -16,7 +21,7 @@ def test_matrix_copy():
     a = [[1, 2, 3], [4, 5, 6]]
     b = matrix_copy(a)
     assert matrix_equals(b, a)
-    b[0][0] = 2
+    b[0] = [2, 2, 3]
     assert a[0][0] == 1 and b[0][0] == 2
 
 
@@ -97,12 +102,12 @@ def test_det():
 def test_eigvec():
     from fractions import Fraction
     a = [[Fraction(x) for x in row] for row in [[0, 2, -2], [2, -5, -2], [-2, -2, 0]]]
-    assert eigvec(a, values=list(int(x) for x in eigvals(a))) == {-6: [-1, 4, 1], -2: [1, 0, 1], 3: [-1, -0.5, 1]}
+    assert eigvec(a, values=list(int(x.real) if isinstance(x, complex) else int(x) for x in eigvals(a))) == {-6: [-1, 4, 1], -2: [1, 0, 1], 3: [-1, -0.5, 1]}
 
 
 def test_eigvals():
     a = [[0, 2, -2], [2, -5, -2], [-2, -2, 0]]
-    assert sorted(eigvals(a)) == [-6, -2, 3]
+    assert all(isinstance(x, float) for x in eigvals(a)) and set(eigvals(a)) == {-6.0, -2.0, 3.0}
 
 
 def test_minor():
@@ -115,6 +120,7 @@ def test_char_poly():
     assert str(char_poly(a)) == "-x*(-x*(-x - 5) - 4) + 8*x + 36"
 
 
+@pytest.mark.skip("All tests, only run specifically")
 def test_all():
     test_matrix_slice()
     test_matrix_equals()

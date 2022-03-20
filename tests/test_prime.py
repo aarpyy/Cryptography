@@ -9,4 +9,5 @@ def test_sqrt_mod():
         while not quadratic_residue(a, p):
             a = randrange(2, p)
 
-        assert pow(sqrt_mod(a, p), 2, p) == a
+        s = sqrt_mod(a, p)
+        assert s is not None and pow(s, 2, p) == a
