@@ -84,7 +84,7 @@ class Sieve:
         start_idx = max_idx + 1
 
         # start at max_idx + 1, 0 if none were indexed, or index + 1 of last found prime
-        for p in primesieve[start_idx:]:
+        for p in self._list[start_idx:]:
             if p == curr:
                 indices.append(start_idx)
                 i += 1
@@ -117,7 +117,7 @@ class Sieve:
 
         p = self.tail
         while (p := next_prime(p)) <= n:
-            self._list.append(p)
+            self._list.append(p)  # type: ignore
 
     def range(self, a, b=None):
         if b is None:
@@ -337,7 +337,7 @@ def isprime(n):
         return miller_rabin(n, k=40) and baillie_psw(n, mr=False)
 
 
-def randprime(a: int, b: int = None):
+def randprime(a: int, b: int = None):  # type: ignore
     """Uses combination of Miller-Rabin and Baillie-PSW primality tests to generate random prime
 
     :param a: integer starting point of range for random prime
@@ -359,7 +359,7 @@ def randprime(a: int, b: int = None):
             start = start[1]
         if isinstance(stop, tuple):
             stop = stop[0]
-        return choice(primesieve[start:stop])
+        return choice(primesieve[start:stop])  # type: ignore
 
     # if base_2, uses 2 as a base and increments by 1 (default) for generating random int
     # if base != 2, generates random int starting at lower limit, incrementing by 2
