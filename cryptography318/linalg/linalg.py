@@ -28,7 +28,7 @@ def strmat(a):
             formatted += " ["
         for j in range(len(str_array[0])):
             e = str_array[i][j]
-            d = padding - len(s)
+            d = padding - len(e)
             pad_left = d // 2
             pad_right = d - pad_left
             formatted += pad_left * " " + f"{e}" + " " * pad_right
