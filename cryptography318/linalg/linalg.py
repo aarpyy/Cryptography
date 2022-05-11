@@ -1,7 +1,7 @@
 from sys import version_info
 from functools import reduce
 from sympy import Symbol, im, solve
-from typing import Iterable
+from typing import Iterable, List, MutableSequence
 import numpy as np
 
 

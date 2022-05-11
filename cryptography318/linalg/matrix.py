@@ -142,8 +142,8 @@ class Matrix(UserList[Vector]):
                                  f"{self.shape} and {other.shape}")
         else:
 
-            # This is NotImplemented since we need to easily check shape, and it's more work to just
-            # let the other class handle it if it's implemented
+            # This is NotImplemented since we need to easily check shape, and it's more work than just
+            # letting the other class handle it if it's implemented
             return NotImplemented
 
     def __rmatmul__(self, other):
@@ -165,7 +165,9 @@ class Matrix(UserList[Vector]):
             # If it's a slice, vet all inputs before adding to index
             values = []
             for v in value:
-                if not isinstance(v, Vector):
+                if not isinstance(v, Iterable) or not all(isinstance(e, Real) for e in v):
+                    raise TypeError(f"{self.__class__.__name__} only accepts real numbers as list items!")
+                elif not isinstance(v, Vector):
                     v = Vector(v)
                 if len(v) != self._n:
                     raise ValueError(f"List length of {len(v)} cannot be set in {self.__class__.__name__} "
@@ -238,3 +240,71 @@ class Matrix(UserList[Vector]):
 
         self.data.insert(i, item)
         self._m += 1
+
+    # Now we can get into the actual matrix-specific methods
+    def slice(self, s):
+        """
+        Slices matrix vertically, applying an integer or slice index to all rows.
+
+        :param s: index
+        :return: matrix with index applied to each row
+        """
+        if isinstance(s, slice):
+            return self.__class__(r[s] for r in self.data)
+        else:
+            return self.__class__(Vector([r[s]]) for r in self.data)
+
+    def split(self, i):
+        """
+        Splits matrix by an index, returning the partitioned matrix as a tuple.
+
+        :param i: index
+        :return: left and right partitions
+        """
+        lm, rm = [], []
+        for row in self.data:
+            lm.append(row[:i])
+            rm.append(row[i:])
+        return self.__class__(lm), self.__class__(rm)
+
+    def rref(self, offset=0):
+        """
+        Computes the reduced row-echelon form of the matrix. If offset is provided,
+        computes the RREF ignoring the last offset columns.
+
+        :param self: matrix
+        :param offset: column index offset from last column
+        :return: matrix in reduced row-echelon form
+        """
+
+        # If there are no rows, return new empty matrix
+        if self._n is None:
+            return Matrix()
+
+        pivot_row = 0  # First pivot belongs in first row
+
+        array = self.copy()
+
+        for j in range(self._n - offset):
+
+            # start at looking for pivot after previous pivot row
+            for i in range(pivot_row, self._m):
+
+                # If non-zero element, this row can become pivot row
+                if array[i][j] != 0:
+
+                    # Make j'th element the pivot, reducing rest of row as well
+                    array[i] /= array[i][j]
+                    if i > pivot_row:  # If pivot row not already in correct position, swap
+                        array[i], array[pivot_row] = array[pivot_row], array[i]
+
+                    # Row reduce everything else
+                    for k in range(self._m):
+                        if k != pivot_row:
+                            array[k] -= array[pivot_row] * array[k][j]
+
+                    # Increment pivot row and stop looking in this column for pivot, move next
+                    pivot_row += 1
+                    break
+
+        return array

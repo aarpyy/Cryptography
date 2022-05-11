@@ -78,11 +78,19 @@ def test_matmul(args):
 
 def test_rref():
     from fractions import Fraction
+    b = [[1, 0, -0.5], [0, 1, Fraction(-7) / 6]]
     a = [[Fraction(x) for x in row] for row in [[-2, 0, 1], [1, 3, -4]]]
-    assert matrix_equals(rref(a), [[1, 0, -0.5], [0, 1, Fraction(-7) / 6]])
+    assert matrix_equals(rref(a), b)
+
+    a = Matrix(a)
+    assert a.rref() == b
 
     a = [[1, 2, 1, -1], [2, 4, 1, -1], [1, 2, 0, 0]]
-    assert matrix_equals(rref(a), [[1, 2, 0, 0], [0, 0, 1, -1], [0, 0, 0, 0]])
+    b = [[1, 2, 0, 0], [0, 0, 1, -1], [0, 0, 0, 0]]
+    assert matrix_equals(rref(a), b)
+
+    a = Matrix(a)
+    assert a.rref() == b
 
 
 def test_kernel():
