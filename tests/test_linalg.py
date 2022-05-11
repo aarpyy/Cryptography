@@ -2,6 +2,7 @@ from cryptography318.linalg import (
     dot, flatten, matmul, rref, kernel, binary_kernel, det, eigvec, eigvals, minor, char_poly, matrix_equals
 )
 from cryptography318.linalg.linalg import matrix_copy, matrix_slice, identity_matrix, make_pivot, strmat
+from cryptography318.linalg.matrix import Matrix
 import pytest
 
 
@@ -57,10 +58,22 @@ def test_flatten():
     assert flatten([[1, 2, [[[3, 4, [[[10]]]]]]]]) == [1, 2, 3, 4, 10]
 
 
-def test_matmul():
-    a = [[1, 2, 3], [4, 5, 6]]
-    b = [[1, 2], [3, 4], [5, 6]]
-    assert matrix_equals(matmul(a, b), [[22, 28], [49, 64]])
+@pytest.mark.parametrize('args', [
+    ([[1, 2, 3], [4, 5, 6]],
+     [[1, 2], [3, 4], [5, 6]],
+     [[22, 28], [49, 64]])
+])
+def test_matmul(args):
+    a, b, c = args
+    # Procedural style
+    assert matrix_equals(matmul(a, b), c)
+    # And class based
+    b = Matrix(b)
+    # Works with just __rmatmul__
+    assert a @ b == c
+    a = Matrix(a)
+    # And __matmul__
+    assert a @ b == c
 
 
 def test_rref():
@@ -102,7 +115,8 @@ def test_det():
 def test_eigvec():
     from fractions import Fraction
     a = [[Fraction(x) for x in row] for row in [[0, 2, -2], [2, -5, -2], [-2, -2, 0]]]
-    assert eigvec(a, values=list(int(x.real) if isinstance(x, complex) else int(x) for x in eigvals(a))) == {-6: [-1, 4, 1], -2: [1, 0, 1], 3: [-1, -0.5, 1]}
+    assert eigvec(a, values=list(int(x.real) if isinstance(x, complex) else int(x) for x in eigvals(a))) == {
+        -6: [-1, 4, 1], -2: [1, 0, 1], 3: [-1, -0.5, 1]}
 
 
 def test_eigvals():

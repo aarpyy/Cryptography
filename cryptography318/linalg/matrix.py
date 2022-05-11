@@ -31,8 +31,8 @@ class Matrix(UserList[Vector]):
                 if len(self.data[i]) != length:
                     raise ValueError(f"{self.__class__.__name__} cannot be a jagged matrix!")
 
-        self._rows = len(self.data)
-        self._cols = length     # This could be None and that's okay
+        self._m = len(self.data)
+        self._n = length     # This could be None and that's okay
 
     @property
     def transpose(self):
@@ -45,10 +45,10 @@ class Matrix(UserList[Vector]):
 
         :return: shape of matrix as tuple
         """
-        if self._cols is not None:
-            return self._rows, self._cols
+        if self._n is not None:
+            return self._m, self._n
         else:
-            return self._rows,
+            return self._m,
 
     def __add__(self, other):
         if isinstance(other, Iterable):
@@ -130,14 +130,19 @@ class Matrix(UserList[Vector]):
 
     def __matmul__(self, other):
         if isinstance(other, Matrix):
-            if self._cols == other.shape[0]:
-                return self.__class__(a * b for a, b in zip(self.data, other.transpose))
+            if self._n == other.shape[0]:
+
+                # Here, we could just use a @ other since __rmatmul__ handles vector-matrix multiplication
+                # but that would mean we would be taking the transpose of other once per row, so instead
+                # we defined the transpose ahead of time, and run through the multiplication ourselves
+                T = other.transpose
+                return self.__class__(Vector(a @ e for e in T) for a in self.data)
             else:
                 raise ValueError(f"Matrix multiplication undefined for matrices of shapes "
                                  f"{self.shape} and {other.shape}")
         else:
 
-            # This is NotImplemented since we need to easily check shape and it's more work to just
+            # This is NotImplemented since we need to easily check shape, and it's more work to just
             # let the other class handle it if it's implemented
             return NotImplemented
 
@@ -149,7 +154,8 @@ class Matrix(UserList[Vector]):
         else:
 
             # Otherwise, do matrix multiplication with transpose of self
-            return self.__class__(a * b for a, b in zip(other, self.transpose, strict=True))
+            T = self.transpose
+            return self.__class__(Vector(a @ e for e in T) for a in other)
 
     # For all methods that involve adding elements to our data list, we need to make sure that they are
     # also lists of Real instances before letting them add. Included are append, extend, insert, and __setitem__
@@ -161,7 +167,7 @@ class Matrix(UserList[Vector]):
             for v in value:
                 if not isinstance(v, Vector):
                     v = Vector(v)
-                if len(v) != self._cols:
+                if len(v) != self._n:
                     raise ValueError(f"List length of {len(v)} cannot be set in {self.__class__.__name__} "
                                      f"of shape {self.shape}")
                 values.append(v)
@@ -175,7 +181,7 @@ class Matrix(UserList[Vector]):
                 raise TypeError(f"{self.__class__.__name__} only accepts real numbers as list items!")
 
             # Make sure our new row matches matrix shape
-            if self._cols != len(value):
+            if self._n != len(value):
                 raise ValueError(f"List length of {len(value)} cannot be set in {self.__class__.__name__} "
                                  f"of shape {self.shape}")
             self.data[key] = value
@@ -188,20 +194,20 @@ class Matrix(UserList[Vector]):
         else:
             raise TypeError(f"{self.__class__.__name__} only accepts real numbers as list items!")
 
-        if self._cols is None:
-            self._cols = len(item)
-        elif self._cols != len(item):
+        if self._n is None:
+            self._n = len(item)
+        elif self._n != len(item):
             raise ValueError(f"List length of {len(item)} cannot be appended to {self.__class__.__name__} "
                              f"of shape {self.shape}")
         self.data.append(item)
-        self._rows += 1
+        self._m += 1
 
     def extend(self, other):
 
         # Append to values until we have confirmed that all are valid inputs, since extend should either
         # throw an error or have all values extended we don't append unless we can do all
         values = []
-        length = self._cols
+        length = self._n
         n = 0
         for e in other:
             v = e if isinstance(e, Vector) else Vector(e)
@@ -213,10 +219,10 @@ class Matrix(UserList[Vector]):
             values.append(v)
             n += 1
 
-        self._cols = length
+        self._n = length
         # Now we can append all values
         self.data.extend(values)
-        self._rows += n
+        self._m += n
 
     def insert(self, i, item):
         if isinstance(item, Vector):
@@ -226,9 +232,9 @@ class Matrix(UserList[Vector]):
         else:
             raise TypeError(f"{self.__class__.__name__} only accepts real numbers as list items!")
 
-        if self._cols != len(item):
+        if self._n != len(item):
             raise ValueError(f"List length of {len(item)} cannot be inserted into {self.__class__.__name__} "
                              f"of shape {self.shape}")
 
         self.data.insert(i, item)
-        self._rows += 1
+        self._m += 1
