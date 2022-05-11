@@ -3,6 +3,7 @@ from cryptography318.linalg import (
 )
 from cryptography318.linalg.linalg import matrix_copy, matrix_slice, identity_matrix, make_pivot, strmat
 from cryptography318.linalg.matrix import Matrix
+from cryptography318.linalg.vector import Vector
 import pytest
 
 
@@ -32,6 +33,14 @@ def test_matrix_slice():
     assert matrix_equals(b, [[1], [4]])
     assert matrix_equals(c, [[2, 3], [5, 6]])
 
+    a = Matrix(a)
+    b, c = a.split(1)
+    assert b == [[1], [4]]
+    assert c == [[2, 3], [5, 6]]
+
+    b = a.slice(slice(0, 2))
+    assert b == [[1, 2], [4, 5]]
+
 
 def test_identity_matrix():
     I3 = identity_matrix(3)
@@ -52,6 +61,14 @@ def test_dot():
     assert dot(a, b) == 15
     b = [1, 1, 1, 1, -1]
     assert dot(a, b) == 5
+
+    a = Vector(a)
+    b = Vector([1, 1, 1, 1, 1])
+
+    assert a @ b == 15
+
+    b = Vector([1, 1, 1, 1, -1])
+    assert a @ b == 5
 
 
 def test_flatten():
