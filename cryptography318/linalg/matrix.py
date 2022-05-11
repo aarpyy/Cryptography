@@ -1,10 +1,10 @@
 from collections import UserList
 from numbers import Real
 from typing import Iterable
-from .vector import Vector
+from cryptography318.linalg.vector import Vector
 
 
-class Matrix(UserList):
+class Matrix(UserList[Vector]):
     """
     Class representing a list of Vectors whose binary operations are
     matrix operations.
@@ -145,7 +145,7 @@ class Matrix(UserList):
 
         # If vector, do vector-matrix multiplication
         if all(isinstance(e, Real) for e in other):
-            return self.__class__(other * e for e in self.transpose)
+            return self.__class__(e.__rmul__(other) for e in self.transpose)
         else:
 
             # Otherwise, do matrix multiplication with transpose of self
@@ -154,18 +154,31 @@ class Matrix(UserList):
     # For all methods that involve adding elements to our data list, we need to make sure that they are
     # also lists of Real instances before letting them add. Included are append, extend, insert, and __setitem__
     def __setitem__(self, key, value):
-        if isinstance(value, Vector):
-            pass
-        elif all(isinstance(e, Real) for e in value):
-            value = Vector(value)
-        else:
-            raise TypeError(f"{self.__class__.__name__} only accepts real numbers as list items!")
+        if isinstance(key, slice):
 
-        # Make sure our new row matches matrix shape
-        if self._cols != len(value):
-            raise ValueError(f"List length of {len(value)} cannot be set in {self.__class__.__name__} "
-                             f"of shape {self.shape}")
-        self.data[key] = value
+            # If it's a slice, vet all inputs before adding to index
+            values = []
+            for v in value:
+                if not isinstance(v, Vector):
+                    v = Vector(v)
+                if len(v) != self._cols:
+                    raise ValueError(f"List length of {len(v)} cannot be set in {self.__class__.__name__} "
+                                     f"of shape {self.shape}")
+                values.append(v)
+            self.data[key] = values
+        else:
+            if isinstance(value, Vector):
+                pass
+            elif all(isinstance(e, Real) for e in value):
+                value = Vector(value)
+            else:
+                raise TypeError(f"{self.__class__.__name__} only accepts real numbers as list items!")
+
+            # Make sure our new row matches matrix shape
+            if self._cols != len(value):
+                raise ValueError(f"List length of {len(value)} cannot be set in {self.__class__.__name__} "
+                                 f"of shape {self.shape}")
+            self.data[key] = value
 
     def append(self, item):
         if isinstance(item, Vector):
@@ -191,13 +204,13 @@ class Matrix(UserList):
         length = self._cols
         n = 0
         for e in other:
-            v = Vector(e)
+            v = e if isinstance(e, Vector) else Vector(e)
             if length is None:
                 length = len(v)
             elif length != len(v):
                 raise ValueError(f"List length of {len(v)} cannot be appended to {self.__class__.__name__} "
                                  f"of shape {self.shape}")
-            values.append(e)
+            values.append(v)
             n += 1
 
         self._cols = length

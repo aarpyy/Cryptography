@@ -3,7 +3,7 @@ from numbers import Real
 from typing import Iterable
 
 
-class Vector(UserList):
+class Vector(UserList[Real]):
     """
     Class representing a list of real numbers whose binary operations are
     vector operations.
