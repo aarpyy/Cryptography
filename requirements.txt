@@ -1,3 +1,2 @@
 numpy~=1.21.2
-pytest~=6.2.4
 sympy~=1.8

@@ -12,6 +12,14 @@ def test_ecm_mont():
     assert d in (a, b, c)
 
 
+def test_ecm_weierstrass():
+    a = randprime(pow(10, 7), pow(10, 8))
+    b = randprime(pow(10, 7), pow(10, 8))
+    f = ecm_weierstrass(a * b)
+    if f is not None:
+        assert f in (a, b)
+
+
 def test_compare_ecm():
     count = 0
     a = 20
@@ -35,4 +43,4 @@ def test_compare_ecm():
 
 
 if __name__ == "__main__":
-    test_ecm_mont()
+    test_ecm_weierstrass()

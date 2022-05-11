@@ -25,8 +25,6 @@ setup(
         'License :: Public Domain',
         'Operating System :: MacOS',
         'Operating System :: Microsoft :: Windows :: Windows 10',
-        'Programming Language :: Python :: 3.8',
-        'Programming Language :: Python :: 3.9',
-        'Programming Language :: Python :: 3.10'
+        'Programming Language :: Python :: 3.10'        # Python 3.10 now required since zip(*, strict=True) is used
     ],
 )
