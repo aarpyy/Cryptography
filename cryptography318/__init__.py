@@ -1,10 +1,10 @@
 import setuptools.version
 
-from .factor import *
-from .prime import *
-from .utils import *
-from .linalg import *
-from .dlp import *
+from cryptography318.factor import *
+from cryptography318.prime import *
+from cryptography318.utils import *
+from cryptography318.linalg import *
+from cryptography318.dlp import *
 
 
 __all__ = [
