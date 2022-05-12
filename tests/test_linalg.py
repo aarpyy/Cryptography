@@ -1,14 +1,16 @@
 from cryptography318.linalg import (
     dot, flatten, matmul, rref, kernel, binary_kernel, det, eigvec, eigvals, minor, char_poly, matrix_equals
 )
-from cryptography318.linalg.linalg import matrix_copy, matrix_slice, identity_matrix, make_pivot, strmat
+from cryptography318.linalg.linalg import matrix_copy, matrix_slice, identity_matrix, make_pivot, print_matrix
 from cryptography318.linalg.matrix import Matrix
 from cryptography318.linalg.vector import Vector
 import pytest
 
 
 def test_print_matrix():
-    print(strmat([[1, 0, 0], [0, 1, 0], [0, 0, 1]]))
+    print()     # Since pytest already prints stuff, we need to get a newline
+    a = Matrix.identity(2)
+    print_matrix(a)
 
 
 def test_matrix_equals():

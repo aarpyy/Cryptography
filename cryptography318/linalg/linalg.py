@@ -1,53 +1,70 @@
-from sys import version_info
 from functools import reduce
 from sympy import Symbol, im, solve
-from typing import Iterable, List, MutableSequence
+from numbers import Integral
+from typing import Iterable
+from cryptography318.utils.utils import where, shape
 import numpy as np
 
 
-def strmat(a):
+def print_matrix(m, ret=False, rnd=3):
+    """
+    Prints matrix in readable format.
+
+    :param m: Matrix instance
+    :param ret: if function should return string instead of printing
+    :param rnd: decimal places to round floats
+    :return: Matrix as string if ``ret``, otherwise None
+    """
     str_array = []
     max_len = 0
-    for i in range(len(a)):
-        str_array.append([])
-        for j in range(len(a[0])):
-            n = a[i][j]
-            if isinstance(n, float):
-                s = str(round(n, 3))
-            else:
-                s = str(n)
-            max_len = max(len(s), max_len)
-            str_array[i].append(s)
+    shape = m.shape
+    if len(shape) == 1:
+        formatted = "[]"
+    else:
+        for i in range(shape[0]):
+            str_array.append([])
+            for j in range(shape[1]):
+                v = m[i][j]
 
-    padding = (max_len + 1) | 1
-    formatted = "["
-    for i in range(l := len(str_array)):
-        if i == 0:
+                # If not integral, make sure we round to avoid long floats
+                if not isinstance(v, Integral):
+                    v = round(v, rnd)
+                s = str(v)
+                max_len = max(len(s), max_len)
+                str_array[i].append(s)
+
+        # Make sure padding leaves room for at least 1 space AND is odd so that there is a center
+        padding = (max_len + 1) | 1
+        formatted = "["
+
+        for i in range(shape[0]):
+            # If not the first row, add a single space
+            if i != 0:
+                formatted += " "
             formatted += "["
-        else:
-            formatted += " ["
-        for j in range(len(str_array[0])):
-            e = str_array[i][j]
-            d = padding - len(e)
-            pad_left = d // 2
-            pad_right = d - pad_left
-            formatted += pad_left * " " + f"{e}" + " " * pad_right
-        if i == l - 1:
+
+            for j in range(len(str_array[0])):
+                e = str_array[i][j]
+                d = padding - len(e)
+                pad_left = d // 2
+                pad_right = d - pad_left
+                formatted += pad_left * " " + e + " " * pad_right
+
             formatted += "]"
-        else:
-            formatted += "]\n"
-    return formatted + "]"
+
+            # If it's not last row, add newline
+            if i != shape[0] - 1:
+                formatted += "\n"
+        formatted += "]"
+
+    if ret:
+        return formatted
+    else:
+        print(formatted)
 
 
-if version_info >= (3, 10):
-    def dot(a, b):
-        return sum(x * y for x, y in zip(a, b, strict=True))
-else:
-    def dot(a, b):
-        if len(a) == len(b):
-            return sum(x * y for x, y in zip(a, b))
-        else:
-            raise ValueError(f"Lengths {len(a)} and {len(b)} differ")
+def dot(a, b):
+    return sum(x * y for x, y in zip(a, b, strict=True))
 
 
 def transpose(a):
@@ -102,7 +119,7 @@ def matrix_equals(a, b):
 
 def make_pivot(a, index=None):
     if index is None:
-        index = np.where(a)[0][0]
+        index = where(a)[0]
     return list(map(lambda n: n / a[index], a))
 
 
@@ -119,6 +136,32 @@ def identity_matrix(size):
     for i in range(size):
         matrix[i] = [0 if j != i else 1 for j in range(size)]
     return matrix
+
+
+def ref(a, offset=0):
+    pivot_row = 0  # first pivot belongs in first row
+
+    w = len(a[0]) - offset
+    h = len(a)
+
+    array = matrix_copy(a)
+
+    for j in range(w):
+
+        # start at looking for pivot after previous pivot row
+        for i in range(pivot_row, h):
+
+            # if non-zero element, this row can become pivot row
+            if array[i][j] != 0:
+
+                if i > pivot_row:  # if pivot row not already in correct position, swap
+                    array[i], array[pivot_row] = array[pivot_row], array[i]
+
+                row_reduce(array, pivot_row, j)  # row reduce everything else
+                pivot_row += 1
+                break
+
+    return array
 
 
 def rref(a, offset=0):
@@ -219,6 +262,11 @@ def binary_kernel(a):
     return basis
 
 
+def is_square(a):
+    s = shape(a)
+    return len(s) == 2 and s[0] == s[1]
+
+
 def det(a):
     return float(np.linalg.det(np.array(a)))  # using numpy's det function for efficiency
 
@@ -257,7 +305,7 @@ def minor(a, index=None):
     of the minor alternates, A.minor(1) returns -3 * -1 * det(A1,2) = -3 * -1 * B.det() = 27
     """
 
-    if len(s := np.shape(a)) != 2 and len(set(s)) != 1:
+    if len(s := shape(a)) != 2 and len(set(s)) != 1:
         raise ValueError(f"{minor.__name__} incompatible with matrix of shape {s}")
     elif len(a) == 2:
         return a[0][0] * a[1][1] - a[1][0] * a[0][1]
@@ -272,7 +320,7 @@ def char_poly(a, sym=None):
     to A.minor() for A = instance-matrix - Identity * x, for some variable x
     [typically x = sympy.Symbol('x')]."""
 
-    if len(s := np.shape(a)) != 2 and len(set(s)) != 1:
+    if len(s := shape(a)) != 2 and len(set(s)) != 1:
         raise ValueError("Matrix must be square!")
     elif sym is None:
         sym = Symbol("x")
@@ -301,7 +349,7 @@ def eigvals(a):
     [0, (2.5-1.6583123951777j), (2.5+1.6583123951777j)]
     """
 
-    if len(s := np.shape(a)) != 2 and len(set(s)) != 1:
+    if len(s := shape(a)) != 2 and len(set(s)) != 1:
         raise AttributeError("Matrix must be square")
 
     x = Symbol('x')
@@ -309,7 +357,7 @@ def eigvals(a):
 
 
 def eigvec(a, values=None):
-    if len(s := np.shape(a)) != 2 and len(set(s)) != 1:
+    if len(s := shape(a)) != 2 and len(set(s)) != 1:
         raise AttributeError("Matrix must be square")
     elif values is None:
         values = eigvals(a)

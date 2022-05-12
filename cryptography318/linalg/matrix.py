@@ -1,7 +1,7 @@
 from collections import UserList
 from numbers import Real
 from typing import Iterable
-from cryptography318.linalg.vector import Vector
+from .vector import Vector
 
 
 class Matrix(UserList[Vector]):
@@ -33,6 +33,21 @@ class Matrix(UserList[Vector]):
 
         self._m = len(self.data)
         self._n = length     # This could be None and that's okay
+
+    @classmethod
+    def identity(cls, size):
+        """
+        Returns an n by n identity matrix.
+
+        :param size: dimension of matrix
+        :return: identity matrix
+        """
+        m = []
+        for i in range(size):
+            row = [0] * size
+            row[i] = 1
+            m.append(row)
+        return cls(m)
 
     @property
     def transpose(self):

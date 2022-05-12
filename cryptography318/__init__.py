@@ -1,10 +1,24 @@
 import setuptools.version
 
-from cryptography318.factor import *
-from cryptography318.prime import *
-from cryptography318.utils import *
-from cryptography318.linalg import *
-from cryptography318.dlp import *
+from .factor import *
+from .prime import *
+from .utils import *
+from .linalg import *
+from .dlp import *
+
+import sys
+if sys.version_info < (3, 10):
+    raise ImportError("cryptography318 requires Python 3.10 or higher!")
+del sys
+
+try:
+    import numpy
+    import sympy
+except ImportError:
+    raise ImportError("cryptography318 depends on both numpy and sympy!")
+else:
+    del numpy
+    del sympy
 
 
 __all__ = [

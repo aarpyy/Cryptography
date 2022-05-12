@@ -1,4 +1,5 @@
 from math import prod
+from typing import Sequence
 
 
 def smooth_factor(n, factors):
@@ -33,7 +34,6 @@ def from_base(lst, base):
 
 
 def extended_gcd(*args):
-
     # actual extended gcd function
     def ext_gcd(a, b):
         if a == 0:
@@ -58,3 +58,59 @@ def extended_gcd(*args):
 
 def n_digits(n):
     return len(str(int(n)))
+
+
+def _where(iterable, cond):
+    for i, e in enumerate(iterable):
+        if cond(e):
+            yield i
+
+
+def where(iterable, cond=None):
+    """
+    Returns index(es) where condition function returns true. Does not search recursively
+    if given a non-flat list.
+
+    Note
+    ----
+    This has the same name as numpy.where() and is intended as a similar function but is not
+    the same in what it does.
+
+
+    :param iterable: iterable to search
+    :param cond: condition function
+    :return: tuple of index(es)
+    """
+
+    if cond is None:
+        def cond(x):
+            return bool(x)
+
+    return tuple(_where(iterable, cond))
+
+
+def shape(o):
+    """
+    Returns the shape of nested sequences as a tuple.
+
+    :param o: potentially not flat sequence
+    :return: shape of all non-jagged portions of sequence
+    """
+
+    # Non-sequences don't have shape, return empty tuple
+    if isinstance(o, (int, float)):
+        return tuple()
+
+    # Get shapes of all sequences
+    s = [shape(e) for e in o if isinstance(e, Sequence)]
+
+    # If not all the elements were sequences, we are done going deeper just return length
+    if len(s) != len(o):
+        return len(o),
+
+    # Get length of most recent call to shape, if they are all the same then return
+    x = set(a[0] for a in s)
+    if len(x) == 1:
+        return len(o), *s[0]
+    else:
+        return len(o),
