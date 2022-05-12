@@ -1,4 +1,4 @@
-from setuptools import setup, find_packages
+from setuptools import setup
 from pathlib import Path
 
 
@@ -22,7 +22,7 @@ setup(
     name='cryptography318',
     long_description=long_description,
     long_description_content_type='text/markdown',
-    version='0.3.4',
+    version='0.3.0',
     description='A set of functions useful in cryptography and linear algebra',
     url='https://github.com/aarpyy/Cryptography',
     author='Andrew Carpenter',
