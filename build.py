@@ -12,7 +12,7 @@ def main():
         if f.name.endswith(".egg-info") or (f.name in ("dist", "build") and f.is_dir()):
             sp.run(["rm", "-rf", f.absolute().name])
 
-    # Make sure we have setup tools before running setup.py
+    # Make sure we have setuptools and twine before running setup.py
     if importlib.util.find_spec("setuptools") is None:
         sp.run([sys.executable, "-m", "pip", "install", "setuptools"], cwd=cdir)
     if importlib.util.find_spec("twine") is None:
@@ -21,11 +21,11 @@ def main():
     # Run setup.py
     sp.run(["python3", "setup.py", "sdist", "bdist_wheel"], cwd=cdir)
 
+    # If test, upload to test.pypi.org
     if len(sys.argv) > 1 and sys.argv[1] in ("-t", "--test"):
-        # And upload to testpypi
         sp.run(["twine", "upload", "--repository-url", "https://test.pypi.org/legacy/", "dist/*"], cwd=cdir)
     else:
-        # And upload to pypi
+        # Otherwise, upload to pypi.org
         sp.run(["twine", "upload", "dist/*"], cwd=cdir)
 
 
