@@ -13,18 +13,19 @@ def main():
             sp.run(["rm", "-rf", f.absolute().name])
 
     # Make sure we have setuptools and twine before running setup.py
-    if importlib.util.find_spec("setuptools") is None:
-        sp.run([sys.executable, "-m", "pip", "install", "setuptools"], cwd=cdir)
-    if importlib.util.find_spec("twine") is None:
-        sp.run([sys.executable, "-m", "pip", "install", "twine"], cwd=cdir)
+    for pkg in ("setuptools", "twine", "wheel"):
+        if importlib.util.find_spec(pkg) is None:
+            sp.run([sys.executable, "-m", "pip", "install", pkg], cwd=cdir)
 
     # Run setup.py
-    sp.run(["python3", "setup.py", "sdist", "bdist_wheel"], cwd=cdir)
+    sp.run([sys.executable, "setup.py", "sdist", "bdist_wheel"], cwd=cdir)
 
     # If test, upload to test.pypi.org
     if len(sys.argv) > 1 and sys.argv[1] in ("-t", "--test"):
+        print("Uploading package to test.pypi.org")
         sp.run(["twine", "upload", "--repository-url", "https://test.pypi.org/legacy/", "dist/*"], cwd=cdir)
     else:
+        print("Uploading package to pypi.org")
         # Otherwise, upload to pypi.org
         sp.run(["twine", "upload", "dist/*"], cwd=cdir)
 

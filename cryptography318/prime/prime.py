@@ -117,7 +117,7 @@ class Sieve:
 
         p = self.tail
         while (p := next_prime(p)) <= n:
-            self._list.append(p)  # type: ignore
+            self._list.append(p)
 
     def range(self, a, b=None):
         if b is None:
@@ -160,7 +160,7 @@ def miller_rabin(n, k=40):
     tests if random a is a witness of n's composite-ness, testing with
     k random a's"""
 
-    if res := known_prime(n) is not None:
+    if (res := known_prime(n)) is not None:
         return res
 
     d = n - 1
@@ -197,16 +197,6 @@ def _mr_test(d, n):
     return False
 
 
-def miller_rabin_bases(bases, n):
-    """Helper function that allows for a list of witnesses to be tested
-    using MillerRabin_base_a function"""
-
-    for a in bases:
-        if not _miller_rabin_base_a(a, n):
-            return False
-    return True
-
-
 def _miller_rabin_base_a(a, n):
     """Miller Rabin test with specific base of a"""
 
@@ -233,6 +223,16 @@ def _miller_rabin_base_a(a, n):
         a = pow(a, 2, n)
 
     return False
+
+
+def miller_rabin_bases(bases, n):
+    """Helper function that allows for a list of witnesses to be tested
+    using MillerRabin_base_a function"""
+
+    for a in bases:
+        if not _miller_rabin_base_a(a, n):
+            return False
+    return True
 
 
 def baillie_psw(n, mr=True):
@@ -337,7 +337,7 @@ def isprime(n):
         return miller_rabin(n, k=40) and baillie_psw(n, mr=False)
 
 
-def randprime(a: int, b: int = None):  # type: ignore
+def randprime(a: int, b: int = None):
     """Uses combination of Miller-Rabin and Baillie-PSW primality tests to generate random prime
 
     :param a: integer starting point of range for random prime
@@ -359,7 +359,7 @@ def randprime(a: int, b: int = None):  # type: ignore
             start = start[1]
         if isinstance(stop, tuple):
             stop = stop[0]
-        return choice(primesieve[start:stop])  # type: ignore
+        return choice(primesieve[start:stop])
 
     # if base_2, uses 2 as a base and increments by 1 (default) for generating random int
     # if base != 2, generates random int starting at lower limit, incrementing by 2
