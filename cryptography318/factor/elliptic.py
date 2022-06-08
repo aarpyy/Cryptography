@@ -1,7 +1,7 @@
 from math import log, isqrt, floor, sqrt, gcd
 from typing import Union
 
-from .curve import *
+from cryptography318.factor.curve import *
 from cryptography318.prime.prime import isprime, primesieve
 
 

@@ -1,6 +1,7 @@
 from cryptography318.utils.utils import *
 import numpy as np
 import pytest
+from timeit import timeit
 
 
 @pytest.mark.parametrize('args', [
@@ -22,4 +23,12 @@ def test_where(args):
 ])
 def test_shape(a):
     assert all(x == y for x, y in zip(shape(a), np.shape(a)))
+
+
+@pytest.mark.parametrize('args', [(1 << 44, 44), (1 << 53, 53)])
+def test_trailing(args):
+    a, b = args
+    assert trailing(a) == b
+    t = timeit(lambda: trailing(a), number=pow(10, 10))
+    print(f"time: {t:.6f}s")
 

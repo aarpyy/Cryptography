@@ -7,7 +7,7 @@ from cryptography318.utils.utils import n_digits, smooth_factor, eval_power
 from cryptography318.linalg.linalg import binary_kernel, dot
 from cryptography318.prime.prime import primesieve, quadratic_residue, sqrt_mod
 
-
+# Constants for SIQS algorithm
 MIN_A_FACTOR = 2000
 MAX_A_FACTOR = 4000
 MIN_N_FACTORS = 20
@@ -46,7 +46,7 @@ class QSPoly(Callable[[int], int]):
         self.args = [*args]
         return self
 
-    def __call__(self, x: int) -> int:
+    def __call__(self, x):
         return reduce(lambda y, z: (y * x) + z, self.args, 0)
 
 

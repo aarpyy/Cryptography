@@ -1,10 +1,29 @@
 from pathlib import Path
+import setup
+import argparse
 import subprocess as sp
 import importlib.util
 import sys
 
 
+def is_version_number(x: str):
+    vinfo = x.split(".")
+    if len(vinfo) != 3:
+        return False
+    return all(a.isdigit() for a in vinfo)
+
+
 def main():
+    parser = argparse.ArgumentParser(description="Build and upload package to PyPI")
+    parser.add_argument("version", help="package version")
+    parser.add_argument("-t", "--test", help="upload to test.pypi.org", action="store_true")
+    args = parser.parse_args()
+
+    if not is_version_number(args.version):
+        print(f"positional version argument must be valid version number "
+              f"like X.Y.Z, not '{args.version}'", file=sys.stderr)
+        exit(2)
+
     cdir = Path(__file__).parent
 
     # Remove all previous package build stuff
@@ -17,11 +36,12 @@ def main():
         if importlib.util.find_spec(pkg) is None:
             sp.run([sys.executable, "-m", "pip", "install", pkg], cwd=cdir)
 
-    # Run setup.py
-    sp.run([sys.executable, "setup.py", "sdist", "bdist_wheel"], cwd=cdir)
+    # Run setup
+    setup.run_setup(args.version)
+    # sp.run([sys.executable, "setup.py", "sdist", "bdist_wheel"], cwd=cdir)
 
     # If test, upload to test.pypi.org
-    if len(sys.argv) > 1 and sys.argv[1] in ("-t", "--test"):
+    if args.test:
         print("Uploading package to test.pypi.org")
         sp.run(["twine", "upload", "--repository-url", "https://test.pypi.org/legacy/", "dist/*"], cwd=cdir)
     else:

@@ -1,10 +1,9 @@
-from math import prod
+from math import prod, isqrt
 from random import randrange, choice
 from itertools import count
-from sympy.ntheory.primetest import is_square
 from pathlib import Path
 
-from .bailliepsw_helper import LucasPseudoPrime, D_chooser
+from cryptography318.prime.bailliepsw_helper import LucasPseudoPrime, D_chooser
 
 
 module = Path(__file__).parent.absolute()
@@ -14,7 +13,7 @@ else:
     primesIO = None
 
 
-class Sieve:
+class Sieve(object):
     """
     Unbound list of primes starting at 2. Object is iterable, index-able, print-able, searchable,
     and extendable. Unless another specific use is required, import primesieve object as a global
@@ -155,13 +154,70 @@ class Sieve:
 primesieve = Sieve()
 
 
-def miller_rabin(n, k=40):
-    """MRPrimality test reduces n - 1 to a power of 2 and an odd number, then
-    tests if random a is a witness of n's composite-ness, testing with
-    k random a's"""
+def is_square(n):
+    """
+    Replacement for Sympy's is_square function that follows almost
+    explicitly the routine outlined in the link. The major difference
+    is that due to the speed of Python's PyLong object, we don't need
+    to pre-mod our value to increase the speed of future mods, for each
+    test we can mod n directly.
 
-    if (res := known_prime(n)) is not None:
-        return res
+    References
+    ----------
+    https://mersenneforum.org/showpost.php?p=110896
+
+    :param n: integer
+    :return: if a * a == n for some integer a
+    """
+    if n < 0:
+        return False
+    elif n in (0, 1):
+        return True
+    elif n & 1:
+        return False
+
+    m = n & 127  # n % 128
+    if (m * 0x8bc40d7d) & (m * 0xa1e2f5d1) & 0x14020a:
+        return False
+
+    m = n % 63
+    if (m * 0x3d491df7) & (m * 0xc824a9f9) & 0x10f14008:
+        return False
+
+    m = n % 25
+    if (m * 0x1929fc1b) & (m * 0x4c9ea3b2) & 0x51001005:
+        return False
+
+    m = 0xd10d829a * (n % 31)
+    if m & (m + 0x672a5354) & 0x21025115:
+        return False
+
+    m = n % 23
+    if (m * 0x7bd28629) & (m * 0xe7180889) & 0xf8300:
+        return False
+
+    m = n % 19
+    if (m * 0x1b8bead3) & (m * 0x4d75a124) & 0x4280082b:
+        return False
+
+    m = n % 17
+    if (m * 0x6736f323) & (m * 0x9b1d499) & 0xc0000300:
+        return False
+
+    m = n % 11
+    if (m * 0xabf1a3a7) & (m * 0x2612bf93) & 0x45854000:
+        return False
+
+    m = isqrt(n)
+    return m * m == n
+
+
+def miller_rabin(n, k=40):
+    """
+    MRPrimality test reduces n - 1 to a power of 2 and an odd number, then
+    tests if random a is a witness of n's composite-ness, testing with
+    k random a's
+    """
 
     d = n - 1
     r = 0
@@ -236,11 +292,17 @@ def miller_rabin_bases(bases, n):
 
 
 def baillie_psw(n, mr=True):
-    """Perform the Baillie-PSW probabilistic primality test on candidate."""
+    """
+    Perform the Baillie-PSW probabilistic primality test on candidate.
+
+    :param n: prime candidate
+    :param mr: if Miller-Rabin test base 2 should be used
+    :return:
+    """
 
     # Check divisibility by a short list of primes less than 50
-    if known_prime(n) is not None:
-        return known_prime(n)
+    if (res := known_prime(n)) is not None:
+        return res
 
     # Now perform the Miller-Rabin primality test base 2
     if mr and not _miller_rabin_base_a(2, n):
@@ -562,6 +624,35 @@ def sqrt_mod(a, p):
         return (a * v * (i - 1)) % p
     else:
         return pow(a, (p + 1) // 4, p)
+
+
+def lift_sqrt(root, n, modulus, q=None):
+    """
+    Given integer root that is the modular square root of ``n
+    % modulus`` compute and return the square root of ``n % modulus * q``.
+    That is, if q is not given, this function computes the square root
+    of ``n % modulus ** 2``.
+
+    Note
+    ----
+    If q is not given, modulus must be prime. If q is given it must be
+    prime and modulus must be a prime power of q.
+
+    References
+    ----------
+    This algorithm is Hensel's Lemma.
+
+    :param root: square root of n mod modulus
+    :param n: integer in FF(modulus)
+    :param modulus: modulus of field
+    :param q: prime
+    :return: square root of n mod modulus * q
+    """
+    if q is None:
+        q = modulus
+
+    s = ((n - root * root) // modulus) * pow(root + root, -1, q)
+    return (root + s * modulus) % (modulus * q)
 
 
 def quadratic_residue(a, p):

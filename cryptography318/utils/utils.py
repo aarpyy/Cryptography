@@ -1,5 +1,6 @@
 from math import prod
 from typing import Sequence
+import operator
 
 
 def smooth_factor(n, factors):
@@ -114,3 +115,44 @@ def shape(o):
         return len(o), *s[0]
     else:
         return len(o),
+
+
+def trailing(x):
+    """
+    Compute the number of trailing zeros of x.
+
+    :param x:
+    :return:
+    """
+
+    if x & 1:
+        return 0
+    elif x & 2:
+        return 1
+
+    # Check in sections of 16 bits for a zero
+    a = 0xffff
+    n = 16
+    while x & a == 0:
+        a <<= 16
+        n += 16
+
+    while x & a:
+        a >>= 1
+        n -= 1
+    return n
+
+
+def as_int(x):
+    """
+    Attempts to return object as integer, raising TypeError if unable. Essentially
+    equivalent to operator.index(x) except it correctly returns integer for
+    integer-valued floats.
+
+    :param x: object
+    :raises TypeError: if object cannot be interpreted as an integer.
+    :return:
+    """
+    if isinstance(x, float) and x.is_integer():
+        return int(x)
+    return operator.index(x)

@@ -1,7 +1,7 @@
 from collections import UserList
 from numbers import Real
 from typing import Iterable
-from .vector import Vector
+from cryptography318.linalg.vector import Vector
 
 
 class Matrix(UserList[Vector]):
