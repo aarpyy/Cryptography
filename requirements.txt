@@ -1,2 +1,2 @@
-numpy>=1.22
-sympy>=1.10
+numpy>=1.23
+sympy>=1.11

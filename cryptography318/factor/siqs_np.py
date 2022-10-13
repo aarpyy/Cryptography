@@ -1,10 +1,13 @@
+import numpy as np
+import scipy
+
 from random import Random
-from math import log2, sqrt, isqrt, gcd, ceil
+from math import log2, sqrt, isqrt, gcd, ceil, prod
 from functools import reduce
 from collections.abc import Callable
 
 from cryptography318.utils.utils import n_digits, smooth_factor, eval_power
-from cryptography318.linalg.linalg import binary_kernel, dot
+from cryptography318.linalg import binary_kernel_np
 from cryptography318.prime.prime import primesieve, quadratic_residue, sqrt_mod
 
 # Constants for SIQS algorithm
@@ -305,31 +308,62 @@ def vec_matmul_T(vector, matrix):
     already transposed, to save time when multiplying against the
     same matrix repeatedly.
     """
-    return [dot(vector, row) for row in matrix]
+    for row in matrix:
+        yield int(vector @ row) // 2
+
+
+def assert_kernel(kern, arr):
+    for row in kern:
+        # Assert that the row is not the zero vector
+        assert any(row)
+        for r in arr:
+            # The dot product should be 0 mod 2 since its kernel mod 2
+            assert not (row @ r) % 2
 
 
 def solve_matrix(n):
     global smooth_t, smooth_u, primes
 
-    mod2 = []
-    T = []
-    for i in range(len(smooth_u[0])):
-        mod2.append([])
-        T.append([])
-        for j in range(len(smooth_u)):
-            mod2[i].append(smooth_u[j][i] % 2)
-            T[i].append(smooth_u[j][i])
+    # def mat_dump(a):
+    #     return "\n".join(",".join(str(v) for v in row) for row in a)
+    #
+    # with open("n.txt", "w") as fp:
+    #     fp.write(str(n))
+    #
+    # with open("smooth_t.txt", "w") as fp:
+    #     fp.write(mat_dump([smooth_t]))
+    #
+    # with open("smooth_u.txt", "w") as fp:
+    #     fp.write(mat_dump(smooth_u))
+    #
+    # with open("primes.txt", "w") as fp:
+    #     fp.write(mat_dump([primes]))
+    # exit(0)
 
-    kernel = binary_kernel(mod2)
+    # print(f"size of prime base: {len(primes)}")
 
-    for vector in kernel:  # iterate over basis of kernel
-        powers = map(lambda v: v // 2, vec_matmul_T(vector, T))
-        x = 1
-        for j, k in zip(vector, smooth_t):
-            if j:
-                x *= k
+    smooth_u = np.array(smooth_u)
+    T = smooth_u.transpose()
+    mod2 = T % 2
 
-        y = eval_power(powers, primes)
+    # print(f"shape smooth_u: {smooth_u.shape}")
+    # print(f"shape T: {T.shape}")
+
+    # print(mod2.tolist())
+    # kernel = scipy.linalg.null_space(mod2).astype(np.int8)    # type: np.ndarray
+    # with open("mod2.txt", "w") as fp:
+    #     fp.write(java_print(mod2.tolist()))
+    # exit(0)
+    kernel = binary_kernel_np(mod2)
+
+    assert_kernel(kernel, T)
+
+    for vector in kernel:
+        powers = vec_matmul_T(vector, T)
+
+        # We need to do this instead of dot because dot will return the sum instead of product
+        x = prod(k for j, k in zip(vector, smooth_t) if j)
+        y = prod(pow(p, e) for p, e in zip(primes, powers))
         p, q = gcd(x + y, n), gcd(x - y, n)
 
         if 1 < p < n:
@@ -359,7 +393,7 @@ def siqs(n, *, fp=None, loud=True):
     :return: factor of n if one exists, otherwise None
     :rtype: int | None
     """
-    global min_sieve, factor_base, relations_found, a_factors, loud_print
+    global min_sieve, factor_base, relations_found, a_factors, loud_print, smooth_u, smooth_t
 
     loud_print = loud
 
@@ -385,6 +419,7 @@ def siqs(n, *, fp=None, loud=True):
             sieve_array = sieve(m)
             trial_division(sieve_array, m, g, h)
 
+            # If we have found anymore relations, print
             if relations_found >= last_printed:
                 last_printed = relations_found
                 l_print(f"\r{relations_found}/{required_relations}", end="")
@@ -397,12 +432,16 @@ def siqs(n, *, fp=None, loud=True):
                 g, h = next_poly(i, n)
 
             i += 1
-        last_printed = relations_found = 0
+
         l_print()
 
         if (factor := solve_matrix(n)) is not None:
-
             l_print(f"Factor: {factor}")
             return factor
+        else:
+            # Reset relations found and smooth values found
+            last_printed = relations_found = 0
+            smooth_u = []
+            smooth_t = []
 
     return None

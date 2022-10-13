@@ -1,6 +1,40 @@
-from math import prod
+from math import prod, ceil
 from typing import Sequence
 import operator
+
+
+def binary_search(a, key, *, start=0, end=None, exist=True):
+    """
+    Given a sorted sequence, find key in the sequence if it exists,
+    or the index at which key would be inserted to in order to keep
+    sort order. This is an attempted replication of Java's binarySearch.
+
+    If exist is set to False, then if the value is found in the list,
+    None will be returned. This configuration is useful when we want
+    to force a unique list and only insert a value if it does not exist.
+
+    :param a: sorted sequence
+    :param key: value to search
+    :param start: index to start search at
+    :param end: index to stop search at
+    :param exist: if value is allowed to exist in sequence
+    :return: index value should exist at
+    """
+    low = start
+    high = end or (len(a) - 1)
+    while low <= high:
+        mid = (low + high) // 2
+        if a[mid] < key:
+            low = mid + 1
+        elif a[mid] > key:
+            high = mid - 1
+        else:
+            if exist:
+                return mid
+            else:
+                return None
+
+    return high + 1
 
 
 def smooth_factor(n, factors):
@@ -47,7 +81,7 @@ def extended_gcd(*args):
     if len(args) == 2:
         return ext_gcd(args[0], args[1])
 
-    g, u, v = ext_gcd(args[0], args[1])  # gcd of first two args; u, v s.t. args sum to gcd
+    g, u, v = ext_gcd(args[0], args[1])  # gcd of first two values; u, v s.t. values sum to gcd
     values = [u, v]
     for e in args[2:]:
         g, u1, v1 = ext_gcd(g, e)
@@ -58,7 +92,7 @@ def extended_gcd(*args):
 
 
 def n_digits(n):
-    return len(str(int(n)))
+    return len(str(n))
 
 
 def _where(iterable, cond):

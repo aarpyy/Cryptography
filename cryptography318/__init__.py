@@ -7,7 +7,7 @@ from .linalg import *
 from .dlp import *
 
 import sys
-if sys.version_info < (3, 10):
+if sys.version_info < (3, 9):
     raise ImportError("cryptography318 requires Python 3.10 or higher!")
 del sys
 

@@ -8,7 +8,7 @@ def test_ecm_mont():
     a = randprime(pow(10, 25), pow(10, 26))
     b = randprime(pow(10, 25), pow(10, 26))
     c = randprime(pow(10, 4), pow(10, 5))
-    d = ecm_mont(a * b, B1=960, B2=5700)
+    d = ecm_mont(a * b * c, B1=960, B2=5700)
     assert d in (a, b, c)
 
 

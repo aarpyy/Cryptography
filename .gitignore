@@ -140,3 +140,9 @@ dmypy.json
 # Jetbrains stuff (I think?)
 Pipfile
 Pipfile.lock
+
+# Random files in root I used for haphazard testing
+*.txt
+*.py
+!license.txt
+!requirements.txt

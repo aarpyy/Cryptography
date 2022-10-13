@@ -77,7 +77,7 @@ def test_flatten():
     assert flatten([[1, 2, [[[3, 4, [[[10]]]]]]]]) == [1, 2, 3, 4, 10]
 
 
-@pytest.mark.parametrize('args', [
+@pytest.mark.parametrize('values', [
     ([[1, 2, 3], [4, 5, 6]],
      [[1, 2], [3, 4], [5, 6]],
      [[22, 28], [49, 64]])

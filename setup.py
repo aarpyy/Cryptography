@@ -32,7 +32,7 @@ def run_setup(version=None):
         description='A set of functions useful in cryptography and linear algebra',
         url='https://github.com/aarpyy/Cryptography',
         author='Andrew Carpenter',
-        author_email='acarpent@oberlin.edu',
+        author_email='andrewcarp00@gmail.com',
         packages=["cryptography318"] + modules,
         install_requires=requirements,
         python_requires=">=3.10",   # Python 3.10 now required since zip(*, strict=True) is used

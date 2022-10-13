@@ -1,4 +1,5 @@
 from cryptography318.prime import sqrt_mod, randprime, quadratic_residue, lift_sqrt
+from cryptography318.prime.prime import primesieve
 from random import randrange
 
 
@@ -24,3 +25,16 @@ def test_lift_sqrt():
             root = lift_sqrt(root, a, m, p)
             m *= p
             assert pow(root, 2, m) == a % m
+
+
+def test_primesieve():
+    primesieve.extend(200)
+    print(primesieve)
+    r = primesieve.search(4, 53, 59, 62, 71)
+    print(r)
+    print(primesieve[r[3][0]])
+    print(primesieve[r[3][1]])
+
+
+if __name__ == "__main__":
+    test_primesieve()

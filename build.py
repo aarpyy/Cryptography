@@ -21,7 +21,7 @@ def main():
 
     if not is_version_number(args.version):
         print(f"positional version argument must be valid version number "
-              f"like X.Y.Z, not '{args.version}'", file=sys.stderr)
+              f"like 'X.Y.Z', not '{args.version}'", file=sys.stderr)
         exit(2)
 
     cdir = Path(__file__).parent

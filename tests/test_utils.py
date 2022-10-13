@@ -4,7 +4,7 @@ import pytest
 from timeit import timeit
 
 
-@pytest.mark.parametrize('args', [
+@pytest.mark.parametrize('values', [
     ([1, 0, 1, 2, 0, 3], (0, 2, 3, 5)),
     ([[1, 2, 3], [0, 0], 5, [[6, 0, [0, 1]]]], ())
 ])
@@ -25,7 +25,7 @@ def test_shape(a):
     assert all(x == y for x, y in zip(shape(a), np.shape(a)))
 
 
-@pytest.mark.parametrize('args', [(1 << 44, 44), (1 << 53, 53)])
+@pytest.mark.parametrize('values', [(1 << 44, 44), (1 << 53, 53)])
 def test_trailing(args):
     a, b = args
     assert trailing(a) == b
