@@ -1,274 +1,121 @@
-from functools import reduce
 from sympy import Symbol, im, solve
-from numbers import Integral
-from typing import Iterable
-from cryptography318.utils.utils import where, shape
 import numpy as np
 
 
-def print_matrix(m, ret=False, rnd=3):
+def kernel_gf2(a):
     """
-    Prints matrix in readable format.
-
-    :param m: Matrix instance
-    :param ret: if function should return string instead of printing
-    :param rnd: decimal places to round floats
-    :return: Matrix as string if ``ret``, otherwise None
-    """
-    str_array = []
-    max_len = 0
-    shape = m.shape
-    if len(shape) == 1:
-        formatted = "[]"
-    else:
-        for i in range(shape[0]):
-            str_array.append([])
-            for j in range(shape[1]):
-                v = m[i][j]
-
-                # If not integral, make sure we round to avoid long floats
-                if not isinstance(v, Integral):
-                    v = round(v, rnd)
-                s = str(v)
-                max_len = max(len(s), max_len)
-                str_array[i].append(s)
-
-        # Make sure padding leaves room for at least 1 space AND is odd so that there is a center
-        padding = (max_len + 1) | 1
-        formatted = "["
-
-        for i in range(shape[0]):
-            # If not the first row, add a single space
-            if i != 0:
-                formatted += " "
-            formatted += "["
-
-            for j in range(len(str_array[0])):
-                e = str_array[i][j]
-                d = padding - len(e)
-                pad_left = d // 2
-                pad_right = d - pad_left
-                formatted += pad_left * " " + e + " " * pad_right
-
-            formatted += "]"
-
-            # If it's not last row, add newline
-            if i != shape[0] - 1:
-                formatted += "\n"
-        formatted += "]"
-
-    if ret:
-        return formatted
-    else:
-        print(formatted)
-
-
-def dot(a, b):
-    return sum(x * y for x, y in zip(a, b, strict=True))
-
-
-def transpose(a):
-    return list(map(lambda i: list(map(lambda r: r[i], a)), range(len(a[0]))))
-
-
-def matmul(a, b):
-    T = transpose(b)
-    return [[dot(x, y) for y in T] for x in a]
-
-
-def flatten(a):
-    if isinstance(a, Iterable):
-        return reduce(lambda r1, r2: flatten(r1) + flatten(r2), a, [])
-    else:
-        return [a]
-
-
-def matrix_slice(a, index):
-    """
-    Slices matrix by column index, returning the sliced matrix as a tuple
-    with the first argument being the matrix from column 0 to index exclusive,
-    and the second being matrix from index to last column.
-
+    Computes the null space of a matrix in GF(2)
     :param a: matrix
-    :param index: column index of slice
-    :return: matrix [0, index), matrix [index, )
+    :return: basis of null space as rows
     """
-    left, right = [], []
-    for row in a:
-        left.append(row[:index])
-        right.append(row[index:])
-    return left, right
 
+    a = np.array(a) & 1
+    h, w = a.shape
 
-def matrix_copy(a):
-    copy = []
-    for row in a:
-        copy.append(row[:])
-    return copy
+    # Append identity matrix to bottom
+    array = np.append(a, np.eye(w), axis=0).transpose().astype(np.int8)
 
-
-def matrix_equals(a, b):
-    if len(a) == len(b):
-        for x, y in zip(a, b):
-            if len(x) != len(y) or any(i != j for i, j in zip(x, y)):
-                return False
-        return True
-    else:
-        return False
-
-
-def make_pivot(a, index=None):
-    if index is None:
-        index = where(a)[0]
-    return list(map(lambda n: n / a[index], a))
-
-
-def row_reduce(a, row, col):
-    w = len(a[row])
-    for i in range(len(a)):
-        if i != row:
-            k = a[i][col]
-            a[i] = [a[i][j] - a[row][j] * k for j in range(w)]
-
-
-def identity_matrix(size):
-    matrix = [[]] * size
-    for i in range(size):
-        matrix[i] = [0 if j != i else 1 for j in range(size)]
-    return matrix
-
-
-def ref(a, offset=0):
     pivot_row = 0  # first pivot belongs in first row
 
-    w = len(a[0]) - offset
-    h = len(a)
-
-    array = matrix_copy(a)
-
-    for j in range(w):
+    for j in range(h):  # iterate only over current matrix, not attached identity matrix
 
         # start at looking for pivot after previous pivot row
-        for i in range(pivot_row, h):
+        for i in range(pivot_row, w):
 
             # if non-zero element, this row can become pivot row
-            if array[i][j] != 0:
+            if array[i, j] == 1:
 
                 if i > pivot_row:  # if pivot row not already in correct position, swap
-                    array[i], array[pivot_row] = array[pivot_row], array[i]
+                    array[[i, pivot_row]] = array[[pivot_row, i]]
 
-                row_reduce(array, pivot_row, j)  # row reduce everything else
+                f = np.eye(w, dtype=np.int8)
+                f[:, pivot_row] = array[:, j]
+                array = (f @ array) & 1
                 pivot_row += 1
                 break
 
-    return array
+    # What we are left with in 'array' is a matrix w by h in rref on the left and
+    # a matrix w by w on the right containing our potential kernel.
+
+    left, _, right = np.split(array, [h, h], axis=1)
+
+    # Our kernel is all the rows on the right where the row on the left is all 0's
+    # and since our matrix on the left is in rref, as soon as we find one null row
+    # all the rows after that cannot contain pivots either
+    i = 0
+    while i < w and any(left[i]):
+        i += 1
+
+    # Now that we have found `i` being the first index of a null row, return the rest
+    return right[i:]
 
 
-def rref(a, offset=0):
+def kernel(a):
+    """
+    Computes null space of matrix
+    :param a: matrix
+    :return: basis of null space as rows
+    """
+    array = np.array(a)
+    if len(array.shape) != 2:
+        raise ValueError(f"{kernel.__name__} can only be performed on 2-dimensional arrays")
+
+    u, s, vh = np.linalg.svd(array)
+    rank, = s.shape
+    return vh[rank + 1:]
+
+
+def rref(a, offset=0, rtol=1e-05, atol=1e-08):
     """
     Computes the reduced row-echelon form of the matrix. If offset is provided,
     computes the RREF ignoring the last offset columns.
 
     :param a: matrix
     :param offset: column index offset from last column
+    :param rtol:
+    :param atol:
     :return: matrix in RREF
     """
+
+    shape = np.shape(a)
+    if len(shape) != 2:
+        raise ValueError(f"{rref.__name__} can only be performed on 2-dimensional arrays")
+
+    h, w = shape
     pivot_row = 0  # first pivot belongs in first row
 
-    w = len(a[0]) - offset
-    h = len(a)
+    array = np.array(a)
 
-    array = matrix_copy(a)
-
-    for j in range(w):
+    for j in range(w - offset):
 
         # start at looking for pivot after previous pivot row
         for i in range(pivot_row, h):
 
             # if non-zero element, this row can become pivot row
-            if array[i][j] != 0:
+            if not np.isclose(array[i, j], 0, rtol=rtol, atol=atol):
 
                 # make j'th element the pivot, reducing rest of row as well
-                array[i] = make_pivot(array[i], j)
+                array[i] /= array[i, j]
                 if i > pivot_row:  # if pivot row not already in correct position, swap
-                    array[i], array[pivot_row] = array[pivot_row][:], array[i][:]
+                    array[[i, pivot_row]] = array[[pivot_row, i]]
 
-                row_reduce(array, pivot_row, j)  # row reduce everything else
+                # This process row reduces
+                f = np.eye(h)
+                b = -array[:, j]    # Set the active column to negative values for each row
+                b[pivot_row] = 1    # And positive 1 for the pivot row
+                f[:, pivot_row] = b
+                array = f @ array   # Matrix multiplication means each row is subtracted by the pivot row
+
                 pivot_row += 1
                 break
 
     return array
 
 
-def kernel(a):
-    h = len(a)  # get number of rows
-    w = len(a[0])
-    array = list(list(r) for r in a)
-    for j in range(w):  # this loop appends identity matrix to bottom of instance matrix
-        row = [0] * w
-        row[j] = 1
-        array.append(row)
-
-    array = rref(transpose(array), w)
-    array, kern = matrix_slice(array, h)  # separates original matrix from now modified identity matrix
-    basis = []
-
-    for i, row in enumerate(array):
-        if not any(row):  # all null rows in original matrix correspond to basis vector for kernel
-            basis.append(kern[i])
-
-    # Returns list of basis vectors for kernel i.e. rows are the vectors, not columns
-    return basis
-
-
-def binary_kernel(a):
-    h = len(a)  # get number of rows
-    w = len(a[0])
-    array = matrix_copy(a)
-    for j in range(w):  # this loop appends identity matrix to bottom of instance matrix
-        row = [0] * w
-        row[j] = 1
-        array.append(row)
-
-    array = transpose(array)
-
-    pivot_row = 0  # first pivot belongs in first row
-
-    for j in range(h):  # iterate only over current matrix, not attached identity matri
-
-        # start at looking for pivot after previous pivot row
-        for i in range(pivot_row, w):
-
-            # if non-zero element, this row can become pivot row
-            if array[i][j]:
-
-                if i > pivot_row:  # if pivot row not already in correct position, swap
-                    array[i], array[pivot_row] = array[pivot_row][:], array[i][:]
-
-                for k in range(w):
-                    if k != pivot_row and array[k][j]:
-                        for m in range(h + w):
-                            array[k][m] = (array[k][m] - array[pivot_row][m]) % 2
-                pivot_row += 1
-
-    array, kern = matrix_slice(array, h)  # separates original matrix from now modified identity matrix
-    basis = []
-
-    for i, row in enumerate(array):
-        if not any(row):  # all null rows in original matrix correspond to basis vector for kernel
-            basis.append(kern[i])
-
-    # Returns list of basis vectors for kernel i.e. rows are the vectors, not columns
-    return basis
-
-
-def is_square(a):
-    s = shape(a)
-    return len(s) == 2 and s[0] == s[1]
-
-
-def det(a):
-    return float(np.linalg.det(np.array(a)))  # using numpy's det function for efficiency
+"""
+Functions below here are not declared in __init__ as they are untested and not optimized.
+TODO: Incorporate these
+"""
 
 
 def minor(a, index=None):
@@ -305,7 +152,7 @@ def minor(a, index=None):
     of the minor alternates, A.minor(1) returns -3 * -1 * det(A1,2) = -3 * -1 * B.det() = 27
     """
 
-    if len(s := shape(a)) != 2 and len(set(s)) != 1:
+    if len(s := np.shape(a)) != 2 and len(set(s)) != 1:
         raise ValueError(f"{minor.__name__} incompatible with matrix of shape {s}")
     elif len(a) == 2:
         return a[0][0] * a[1][1] - a[1][0] * a[0][1]
@@ -320,7 +167,7 @@ def char_poly(a, sym=None):
     to A.minor() for A = instance-matrix - Identity * x, for some variable x
     [typically x = sympy.Symbol('x')]."""
 
-    if len(s := shape(a)) != 2 and len(set(s)) != 1:
+    if len(s := np.shape(a)) != 2 and len(set(s)) != 1:
         raise ValueError("Matrix must be square!")
     elif sym is None:
         sym = Symbol("x")
@@ -333,7 +180,7 @@ def char_poly(a, sym=None):
 
 def eigvals(a):
     """Finds all eigenvalues for square matrix. Solves equation det(A - xI) = 0 with A
-    equal to the instance matrix, I the identity, for x. The set of all solutions for x
+    equal to the instance matrix, `I` the identity, for x. The set of all solutions for x
     is analogous to the set of eigenvalues for A.
 
     :return: list of real or imaginary eigenvalues
@@ -349,7 +196,7 @@ def eigvals(a):
     [0, (2.5-1.6583123951777j), (2.5+1.6583123951777j)]
     """
 
-    if len(s := shape(a)) != 2 and len(set(s)) != 1:
+    if len(s := np.shape(a)) != 2 and len(set(s)) != 1:
         raise AttributeError("Matrix must be square")
 
     x = Symbol('x')
@@ -357,7 +204,7 @@ def eigvals(a):
 
 
 def eigvec(a, values=None):
-    if len(s := shape(a)) != 2 and len(set(s)) != 1:
+    if len(s := np.shape(a)) != 2 and len(set(s)) != 1:
         raise AttributeError("Matrix must be square")
     elif values is None:
         values = eigvals(a)
