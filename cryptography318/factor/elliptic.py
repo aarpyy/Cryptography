@@ -1,4 +1,4 @@
-from math import log, isqrt, floor, sqrt, gcd
+from math import floor, gcd, isqrt, log, sqrt
 from typing import Union
 
 from cryptography318.factor.curve import *
@@ -228,14 +228,14 @@ def ecm_mont(N, *, B1=None, B2=None, retry=50):
 
         d = 1
 
-        R = Q_0.ladder(B1)          # B * Q
-        T = Q_0.ladder(B1 - D)      # (B - D) * Q
+        R = Q_0.ladder(B1)  # B * Q
+        T = Q_0.ladder(B1 - D)  # (B - D) * Q
         Q_D = S[D]
         for i in range(1, D + 1):
             d = (d * (R.x * S[i].z - R.z * S[i].x))
 
             # Swap T, R to keep track of difference between points for montgomery addition
-            T, R = R, R.add(Q_D, T)     # R = (B + kD)Q + DQ, T = (B + (k-1) * D)Q = diff
+            T, R = R, R.add(Q_D, T)  # R = (B + kD)Q + DQ, T = (B + (k-1) * D)Q = diff
 
         q = gcd(d, N)
         if 1 < q < N:

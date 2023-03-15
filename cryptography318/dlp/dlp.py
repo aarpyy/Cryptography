@@ -1,8 +1,8 @@
-from math import isqrt, gcd, sqrt
 from functools import reduce
+from math import gcd, isqrt, sqrt
 
 from cryptography318.prime.prime import primesieve
-from cryptography318.utils.utils import smooth_factor, from_base
+from cryptography318.utils.utils import from_base, smooth_factor
 
 
 def baby_step_giant_step(g, h, p, order=None):
@@ -37,7 +37,7 @@ def pollard_rho_dlp(g, h, p, order=None):
     :param g: integer base
     :param h: integer solution to g^x for some x
     :param p: integer prime modulus
-    :param order: integer order of g (smallest integer s.t. pow(g, order, p) == 1
+    :param order: integer order of g (the smallest integer s.t. pow(g, order, p) == 1
     :return: solution to g^x = h for integer x"""
 
     xstate = (1, 0, 0)
@@ -151,23 +151,28 @@ def pohlig_hellman(g, h, p, q, exp, prog=False):
 
     X = []
     if prog:
-        print("Starting process for X0")
+        prog_print = print
+    else:
+        def prog_print(*args, **kwargs):
+            pass
+
+    prog_print("Starting process for X0")
 
     r = pow(g, pow(q, exp - 1), p)
     X0 = baby_step_giant_step(r, pow(h, pow(q, exp - 1), p), p, q)
     X.append(X0)
 
     if prog:
-        print(f"Found X0 = {X0}\n")
+        prog_print(f"Found X0 = {X0}\n")
 
     for i in range(1, exp):
         if prog:
-            print(f"Starting process for X{i}")
+            prog_print(f"Starting process for X{i}")
         exp_term = from_base(X[::-1], q)
         h_term = pow(h * pow(pow(g, exp_term, p), -1, p), pow(q, exp - i - 1), p)
         Xi = baby_step_giant_step(r, h_term, p, q)
         X.append(Xi)
         if prog:
-            print(f"Found X{i} = {Xi}\n")
+            prog_print(f"Found X{i} = {Xi}\n")
 
     return from_base(X[::-1], q)

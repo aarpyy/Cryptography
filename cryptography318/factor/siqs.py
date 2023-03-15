@@ -1,20 +1,22 @@
-from random import Random
-from math import log2, sqrt, isqrt, gcd, ceil
-from functools import reduce
 from collections.abc import Callable
+from functools import reduce
+from math import ceil, gcd, isqrt, log2, prod, sqrt
+from random import Random
 
-from cryptography318.utils.utils import n_digits, smooth_factor, eval_power
-from cryptography318.linalg.linalg import binary_kernel, dot
+import numpy as np
+
+from cryptography318.linalg import kernel_gf2
 from cryptography318.prime.prime import primesieve, quadratic_residue, sqrt_mod
+from cryptography318.utils.utils import n_digits, smooth_factor
 
 # Constants for SIQS algorithm
-MIN_A_FACTOR = 2000
-MAX_A_FACTOR = 4000
+MIN_A_FACTOR = 2000  # Smallest factor of a
+MAX_A_FACTOR = 4000  # Largest factor of a
 MIN_N_FACTORS = 20
 TRIALS_A = 30
 TRIAL_ERROR_MARGIN = 25
-REQUIRED_RELATIONS_RATIO = 1.05
-TRIALS_LINALG = 5
+REQUIRED_RELATIONS_RATIO = 1.05  # Required relations-found:factor-base-size ratio (how tall should matrix be)
+TRIALS_LINALG = 5  # Number of allowed attempts at solving linear system before giving up
 
 relations_found = 0
 min_sieve = 0
@@ -38,7 +40,6 @@ rand = Random()
 
 
 class QSPoly(Callable[[int], int]):
-
     __slots__ = "args",
 
     def __new__(cls, *args):
@@ -57,7 +58,16 @@ def l_print(*args, **kwargs):
         print(*args, **kwargs)
 
 
+l_print.__doc__ = print.__doc__
+
+
 def choose_f(digits):
+    """
+    Choose size of factor base. Hard coded values for sizes of n.
+
+    :param digits: Number of digits in n
+    :return: Size of factor base, f
+    """
     if digits < 38:
         return 4200
     elif digits < 40:
@@ -94,21 +104,17 @@ def choose_m(digits):
 
 
 def init_siqs(n, *, fp=None):
-
     global factor_base, t_sqrt, log_p, primes, soln1, soln2
 
     F = choose_f(n_digits(n))
 
     l_print(f"F: {F}")
 
-    p = 1
-    if fp is None:
-        primesieve.extend(F)
-        primes = primesieve[:F]
-    else:
-        with open(fp, "r") as prime_file:
-            while p < F:
-                primes.append(p := int(prime_file.readline()))
+    if fp is not None:
+        primesieve.load(fp)
+
+    primesieve.extend(F)
+    primes = [*primesieve.range(F)]
 
     l_print(f"primes < F: {len(primes)}")
 
@@ -159,9 +165,9 @@ def smooth_a(n, m):
     opt_ratio = 0.9
 
     a_factors = set()
-    best_ratio = None   # type: None | float
+    best_ratio = None  # type: None | float
 
-    # Try several different ones to find the a approximately closest to our target
+    # Try several ones to find the approximately closest to our target
     for _ in range(TRIALS_A):
 
         A = 1
@@ -184,14 +190,13 @@ def smooth_a(n, m):
 
 def first_poly(n, m):
     """
-    Given number to be factored and sieve range, compute a as the product of primes in the
-    factor base, and from that b such that a | b * b - n. Use this coefficients to
+    Given number to be factored and sieve range, compute `a` as the product of primes in the
+    factor base, and from that b such that a | b * b - n. Use these coefficients to
     create two polynomials, one used for finding smooth numbers and the other for finding
     the square root of the value square to find a smooth output.
-
-    :param n: number to be factored
+    :param n:number to be factored
     :param m: sieve range
-    :returns: two polynomials (ax + b)^2 - n and ax + b
+    :return: two polynomials (ax + b)^2 - n and ax + b
     """
 
     global a, b, B, factor_base, t_sqrt, B_ainv_2, a_factors, a_non_factors
@@ -239,7 +244,6 @@ def first_poly(n, m):
 
 
 def next_poly(i, n):
-
     global b, B, a_non_factors, soln1, soln2, B_ainv_2, factor_base
 
     v = 1
@@ -305,31 +309,23 @@ def vec_matmul_T(vector, matrix):
     already transposed, to save time when multiplying against the
     same matrix repeatedly.
     """
-    return [dot(vector, row) for row in matrix]
+
+    # Cast to Python int so that when we take power later it doesn't throw overflow error
+    return (int(vector @ row) // 2 for row in matrix)
 
 
 def solve_matrix(n):
     global smooth_t, smooth_u, primes
 
-    mod2 = []
-    T = []
-    for i in range(len(smooth_u[0])):
-        mod2.append([])
-        T.append([])
-        for j in range(len(smooth_u)):
-            mod2[i].append(smooth_u[j][i] % 2)
-            T[i].append(smooth_u[j][i])
+    T = np.array(smooth_u, dtype=object).transpose()
+    kernel = kernel_gf2(T)
 
-    kernel = binary_kernel(mod2)
+    for vector in kernel:
+        powers = vec_matmul_T(vector, T)
 
-    for vector in kernel:  # iterate over basis of kernel
-        powers = map(lambda v: v // 2, vec_matmul_T(vector, T))
-        x = 1
-        for j, k in zip(vector, smooth_t):
-            if j:
-                x *= k
-
-        y = eval_power(powers, primes)
+        # We need to do this instead of dot because dot will return the sum instead of product
+        x = prod(k for j, k in zip(vector, smooth_t) if j)
+        y = prod(pow(p, e) for p, e in zip(primes, powers))
         p, q = gcd(x + y, n), gcd(x - y, n)
 
         if 1 < p < n:
@@ -354,12 +350,11 @@ def siqs(n, *, fp=None, loud=True):
     https://www.rieselprime.de/ziki/Self-initializing_quadratic_sieve
 
     :param n: number to be factored
-    :param fp: file containing list of primes with newline as the delimiter
-    :param loud: boolean determining if all information is printed or just factor
+    :param fp: file containing list of primes
+    :param loud: if information should be printed during execution
     :return: factor of n if one exists, otherwise None
-    :rtype: int | None
     """
-    global min_sieve, factor_base, relations_found, a_factors, loud_print
+    global min_sieve, factor_base, relations_found, a_factors, loud_print, smooth_u, smooth_t
 
     loud_print = loud
 
@@ -385,6 +380,7 @@ def siqs(n, *, fp=None, loud=True):
             sieve_array = sieve(m)
             trial_division(sieve_array, m, g, h)
 
+            # If we have found anymore relations, print
             if relations_found >= last_printed:
                 last_printed = relations_found
                 l_print(f"\r{relations_found}/{required_relations}", end="")
@@ -397,12 +393,16 @@ def siqs(n, *, fp=None, loud=True):
                 g, h = next_poly(i, n)
 
             i += 1
-        last_printed = relations_found = 0
+
         l_print()
 
         if (factor := solve_matrix(n)) is not None:
-
             l_print(f"Factor: {factor}")
             return factor
+        else:
+            # Reset relations found and smooth values found
+            last_printed = relations_found = 0
+            smooth_u = []
+            smooth_t = []
 
     return None

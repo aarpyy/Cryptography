@@ -1,13 +1,12 @@
 from abc import ABCMeta, abstractmethod
 from random import Random
-from cryptography318.prime.prime import sqrt_mod
 
+from cryptography318.prime.prime import sqrt_mod
 
 rndm = Random()
 
 
 class Curve(metaclass=ABCMeta):
-
     # parameters of each curve are dependent on the form of each curve, but all operate over FF(m)
     __slots__ = 'modulus'
 
@@ -28,7 +27,6 @@ class Curve(metaclass=ABCMeta):
 
 
 class Weierstrass(Curve):
-
     __slots__ = 'a', 'b',
 
     def __new__(cls, a, b, mod):
@@ -83,7 +81,6 @@ class Montgomery(Curve):
 
 
 class Point(metaclass=ABCMeta):
-
     __slots__ = 'x', 'curve', 'modulus'
 
     # __new__ is required for all points but is not an abstract method since each point
@@ -138,7 +135,6 @@ class Identity(Point):
 
 
 class WeierstrassPoint(Point):
-
     __slots__ = 'y',
 
     def __new__(cls, x, y, curve):

@@ -1,70 +1,11 @@
-from abc import abstractmethod
-from math import prod, isqrt
-from random import randrange, choice
 from collections import UserList
-from collections.abc import Generator
-from types import TracebackType
 from itertools import islice
+from math import isqrt, prod
 from pathlib import Path
+from random import choice, randrange
 
-from cryptography318.prime.bailliepsw_helper import LucasPseudoPrime, D_chooser
+from cryptography318.prime.bailliepsw_helper import D_chooser, LucasPseudoPrime
 from cryptography318.utils.utils import binary_search
-
-P = 2
-__get_prime = None
-module = Path(__file__).parent.absolute()
-
-
-def __new_global_prime():
-    global P
-    P = next_prime(P)
-    return P
-
-
-# For primes.txt, we want to load it in if it exists, and use to get
-if module.joinpath("primes.txt").is_file():
-    primesIO = open(str(module.joinpath("primes.txt")), "r", encoding="utf-8")
-
-    # Read one byte at a time so we only have to return 1 number
-    def read_prime():
-        buffer = primesIO.readline()[:-1]
-        # If we have run out of primes to read, switch to using mathematical operations to find primes
-        if not buffer:
-            global __get_prime
-            print("Switching to mathematical operations for finding primes!")
-            __get_prime = __new_global_prime
-            return __new_global_prime()
-        else:
-            return int(buffer)
-
-
-    __get_prime = read_prime
-
-
-    def gen_prime():
-        global P
-        p = __get_prime()
-        while p < P:
-            p = __get_prime()
-        # Set current prime tracker to next prime
-        P = p
-        return p
-
-
-else:
-    primesIO = None
-    gen_prime = __new_global_prime
-
-
-def __read_prime(sieve):
-    buffer = primesIO.readline()[:-1]
-    # If we have run out of primes to read, switch to using mathematical operations to find primes
-    if not buffer:
-        print("Switching to mathematical operations for finding primes!")
-        sieve.__next_prime = sieve.__find_prime
-        return sieve.__find_prime()
-    else:
-        return int(buffer)
 
 
 class Sieve(UserList[int]):
@@ -74,8 +15,10 @@ class Sieve(UserList[int]):
     variable for use. Intended to help with primality tests and factoring integers.
     """
 
-    def __init__(self):
-        super().__init__([2, 3, 5, 7, 11, 13])
+    def __init__(self, data=None):
+        if data is None:
+            data = [2, 3, 5, 7, 11, 13]
+        super().__init__(data)
 
     def search(self, value, *args):
         """
@@ -103,10 +46,9 @@ class Sieve(UserList[int]):
                 # Otherwise we know the value was within the bounds of the list but composite
                 # so lets find and return the indices of the bordering primes
                 i = binary_search(self.data, value, exist=False)
-                if i is not None:
-                    return i
-                else:
+                if i is None:
                     raise ValueError(f"{{{value}}} is not contained within the primesieve")
+                return i
 
         # sorted() gets it back into a list, but now we've made sure to remove duplicates and add value
         values = sorted({value, *args})
@@ -114,7 +56,7 @@ class Sieve(UserList[int]):
         # If the largest value is larger than our upper bound or the smallest value is smaller than our
         # lower bound then we cannot return information for all values so raise an error
         if values[-1] > self.data[-1] or values[0] < self.data[0]:
-            raise ValueError(f"{set(values)} is not contained within the primesieve")
+            raise ValueError(f"{set(values)} are not contained within the primesieve")
 
         indices = []
         composite = []
@@ -138,14 +80,11 @@ class Sieve(UserList[int]):
         if len(composite) == 0:
             return tuple(indices)
 
-        print(composite, comp_indices)
-
         for k, (v, j) in enumerate(composite):
             i = binary_search(self.data, v, start=j, exist=False)
-            if i is not None:
-                indices.insert(comp_indices[k], (i - 1, i))
-            else:
+            if i is None:
                 raise ValueError(f"{{{value}}} is not contained within the primesieve")
+            indices.insert(comp_indices[k], (i - 1, i))
 
         return tuple(indices)
 
@@ -161,25 +100,75 @@ class Sieve(UserList[int]):
         if n <= self.tail:
             return
 
-        global primesIO
-        if primesIO is not None:
-            while True:
-                line = primesIO.readline()
-                if not line:
-                    primesIO = None
-                    break
-                else:
-                    p = int(line.strip('\n'))
-                    self.data.append(p)
-                    if p > n:
-                        return
-
         p = self.tail
         while True:
             p = next_prime(p)
             self.data.append(p)
             if p > n:
                 return
+
+    def load(self, file=None, overwrite=False):
+        """
+        Loads primes from text file into sieve.
+        :param file: Reads from primes.txt local to project
+        :param overwrite: If provided list of primes should replace existing list
+        """
+
+        if file is None:
+            fp = Path(__file__).parent.absolute().joinpath("primes.txt")
+        else:
+            fp = Path(file)
+
+        if not fp.is_file():
+            raise FileNotFoundError(f"Unable to locate file {fp}")
+
+        with open(fp, "r") as infile:
+
+            # If we are overwriting and just accepting this as the list
+            if overwrite:
+                self.data = []
+                for line in infile:
+                    self.data.append(int(line.strip()))
+                return
+
+            first_prime = int(infile.readline().strip())
+
+            # If we are starting from first prime, read all and then check to see if it read a higher prime
+            if first_prime == 2:
+                data = [2]
+                for line in infile:
+                    data.append(int(line.strip()))
+                if data[-1] > self.data[-1]:
+                    self.data = data
+                return
+
+            # If first prime is somewhere in list, find where it is and start adding from there
+            if first_prime < self.data[-1]:
+                # If this throws error then first_prime is not real prime
+                start_index = self.data.index(first_prime)
+                data = [first_prime]
+                for line in infile:
+                    data.append(int(line.strip()))
+
+                if data[-1] > self.data[-1]:
+                    self.data = self.data[:start_index] + data
+                return
+
+            # If first prime is our last prime, simple, just start appending to our list
+            if first_prime == self.data[-1]:
+                for line in infile:
+                    self.data.append(int(line.strip()))
+                return
+
+            # If first prime read is next sequentially, we can accept it
+            if next_prime(self.data[-1]) == first_prime:
+                self.data.append(first_prime)
+                for line in infile:
+                    self.data.append(int(line.strip()))
+                return
+
+            # Otherwise we have discontinuous list and have to throw error
+            raise ValueError(f"List of primes starting with {first_prime} is not continuous with current primesieve")
 
     def range(self, a, b=None):
         """
@@ -206,7 +195,7 @@ class Sieve(UserList[int]):
         if isinstance(i, tuple):
             i = i[1]
 
-        # If it's a tuple, lets take the lower since we need to add 1 later since if its not a tuple
+        # If it's a tuple, lets take the lower since we need to add 1 later since if it's not a tuple
         # we want to make sure we include that prime
         if isinstance(j, tuple):
             j = j[0]
@@ -229,7 +218,7 @@ def is_square(n):
     """
     Replacement for Sympy's is_square function that follows almost
     explicitly the routine outlined in the link. The major difference
-    is that due to the speed of Python's PyLong object, we don't need
+    is that due to the speed of Python's integer, we don't need
     to pre-mod our value to increase the speed of future mods, for each
     test we can mod n directly.
 
@@ -286,7 +275,7 @@ def is_square(n):
 def miller_rabin(n, k=40):
     """
     MRPrimality test reduces n - 1 to a power of 2 and an odd number, then
-    tests if random a is a witness of n's composite-ness, testing with
+    tests if random `a` is a witness of n's composite-ness, testing with
     k random a's
     """
 
@@ -305,7 +294,7 @@ def miller_rabin(n, k=40):
 
 def _mr_test(d, n):
     """Helper function for miller_rabin which uses previously found d to
-    check if random a is a witness to n's composite-ness"""
+    check if random `a` is a witness to n's composite-ness"""
 
     a = randrange(2, n - 1)
     x = pow(a, d, n)
@@ -343,7 +332,7 @@ def _miller_rabin_base_a(a, n):
     if a == 1 or a == n - 1:
         return True
     for _ in range(k):
-        # If we found any a^2 = -1 mod n then we know a is not a witness to n's compositeness
+        # If we found any a^2 = -1 mod n then we know `a` is not a witness to n's compositeness
         if a == -1 or a == n - 1:
             return True
 
@@ -420,9 +409,9 @@ def isprime(n):
     Uses deterministic variants of the Miller-Rabin Primality test, which, through
     the use of specific bases and ranges, can deterministically return True iff
     candidate is prime for n < 3317044064679887385961981. For all larger n,
-    there is no  known set of bases that makes the MR test deterministic. Thus a
+    there is no  known set of bases that makes the MR test deterministic. Thus, a
     SPRP-test consisting of a Strong Lucas Pseudo-prime test and a Miller-Rabin
-    test with 20 random bases a, s.t. 1 < a < n is used to determine if candidate is
+    test with 20 random bases `a`, s.t. 1 < a < n is used to determine if candidate is
     probably prime.
     """
 
@@ -476,17 +465,20 @@ def isprime(n):
 def randprime(a: int, b: int = None):
     """Uses combination of Miller-Rabin and Baillie-PSW primality tests to generate random prime
 
+    Note
+    ----
+    If no lower bound is specified, 2 will never be generated, since bounds of sampling are set [3, b)
+
     :param a: integer starting point of range for random prime
     :param b: integer stopping point of range for random prime (exclusive)
     """
 
     # determines if user entered a lower and upper limit or just an upper
     if b is None:
-        b = a
-        a = 3
+        b, a = a, 3
 
     base_2 = a == 2
-    a = a | 1  # if base_2, a isn't used, if not base 2 then even a is not prime so adjust to odd affects nothing
+    a = a | 1  # If base_2, `a` isn't used, if not base 2 then even `a` is not prime so adjust to odd affects nothing
 
     global primesieve
     if b <= primesieve.tail:
@@ -497,17 +489,29 @@ def randprime(a: int, b: int = None):
             stop = stop[0]
         return choice(primesieve[start:stop])
 
-    # if base_2, uses 2 as a base and increments by 1 (default) for generating random int
-    # if base != 2, generates random int starting at lower limit, incrementing by 2
-    while 1:
-        prime = randrange(2, b) if base_2 else randrange(a, b, 2)
+    # If base_2 is True then it uses 2 as a base and increments by 1 (default) for generating random int
+    # If base != 2, generates random int starting at lower limit, incrementing by 2
+    if base_2:
+        def rprime():
+            return randrange(2, b)
+    else:
+        def rprime():
+            return randrange(a, b, 2)
+
+    while True:
+        prime = rprime()
         if isprime(prime):
             return prime
 
 
 def confirm_prime(n):
-    """Uses infinitely deterministic AKS (Agrawal-Kayal-Saxena) primality test which
+    """Uses deterministic AKS (Agrawal-Kayal-Saxena) primality test which
     returns True if-and-only-if n is prime"""
+
+    if n < 2:
+        return False
+    elif n == 2:
+        return True
 
     global primesieve
     if n in primesieve:
@@ -543,7 +547,7 @@ def next_prime(n):
 
     # Ensures that n starts at the nearest 6k + 1
 
-    # a is the closest 6k + 1 to n
+    # `a` is the closest 6k + 1 to n
     a = n - (n % 6) + 1
     if a <= n:
 
@@ -552,7 +556,7 @@ def next_prime(n):
         if a > n and isprime(a):
             return a
 
-        # Otherwise, get a to 6k + 1, if this is prime, it's guaranteed > n so return
+        # Otherwise, get `a` to 6k + 1, if this is prime, it's guaranteed > n so return
         a += 2
         if isprime(a):
             return a
@@ -571,7 +575,7 @@ def next_prime(n):
     assert n % 6 == 5
 
     # Iterate up through each 6k +/- 1
-    while 1:
+    while True:
         if isprime(n):
             return n
         n += 2
@@ -621,6 +625,10 @@ def prev_prime(n):
         if isprime(n):
             return n
         n -= 2
+
+        # If we are sure that n passed was larger than 2, and we somehow end up below 2, just return 2
+        if n < 2:
+            return 2
 
 
 def prime_range(a, b=None):

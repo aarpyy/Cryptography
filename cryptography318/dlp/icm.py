@@ -1,12 +1,11 @@
-from cryptography318.prime.prime import prime_range, isprime
-from cryptography318.utils.utils import smooth_factor
-from cryptography318.factor import factor
-from cryptography318.linalg.linalg import matrix_copy
-from .dlp import pollard_rho_dlp
-
-from math import sqrt, log, exp
+from copy import deepcopy
+from math import exp, log, sqrt
 from random import Random
 
+from cryptography318.factor import factor
+from cryptography318.prime.prime import isprime, prime_range
+from cryptography318.utils.utils import smooth_factor
+from cryptography318.dlp.dlp import pollard_rho_dlp
 
 required_relations_ratio = 2
 
@@ -35,7 +34,7 @@ def solve_matrix(matrix, n):
     w = len(matrix[0]) - 1
     h = len(matrix)
 
-    array = matrix_copy(matrix)
+    array = deepcopy(matrix)
 
     for j in range(w):
 
@@ -53,7 +52,7 @@ def solve_matrix(matrix, n):
                 if i > pivot_row:  # if pivot row not already in correct position, swap
                     array[i], array[pivot_row] = array[pivot_row][:], array[i][:]
 
-                row_reduce_mod(array, pivot_row, j, n)      # row reduce everything else
+                row_reduce_mod(array, pivot_row, j, n)  # row reduce everything else
                 pivot_row += 1
                 break
 

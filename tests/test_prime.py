@@ -36,5 +36,22 @@ def test_primesieve():
     print(primesieve[r[3][1]])
 
 
-if __name__ == "__main__":
-    test_primesieve()
+def test_temp():
+    from math import lcm, gcd
+    l = pow(2, 40)
+    u = l << 2
+    p = randprime(l, u)
+    q = randprime(l, u)
+    n = p * q
+    y = lcm(p - 1, q - 1)
+    e = pow(2, 16) + 1
+    while gcd(e, y) != 1:
+        e += 1
+    d = pow(e, -1, y)
+
+    m = randrange(pow(2, 25))
+
+    c = pow(m, d, n)
+    assert pow(c, e, n) == m % n
+
+    print(f"n: {n}; p: {p}; q: {q}; e: {e}; d: {d}")

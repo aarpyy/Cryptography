@@ -1,6 +1,4 @@
-from math import prod, ceil
-from typing import Sequence
-import operator
+from math import ceil, log, log10, log2, prod
 
 
 def binary_search(a, key, *, start=0, end=None, exist=True):
@@ -28,11 +26,10 @@ def binary_search(a, key, *, start=0, end=None, exist=True):
             low = mid + 1
         elif a[mid] > key:
             high = mid - 1
+        elif exist:
+            return mid
         else:
-            if exist:
-                return mid
-            else:
-                return None
+            return None
 
     return high + 1
 
@@ -46,17 +43,17 @@ def smooth_factor(n, factors):
 
     if abs(n) == 1:
         return exp
-    else:
-        return None
+
+    return None
 
 
 def eval_power(exp, primes):
     """Calculates the value of a list of powers of primes. If only p is given, assumes list of primes to be
-    from 2 to largest prime <= p. If list of exponents does not match the powers of the continuous ascending
+    from 2 to the largest prime <= p. If list of exponents does not match the powers of the continuous ascending
     list of primes, this will compute incorrectly."""
 
     # Raises each prime to the corresponding power in list exp, then reduces that list with multiplication
-    return prod(map(lambda p, e: pow(p, e), primes, exp))
+    return prod(pow(p, e) for p, e in zip(primes, exp, strict=True))
 
 
 def from_base(lst, base):
@@ -69,6 +66,12 @@ def from_base(lst, base):
 
 
 def extended_gcd(*args):
+    """
+    Computes the Euclidean algorithm for finding the greatest common divisor for multiple integer values
+    :param args: integer values
+    :return:
+    """
+
     # actual extended gcd function
     def ext_gcd(a, b):
         if a == 0:
@@ -91,102 +94,18 @@ def extended_gcd(*args):
     return g, *values
 
 
-def n_digits(n):
-    return len(str(n))
-
-
-def _where(iterable, cond):
-    for i, e in enumerate(iterable):
-        if cond(e):
-            yield i
-
-
-def where(iterable, cond=None):
+def n_digits(n, radix=10):
     """
-    Returns index(es) where condition function returns true. Does not search recursively
-    if given a non-flat list.
-
-    Note
-    ----
-    This has the same name as numpy.where() and is intended as a similar function but is not
-    the same in what it does.
-
-
-    :param iterable: iterable to search
-    :param cond: condition function
-    :return: tuple of index(es)
+    Determines the minimum number of digits required to represent n in the given radix, defaults to 10
+    :param n: Integer value
+    :param radix: Radix of n
+    :return: Number of digits required to represent n
     """
 
-    if cond is None:
-        def cond(x):
-            return bool(x)
-
-    return tuple(_where(iterable, cond))
-
-
-def shape(o):
-    """
-    Returns the shape of nested sequences as a tuple.
-
-    :param o: potentially not flat sequence
-    :return: shape of all non-jagged portions of sequence
-    """
-
-    # Non-sequences don't have shape, return empty tuple
-    if isinstance(o, (int, float)):
-        return tuple()
-
-    # Get shapes of all sequences
-    s = [shape(e) for e in o if isinstance(e, Sequence)]
-
-    # If not all the elements were sequences, we are done going deeper just return length
-    if len(s) != len(o):
-        return len(o),
-
-    # Get length of most recent call to shape, if they are all the same then return
-    x = set(a[0] for a in s)
-    if len(x) == 1:
-        return len(o), *s[0]
-    else:
-        return len(o),
-
-
-def trailing(x):
-    """
-    Compute the number of trailing zeros of x.
-
-    :param x:
-    :return:
-    """
-
-    if x & 1:
-        return 0
-    elif x & 2:
-        return 1
-
-    # Check in sections of 16 bits for a zero
-    a = 0xffff
-    n = 16
-    while x & a == 0:
-        a <<= 16
-        n += 16
-
-    while x & a:
-        a >>= 1
-        n -= 1
-    return n
-
-
-def as_int(x):
-    """
-    Attempts to return object as integer, raising TypeError if unable. Essentially
-    equivalent to operator.index(x) except it correctly returns integer for
-    integer-valued floats.
-
-    :param x: object
-    :raises TypeError: if object cannot be interpreted as an integer.
-    :return:
-    """
-    if isinstance(x, float) and x.is_integer():
-        return int(x)
-    return operator.index(x)
+    match radix:
+        case 10:
+            return ceil(log10(n))
+        case 2:
+            return ceil(log2(n))
+        case _:
+            return ceil(log(n) / log(radix))

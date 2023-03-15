@@ -1,6 +1,2 @@
-test_core/
-test_linalg/
-test_numbers/
-test_crypto_functions.py
 __init__.py
 __pycache__/

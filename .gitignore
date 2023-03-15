@@ -137,12 +137,11 @@ dmypy.json
 # MacOS something
 .DS_Store
 
-# Jetbrains stuff (I think?)
+# Pip
 Pipfile
 Pipfile.lock
 
-# Random files in root I used for haphazard testing
+# Random files in root used for haphazard testing
 *.txt
-*.py
 !license.txt
 !requirements.txt

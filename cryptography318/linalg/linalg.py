@@ -1,4 +1,3 @@
-from sympy import Symbol, im, solve
 import numpy as np
 
 
@@ -9,7 +8,8 @@ def kernel_gf2(a):
     :return: basis of null space as rows
     """
 
-    a = np.array(a) & 1
+    # dtype=object, so we don't lose any precision if being passed large Python integers
+    a = np.array(a, dtype=object) & 1
     h, w = a.shape
 
     # Append identity matrix to bottom
@@ -101,10 +101,10 @@ def rref(a, offset=0, rtol=1e-05, atol=1e-08):
 
                 # This process row reduces
                 f = np.eye(h)
-                b = -array[:, j]    # Set the active column to negative values for each row
-                b[pivot_row] = 1    # And positive 1 for the pivot row
+                b = -array[:, j]  # Set the active column to negative values for each row
+                b[pivot_row] = 1  # And positive 1 for the pivot row
                 f[:, pivot_row] = b
-                array = f @ array   # Matrix multiplication means each row is subtracted by the pivot row
+                array = f @ array  # Matrix multiplication means each row is subtracted by the pivot row
 
                 pivot_row += 1
                 break
@@ -129,7 +129,8 @@ def minor(a, index=None):
 
     Examples
     --------
-    >>> x = Symbol('x')
+    >>> import sympy
+    >>> x = sympy.Symbol('x')
     >>> A = [[-1 - x, -3, 1], [3, 3 - x, 1], [3, 0, 4 - x]]
     >>> minor(A)
     -6*x + (3 - x)*(4 - x)*(-x - 1) + 18
@@ -167,6 +168,8 @@ def char_poly(a, sym=None):
     to A.minor() for A = instance-matrix - Identity * x, for some variable x
     [typically x = sympy.Symbol('x')]."""
 
+    from sympy import Symbol
+
     if len(s := np.shape(a)) != 2 and len(set(s)) != 1:
         raise ValueError("Matrix must be square!")
     elif sym is None:
@@ -195,6 +198,8 @@ def eigvals(a):
     >>> eigvals(A)
     [0, (2.5-1.6583123951777j), (2.5+1.6583123951777j)]
     """
+
+    from sympy import Symbol, solve, im
 
     if len(s := np.shape(a)) != 2 and len(set(s)) != 1:
         raise AttributeError("Matrix must be square")

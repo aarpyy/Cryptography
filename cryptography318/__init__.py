@@ -1,25 +1,23 @@
+import sys
+
 import setuptools.version
 
-from .factor import *
-from .prime import *
-from .utils import *
-from .linalg import *
-from .dlp import *
+from cryptography318.dlp import *
+from cryptography318.factor import *
+from cryptography318.linalg import *
+from cryptography318.prime import *
+from cryptography318.utils import *
 
-import sys
-if sys.version_info < (3, 9):
+if sys.version_info < (3, 10):
     raise ImportError("cryptography318 requires Python 3.10 or higher!")
 del sys
 
 try:
     import numpy
-    import sympy
 except ImportError:
-    raise ImportError("cryptography318 depends on both numpy and sympy!")
+    raise ImportError("cryptography318 depends on numpy!")
 else:
     del numpy
-    del sympy
-
 
 __all__ = [
     "factor", "pollard_rho_factor", "pollard_p1",
@@ -33,8 +31,7 @@ __all__ = [
 
     "extended_gcd",
 
-    "rref", "kernel", "binary_kernel", "minor", "det", "eigvals", "eigvec", "char_poly", "flatten",
-    "matmul", "transpose",
+    "rref", "kernel_gf2", "kernel",
 
     "baby_step_giant_step", "pollard_rho_dlp", "pohlig_hellman"
 ]

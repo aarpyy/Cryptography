@@ -1,11 +1,10 @@
 import os
-
-from math import sqrt, log, gcd
+from math import gcd, log, sqrt
 from random import randrange
 
 from cryptography318.factor import lenstra_ecm
 from cryptography318.factor import siqs
-from cryptography318.prime.prime import isprime, primesieve, next_prime
+from cryptography318.prime.prime import isprime, next_prime, primesieve
 
 
 def factor(n, rho=True, ecm=True, p1=True, qs=True, limit=None):
@@ -48,24 +47,30 @@ def factor(n, rho=True, ecm=True, p1=True, qs=True, limit=None):
     factor_kwargs = {"rho": rho, "ecm": ecm, "p1": p1, "qs": qs, "limit": limit}
 
     if rho:
-        if not _factor_further(n, pollard_rho_factor(n), factors, **factor_kwargs):
+        n = _factor_further(n, pollard_rho_factor(n), factors, **factor_kwargs)
+        if n == 1:
             return factors
 
     if ecm:
-        if not _factor_further(n, lenstra_ecm(n), factors, **factor_kwargs):
+        n = _factor_further(n, lenstra_ecm(n), factors, **factor_kwargs)
+        if n == 1:
             return factors
 
     if p1:
-        if not _factor_further(n, pollard_p1(n), factors, **factor_kwargs):
+        n = _factor_further(n, pollard_p1(n), factors, **factor_kwargs)
+        if n == 1:
             return factors
 
     if qs:
-
         fp = "primes.txt" if os.path.exists("../prime/primes.txt") else None
 
         # Nothing left after quadratic sieve, so just return factors
-        _factor_further(n, siqs(n, fp=fp, loud=False), factors, **factor_kwargs)
+        n = _factor_further(n, siqs(n, fp=fp, loud=False), factors, **factor_kwargs)
+        if n != 1:
+            factors[n] = factors.get(n, 0) + 1
         return factors
+
+    return None
 
 
 def pollard_p1(n, B=None, _retry=5):
@@ -107,7 +112,8 @@ def pollard_rho_factor(n, mix=None, _retry=5):
     if n < 10:
         return factor_small({}, n, 10)
     elif not callable(mix):
-        def mix(e): return (pow(e, 2, n) + 1) % n
+        def mix(e):
+            return (pow(e, 2, n) + 1) % n
 
     y = 2
     for _ in range(_retry):
@@ -126,7 +132,8 @@ def pollard_rho_factor(n, mix=None, _retry=5):
         y = randrange(0, n - 1)
         a = randrange(1, n - 3)
 
-        def mix(e): return (pow(e, 2, n) + a) % n
+        def mix(e):
+            return (pow(e, 2, n) + a) % n
 
     return None
 
@@ -180,21 +187,24 @@ def _factor_further(n, f, factors, **kwargs):
     non-trivial factor f. Function also checks if f needs to be factored. Returns
     False if n has been completely factored, True otherwise.
     """
-    if f:
-        n //= f
-        if isprime(f):
-            factors[f] = factors.get(f, 0) + 1
-        else:
-            factors_f = factor(f, **kwargs)
-            for prime in factors_f:
-                factors[prime] = factors.get(prime, 0) + factors_f[prime]
+    if f <= 0:
+        return n
 
-        if n == 1:
-            return False
-        else:
-            more_facs = factor(n, **kwargs)
-            for prime in more_facs:
-                factors[prime] = factors.get(prime, 0) + more_facs[prime]
-            return False
+    n //= f
+    if isprime(f):
+        factors[f] = factors.get(f, 0) + 1
     else:
-        return True
+        factors_f = factor(f, **kwargs)
+        for prime in factors_f:
+            factors[prime] = factors.get(prime, 0) + factors_f[prime]
+
+    if n == 1:
+        return n
+
+    more_facs = factor(n, **kwargs)
+    if more_facs is None:
+        return n
+
+    for prime in more_facs:
+        factors[prime] = factors.get(prime, 0) + more_facs[prime]
+    return 1
