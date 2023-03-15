@@ -20,4 +20,4 @@ $ pip install cryptography318
 ```
 
 ### License
-This package is unlicensed and not intended for public use.
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
