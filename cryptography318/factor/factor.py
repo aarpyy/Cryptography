@@ -6,8 +6,21 @@ from cryptography318.factor import lenstra_ecm
 from cryptography318.factor import siqs
 from cryptography318.prime.prime import isprime, next_prime, primesieve
 
+_factor_details: dict[str, bool | None] = {
+    "Pollard's Rho": None,
+    "ECM": None,
+    "Pollard's P-1": None,
+    "Quadratic Sieve": None,
+    "Direct": None
+}
 
-def factor(n, rho=True, ecm=True, p1=True, qs=True, limit=None):
+
+def get_details():
+    global _factor_details
+    return _factor_details
+
+
+def factor(n, rho=True, ecm=True, p1=True, qs=True, limit=None, *, details=False):
     """
     Attempts to factor given integer with four methods, returning None if un-factorable.
     Function first checks if number is prime then finds all small factors if any exist.
@@ -23,22 +36,38 @@ def factor(n, rho=True, ecm=True, p1=True, qs=True, limit=None):
     :param p1: bool determining if Pollard's P-1 algorithm should be used
     :param qs: bool determining if Quadratic Sieve algorithm should be used
     :param limit: integer limit of factors to be found using small_factors()
+    :param details: bool determining if factor details should be updated
     :return: dictionary of all primes factors and their powers, or None if not factorable
     """
+    global _factor_details
+    if details:
+        for key, value in _factor_details.items():
+            _factor_details[key] = None
 
     if n == 1:
+        if details:
+            _factor_details["Trial Division"] = True
         return {}
     elif isprime(n):
+        if details:
+            _factor_details["Trial Division"] = True
         return {n: 1}
 
     if limit is None:
         limit = 32768
 
     factors = {}
-    k, p = factor_small(factors, n, limit)
+    k, _ = factor_small(factors, n, limit)
+    # If we factored it completely with small factors, return factors
     if k == 1:
+        if details:
+            _factor_details["Trial Division"] = True
         return factors
+    # If we factored it partially with small factors, recursively factor the rest
     elif k != n:
+        if details:
+            _factor_details["Trial Division"] = True
+        # If remaining factor is prime, we are done factoring
         if isprime(k):
             factors[k] = factors.get(k, 0) + 1
             return factors
@@ -47,21 +76,31 @@ def factor(n, rho=True, ecm=True, p1=True, qs=True, limit=None):
     factor_kwargs = {"rho": rho, "ecm": ecm, "p1": p1, "qs": qs, "limit": limit}
 
     if rho:
+        if details:
+            _factor_details["Pollard's Rho"] = True
         n = _factor_further(n, pollard_rho_factor(n), factors, **factor_kwargs)
         if n == 1:
             return factors
 
     if ecm:
+        if details:
+            _factor_details["ECM"] = True
         n = _factor_further(n, lenstra_ecm(n), factors, **factor_kwargs)
         if n == 1:
             return factors
 
     if p1:
+        if details:
+            _factor_details["Pollard's P-1"] = True
         n = _factor_further(n, pollard_p1(n), factors, **factor_kwargs)
         if n == 1:
             return factors
 
     if qs:
+        if details:
+            _factor_details["Quadratic Sieve"] = True
+
+        # Use local primes.txt if we can find it, otherwise don't use a file (slow)
         fp = "primes.txt" if os.path.exists("../prime/primes.txt") else None
 
         # Nothing left after quadratic sieve, so just return factors

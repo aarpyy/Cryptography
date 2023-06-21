@@ -5,7 +5,19 @@ from pathlib import Path
 from random import choice, randrange
 
 from cryptography318.prime.bailliepsw_helper import D_chooser, LucasPseudoPrime
-from cryptography318.utils.utils import binary_search
+from cryptography318.utils.utils import binary_search, Details
+
+
+isprime_details = Details(**{
+    "Miller-Rabin": None,
+    "Baillie-PSW": None,
+    "Direct": None,
+})
+
+
+def get_details():
+    global isprime_details
+    return str(isprime_details)
 
 
 class Sieve(UserList[int]):
@@ -48,7 +60,7 @@ class Sieve(UserList[int]):
                 i = binary_search(self.data, value, exist=False)
                 if i is None:
                     raise ValueError(f"{{{value}}} is not contained within the primesieve")
-                return i
+                return i - 1, i
 
         # sorted() gets it back into a list, but now we've made sure to remove duplicates and add value
         values = sorted({value, *args})
@@ -272,7 +284,7 @@ def is_square(n):
     return m * m == n
 
 
-def miller_rabin(n, k=40):
+def miller_rabin(n, k=40, *, details=False):
     """
     MRPrimality test reduces n - 1 to a power of 2 and an odd number, then
     tests if random `a` is a witness of n's composite-ness, testing with
@@ -287,6 +299,9 @@ def miller_rabin(n, k=40):
 
     for _ in range(k):
         if not _mr_test(d, n):
+            if details:
+                global isprime_details
+                isprime_details.add_details("Miller-Rabin", f"{d} is a witness to {n}'s composite-ness")
             return False
 
     return True
@@ -344,13 +359,18 @@ def _miller_rabin_base_a(a, n):
     return False
 
 
-def miller_rabin_bases(bases, n):
+def miller_rabin_bases(bases, n, *, details=False):
     """Helper function that allows for a list of witnesses to be tested
     using MillerRabin_base_a function"""
+    global isprime_details
 
     for a in bases:
         if not _miller_rabin_base_a(a, n):
+            if details:
+                isprime_details.add_details("Miller-Rabin", f"{a} is witness to {n}'s compositeness")
             return False
+    if details:
+        isprime_details.add_details("Miller-Rabin", f"{n} is probably prime")
     return True
 
 
@@ -401,7 +421,7 @@ def known_prime(n):
     return None
 
 
-def isprime(n):
+def isprime(n, *, details=False):
     """
     IsPrime function returns False iff the prime-candidate is composite, and True
     if the prime-candidate is probably prime.
@@ -415,51 +435,72 @@ def isprime(n):
     probably prime.
     """
 
+    global isprime_details
+    if details:
+        isprime_details.clear_details()
+
     if n < 2:
+        if details:
+            isprime_details.add_details("Direct", f"{n} < 2")
         return False
 
     elif n < 10:
+        if details:
+            isprime_details.add_details("Direct", f"{n} < 10")
         return bool([0, 0, 1, 1, 0, 1, 0, 1, 0, 0, 0][n])
 
     # check for odds
     elif not n & 1:
+        if details:
+            isprime_details.add_details("Direct", f"{n} is even")
         return False
 
     # check for all other instances n != 6k +/- 1
     elif not n % 3:
+        if details:
+            isprime_details.add_details("Direct", f"{n} is divisible by 3")
         return False
 
     # This step is pretty useless unless primesieve is being used for something else or is
     # being purposefully generated, since it is constructed only with first 6 primes
     global primesieve
     if n in primesieve:
+        if details:
+            isprime_details.add_details("Direct", f"{n} is known prime")
         return True
     elif n < 2047:
-        return miller_rabin_bases([2], n)
+        return miller_rabin_bases([2], n, details=details)
     elif n < 1373653:
-        return miller_rabin_bases([2, 3], n)
+        return miller_rabin_bases([2, 3], n, details=details)
     elif n < 9080191:
-        return miller_rabin_bases([31, 73], n)
+        return miller_rabin_bases([31, 73], n, details=details)
     elif n < 1050535501:
-        return miller_rabin_bases([336781006125, 9639812373923155], n)
+        return miller_rabin_bases([336781006125, 9639812373923155], n, details=details)
     elif n < 3215031751:
-        return miller_rabin_bases([2, 3, 5, 7], n)
+        return miller_rabin_bases([2, 3, 5, 7], n, details=details)
     elif n < 4759123141:
-        return miller_rabin_bases([2, 7, 61], n)
+        return miller_rabin_bases([2, 7, 61], n, details=details)
     elif n < 1122004669633:
-        return miller_rabin_bases([2, 13, 23, 1662803], n)
+        return miller_rabin_bases([2, 13, 23, 1662803], n, details=details)
     elif n < 55245642489451:
-        return miller_rabin_bases([2, 141889084524735, 1199124725622454117, 11096072698276303650], n)
+        return miller_rabin_bases([2, 141889084524735, 1199124725622454117, 11096072698276303650], n, details=details)
     elif n < 7999252175582851:
-        return miller_rabin_bases([2, 4130806001517, 149795463772692060, 186635894390467037, 3967304179347715805], n)
+        return miller_rabin_bases([2, 4130806001517, 149795463772692060, 186635894390467037, 3967304179347715805], n, details=details)
     elif n < 18446744073709551616:
-        return miller_rabin_bases([2, 325, 9375, 28178, 450775, 9780504, 1795265022], n)
+        return miller_rabin_bases([2, 325, 9375, 28178, 450775, 9780504, 1795265022], n, details=details)
     elif n < 318665857834031151167461:
-        return miller_rabin_bases([2, 3, 5, 7, 11, 13, 17, 19, 23, 29, 31, 37], n)
+        return miller_rabin_bases([2, 3, 5, 7, 11, 13, 17, 19, 23, 29, 31, 37], n, details=details)
     elif n < 3317044064679887385961981:
-        return miller_rabin_bases([2, 3, 5, 7, 11, 13, 17, 19, 23, 29, 31, 37, 41], n)
+        return miller_rabin_bases([2, 3, 5, 7, 11, 13, 17, 19, 23, 29, 31, 37, 41], n, details=details)
     else:
-        return miller_rabin(n, k=40) and baillie_psw(n, mr=False)
+        res = miller_rabin(n, k=40, details=details)
+        if not res:
+            return False
+
+        # If miller rabin didn't say it was composite, then we should note that we used Baillie-PSW
+        if details:
+            isprime_details.add_details("Baillie-PSW", True)
+        return baillie_psw(n, mr=False)
 
 
 def randprime(a: int, b: int = None):

@@ -1,4 +1,4 @@
-from cryptography318.factor.elliptic import ecm_weierstrass, ecm_mont
+from cryptography318.factor.elliptic import ecm_weierstrass, ecm_mont, lenstra_ecm
 from cryptography318.prime import randprime
 import random
 
@@ -27,6 +27,22 @@ def test_ecm_weierstrass():
         a = randprime(pow(10, 7), pow(10, 8))
         b = randprime(pow(10, 7), pow(10, 8))
         f = ecm_weierstrass(a * b)
+        if f is None:
+            failed += 1
+            continue
+        assert f in (a, b)
+    assert failed < n, "Failed every time"
+
+
+def test_lenstra_ecm():
+    random.seed(318)
+    failed = 0
+    n = 10
+    e = 25
+    for _ in range(n):
+        a = randprime(pow(10, e), pow(10, e + 1))
+        b = randprime(pow(10, e), pow(10, e + 1))
+        f = lenstra_ecm(a * b)
         if f is None:
             failed += 1
             continue

@@ -2,8 +2,12 @@ from collections.abc import Callable
 from typing import Optional
 
 
+def get_details() -> str: ...
+
+
 def factor(
-        n: int, rho: bool = ..., ecm: bool = ..., p1: bool = ..., qs: bool = ..., limit: Optional[int] = ...
+        n: int, rho: bool = ..., ecm: bool = ..., p1: bool = ..., qs: bool = ..., limit: Optional[int] = ..., *,
+        details: bool = ...
 ) -> Optional[dict[int, int]]: ...
 
 
