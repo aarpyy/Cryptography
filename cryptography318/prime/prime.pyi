@@ -1,8 +1,9 @@
 from itertools import islice
-from typing import Generator, Optional, Sequence, overload
+from typing import Generator, Optional, Sequence, overload, Any
 
 
-def get_details() -> str: ...
+def get_details() -> dict[str, Any]: ...
+
 
 class Sieve:
     data: list[int]
@@ -27,7 +28,7 @@ class Sieve:
     def search(self, value: int) -> int | tuple[int, int]: ...
 
     @overload
-    def search(self, value: int, *args: int) -> tuple[int | tuple[int, int]]: ...
+    def search(self, value: int, *args: int) -> tuple[int | tuple[int, int], ...]: ...
 
     def extend(self, n: int) -> None: ...
 

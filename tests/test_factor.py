@@ -54,20 +54,18 @@ def test_get_details():
         n = randrange(pow(10, e), pow(10, e + 1))
         factor(n, details=True)
         details = get_details()
-        details_obj = json.loads(details)
 
         # At least one of the values must be literal True
-        assert any(v is True for v in details_obj.values())
+        assert any(v is True for v in details.values())
 
         a = randprime(pow(10, e), pow(10, e + 1))
         b = randprime(pow(10, e), pow(10, e + 1))
         n = a * b * b
         factor(n, details=True)
         details = get_details()
-        details_obj = json.loads(details)
 
         # At least one of the values must be literal True
-        assert any(v is True for v in details_obj.values())
+        assert any(v is True for v in details.values())
 
 
 @pytest.mark.skip()

@@ -3,21 +3,21 @@ from itertools import islice
 from math import isqrt, prod
 from pathlib import Path
 from random import choice, randrange
+from typing import Any
 
 from cryptography318.prime.bailliepsw_helper import D_chooser, LucasPseudoPrime
-from cryptography318.utils.utils import binary_search, Details
+from cryptography318.utils.utils import binary_search
 
-
-isprime_details = Details(**{
+__isprime_details: dict[str, Any] = {
     "Miller-Rabin": None,
     "Baillie-PSW": None,
-    "Direct": None,
-})
+    "Trial Division": None,
+}
 
 
 def get_details():
-    global isprime_details
-    return str(isprime_details)
+    global __isprime_details
+    return __isprime_details
 
 
 class Sieve(UserList[int]):
@@ -300,8 +300,8 @@ def miller_rabin(n, k=40, *, details=False):
     for _ in range(k):
         if not _mr_test(d, n):
             if details:
-                global isprime_details
-                isprime_details.add_details("Miller-Rabin", f"{d} is a witness to {n}'s composite-ness")
+                global __isprime_details
+                __isprime_details["Miller-Rabin"] = f"{d} is a witness to {n}'s composite-ness"
             return False
 
     return True
@@ -362,15 +362,15 @@ def _miller_rabin_base_a(a, n):
 def miller_rabin_bases(bases, n, *, details=False):
     """Helper function that allows for a list of witnesses to be tested
     using MillerRabin_base_a function"""
-    global isprime_details
+    global __isprime_details
 
     for a in bases:
         if not _miller_rabin_base_a(a, n):
             if details:
-                isprime_details.add_details("Miller-Rabin", f"{a} is witness to {n}'s compositeness")
+                __isprime_details["Miller-Rabin"] = f"{a} is witness to {n}'s compositeness"
             return False
     if details:
-        isprime_details.add_details("Miller-Rabin", f"{n} is probably prime")
+        __isprime_details["Miller-Rabin"] = f"{n} is probably prime"
     return True
 
 
@@ -435,30 +435,31 @@ def isprime(n, *, details=False):
     probably prime.
     """
 
-    global isprime_details
+    global __isprime_details
     if details:
-        isprime_details.clear_details()
+        for key in __isprime_details:
+            __isprime_details[key] = None
 
     if n < 2:
         if details:
-            isprime_details.add_details("Direct", f"{n} < 2")
+            __isprime_details["Trial Division"] = f"{n} < 2"
         return False
 
     elif n < 10:
         if details:
-            isprime_details.add_details("Direct", f"{n} < 10")
+            __isprime_details["Trial Division"] = f"{n} < 10"
         return bool([0, 0, 1, 1, 0, 1, 0, 1, 0, 0, 0][n])
 
     # check for odds
     elif not n & 1:
         if details:
-            isprime_details.add_details("Direct", f"{n} is even")
+            __isprime_details["Trial Division"] = f"{n} is even"
         return False
 
     # check for all other instances n != 6k +/- 1
     elif not n % 3:
         if details:
-            isprime_details.add_details("Direct", f"{n} is divisible by 3")
+            __isprime_details["Trial Division"] = f"{n} is divisible by 3"
         return False
 
     # This step is pretty useless unless primesieve is being used for something else or is
@@ -466,7 +467,7 @@ def isprime(n, *, details=False):
     global primesieve
     if n in primesieve:
         if details:
-            isprime_details.add_details("Direct", f"{n} is known prime")
+            __isprime_details["Trial Division"] = f"{n} is known prime"
         return True
     elif n < 2047:
         return miller_rabin_bases([2], n, details=details)
@@ -485,7 +486,8 @@ def isprime(n, *, details=False):
     elif n < 55245642489451:
         return miller_rabin_bases([2, 141889084524735, 1199124725622454117, 11096072698276303650], n, details=details)
     elif n < 7999252175582851:
-        return miller_rabin_bases([2, 4130806001517, 149795463772692060, 186635894390467037, 3967304179347715805], n, details=details)
+        return miller_rabin_bases([2, 4130806001517, 149795463772692060, 186635894390467037, 3967304179347715805], n,
+                                  details=details)
     elif n < 18446744073709551616:
         return miller_rabin_bases([2, 325, 9375, 28178, 450775, 9780504, 1795265022], n, details=details)
     elif n < 318665857834031151167461:
@@ -499,7 +501,7 @@ def isprime(n, *, details=False):
 
         # If miller rabin didn't say it was composite, then we should note that we used Baillie-PSW
         if details:
-            isprime_details.add_details("Baillie-PSW", True)
+            __isprime_details["Baillie-PSW"] = True
         return baillie_psw(n, mr=False)
 
 

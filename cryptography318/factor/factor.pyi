@@ -1,8 +1,8 @@
 from collections.abc import Callable
-from typing import Optional
+from typing import Optional, Any
 
 
-def get_details() -> str: ...
+def get_details() -> dict[str, Any]: ...
 
 
 def factor(

@@ -97,7 +97,6 @@ def test_get_details():
         isprime(n, details=True)
 
         details = get_details()
-        details_obj = json.loads(details)
 
         # Assert at least one description is provided
-        assert any(v is not None for v in details_obj.values())
+        assert any(v is not None for v in details.values())

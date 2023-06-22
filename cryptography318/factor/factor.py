@@ -1,23 +1,24 @@
 import os
 from math import gcd, log, sqrt
 from random import randrange
+from typing import Any
 
 from cryptography318.factor import lenstra_ecm
 from cryptography318.factor import siqs
 from cryptography318.prime.prime import isprime, next_prime, primesieve
 
-_factor_details: dict[str, bool | None] = {
+__factor_details: dict[str, Any] = {
     "Pollard's Rho": None,
     "ECM": None,
     "Pollard's P-1": None,
     "Quadratic Sieve": None,
-    "Direct": None
+    "Trial Division": None
 }
 
 
 def get_details():
-    global _factor_details
-    return _factor_details
+    global __factor_details
+    return __factor_details
 
 
 def factor(n, rho=True, ecm=True, p1=True, qs=True, limit=None, *, details=False):
@@ -39,18 +40,18 @@ def factor(n, rho=True, ecm=True, p1=True, qs=True, limit=None, *, details=False
     :param details: bool determining if factor details should be updated
     :return: dictionary of all primes factors and their powers, or None if not factorable
     """
-    global _factor_details
+    global __factor_details
     if details:
-        for key, value in _factor_details.items():
-            _factor_details[key] = None
+        for key, value in __factor_details.items():
+            __factor_details[key] = None
 
     if n == 1:
         if details:
-            _factor_details["Trial Division"] = True
+            __factor_details["Trial Division"] = True
         return {}
     elif isprime(n):
         if details:
-            _factor_details["Trial Division"] = True
+            __factor_details["Trial Division"] = True
         return {n: 1}
 
     if limit is None:
@@ -61,12 +62,12 @@ def factor(n, rho=True, ecm=True, p1=True, qs=True, limit=None, *, details=False
     # If we factored it completely with small factors, return factors
     if k == 1:
         if details:
-            _factor_details["Trial Division"] = True
+            __factor_details["Trial Division"] = True
         return factors
     # If we factored it partially with small factors, recursively factor the rest
     elif k != n:
         if details:
-            _factor_details["Trial Division"] = True
+            __factor_details["Trial Division"] = True
         # If remaining factor is prime, we are done factoring
         if isprime(k):
             factors[k] = factors.get(k, 0) + 1
@@ -77,28 +78,28 @@ def factor(n, rho=True, ecm=True, p1=True, qs=True, limit=None, *, details=False
 
     if rho:
         if details:
-            _factor_details["Pollard's Rho"] = True
+            __factor_details["Pollard's Rho"] = True
         n = _factor_further(n, pollard_rho_factor(n), factors, **factor_kwargs)
         if n == 1:
             return factors
 
     if ecm:
         if details:
-            _factor_details["ECM"] = True
+            __factor_details["ECM"] = True
         n = _factor_further(n, lenstra_ecm(n), factors, **factor_kwargs)
         if n == 1:
             return factors
 
     if p1:
         if details:
-            _factor_details["Pollard's P-1"] = True
+            __factor_details["Pollard's P-1"] = True
         n = _factor_further(n, pollard_p1(n), factors, **factor_kwargs)
         if n == 1:
             return factors
 
     if qs:
         if details:
-            _factor_details["Quadratic Sieve"] = True
+            __factor_details["Quadratic Sieve"] = True
 
         # Use local primes.txt if we can find it, otherwise don't use a file (slow)
         fp = "primes.txt" if os.path.exists("../prime/primes.txt") else None

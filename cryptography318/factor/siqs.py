@@ -226,7 +226,7 @@ def first_poly(n, m):
 
     n_factors = len(a_factors)
     size_fb = len(factor_base)
-    B_ainv_2 = []
+    B_ainv_2: list[list] = []
     for _ in range(n_factors):
         B_ainv_2.append([None] * size_fb)
 
