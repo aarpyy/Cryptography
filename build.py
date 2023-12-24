@@ -43,11 +43,16 @@ def main():
     # If test, upload to test.pypi.org
     if args.test:
         print("Uploading package to test.pypi.org")
-        sp.run(["twine", "upload", "--repository-url", "https://test.pypi.org/legacy/", "dist/*"], cwd=cdir)
+        sp.run([
+            "twine", "upload",
+            "-r", "testpypi",
+            "--config-file", "~/.pypirc",
+            "dist/*"
+        ], cwd=cdir)
     else:
         print("Uploading package to pypi.org")
         # Otherwise, upload to pypi.org
-        sp.run(["twine", "upload", "dist/*"], cwd=cdir)
+        sp.run(["twine", "upload", "--config-file", "~/.pypirc", "dist/*"], cwd=cdir)
 
 
 if __name__ == "__main__":

@@ -1,27 +1,13 @@
 import os
 from math import gcd, log, sqrt
 from random import randrange
-from typing import Any
 
 from cryptography318.factor import lenstra_ecm
 from cryptography318.factor import siqs
 from cryptography318.prime.prime import isprime, next_prime, primesieve
 
-__factor_details: dict[str, Any] = {
-    "Pollard's Rho": None,
-    "ECM": None,
-    "Pollard's P-1": None,
-    "Quadratic Sieve": None,
-    "Trial Division": None
-}
 
-
-def get_details():
-    global __factor_details
-    return __factor_details
-
-
-def factor(n, rho=True, ecm=True, p1=True, qs=True, limit=None, *, details=False):
+def factor(n, rho=True, ecm=True, p1=True, qs=True, limit=None, *, details=None):
     """
     Attempts to factor given integer with four methods, returning None if un-factorable.
     Function first checks if number is prime then finds all small factors if any exist.
@@ -40,18 +26,25 @@ def factor(n, rho=True, ecm=True, p1=True, qs=True, limit=None, *, details=False
     :param details: bool determining if factor details should be updated
     :return: dictionary of all primes factors and their powers, or None if not factorable
     """
-    global __factor_details
-    if details:
-        for key, value in __factor_details.items():
-            __factor_details[key] = None
 
-    if n == 1:
-        if details:
-            __factor_details["Trial Division"] = True
+    if details is None:
+        details = {}
+    details['methods'] = details.get('methods', [])
+
+    if not isinstance(n, int):
+        details['error'] = str(TypeError("n must be an integer"))
         return {}
-    elif isprime(n):
-        if details:
-            __factor_details["Trial Division"] = True
+
+    if n <= 1:
+        details['error'] = str(ValueError("n must be greater than 1"))
+        return {}
+
+    if isprime(n):
+        details['methods'].append({
+            'function': isprime.__name__,
+            'name': 'Is Prime',
+            'value': n
+        })
         return {n: 1}
 
     if limit is None:
@@ -59,53 +52,80 @@ def factor(n, rho=True, ecm=True, p1=True, qs=True, limit=None, *, details=False
 
     factors = {}
     k, _ = factor_small(factors, n, limit)
+
+    # Update small factors in details - should only already exist if called recursively
+    details['methods'].append({
+        'function': factor_small.__name__,
+        'name': 'Trial Division',
+        'value': factors.copy()
+    })
+
     # If we factored it completely with small factors, return factors
     if k == 1:
-        if details:
-            __factor_details["Trial Division"] = True
         return factors
+
     # If we factored it partially with small factors, recursively factor the rest
     elif k != n:
-        if details:
-            __factor_details["Trial Division"] = True
         # If remaining factor is prime, we are done factoring
         if isprime(k):
             factors[k] = factors.get(k, 0) + 1
+
+            # Update details from previous small factors to include this prime
+            details['methods'].append({
+                'function': isprime.__name__,
+                'name': 'Is Prime',
+                'value': k
+            })
             return factors
         n = k
 
-    factor_kwargs = {"rho": rho, "ecm": ecm, "p1": p1, "qs": qs, "limit": limit}
+    factor_kwargs = {"rho": rho, "ecm": ecm, "p1": p1, "qs": qs, "limit": limit, "details": details}
 
     if rho:
-        if details:
-            __factor_details["Pollard's Rho"] = True
-        n = _factor_further(n, pollard_rho_factor(n), factors, **factor_kwargs)
+        value = pollard_rho_factor(n)
+        details['methods'].append({
+            'function': pollard_rho_factor.__name__,
+            'name': "Pollard's Rho",
+            'value': value
+        })
+        n = _factor_further(n, value, factors, **factor_kwargs)
         if n == 1:
             return factors
 
     if ecm:
-        if details:
-            __factor_details["ECM"] = True
-        n = _factor_further(n, lenstra_ecm(n), factors, **factor_kwargs)
+        value = lenstra_ecm(n)
+        details['methods'].append({
+            'function': lenstra_ecm.__name__,
+            'name': "ECM",
+            'value': value
+        })
+        n = _factor_further(n, value, factors, **factor_kwargs)
         if n == 1:
             return factors
 
     if p1:
-        if details:
-            __factor_details["Pollard's P-1"] = True
-        n = _factor_further(n, pollard_p1(n), factors, **factor_kwargs)
+        value = pollard_p1(n)
+        details['methods'].append({
+            'function': pollard_p1.__name__,
+            'name': "Pollard's P-1",
+            'value': value
+        })
+        n = _factor_further(n, value, factors, **factor_kwargs)
         if n == 1:
             return factors
 
     if qs:
-        if details:
-            __factor_details["Quadratic Sieve"] = True
-
         # Use local primes.txt if we can find it, otherwise don't use a file (slow)
         fp = "primes.txt" if os.path.exists("../prime/primes.txt") else None
 
+        value = siqs(n, fp=fp, loud=False)
+        details['methods'].append({
+            'function': siqs.__name__,
+            'name': "Quadratic Sieve",
+            'value': value
+        })
         # Nothing left after quadratic sieve, so just return factors
-        n = _factor_further(n, siqs(n, fp=fp, loud=False), factors, **factor_kwargs)
+        n = _factor_further(n, value, factors, **factor_kwargs)
         if n != 1:
             factors[n] = factors.get(n, 0) + 1
         return factors

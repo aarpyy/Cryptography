@@ -4,7 +4,7 @@ from pathlib import Path
 
 def run_setup(version=None):
     if version is None:
-        version = "0.3.1"
+        version = "0.4.0"
 
     cdir = Path(__file__).parent.absolute()
     with open(cdir.joinpath("README.md")) as f:

@@ -12,7 +12,6 @@ for solving DLP's.
 
 ## Required Packages
 * numpy
-* sympy
 
 ## Install
 ```angular2html

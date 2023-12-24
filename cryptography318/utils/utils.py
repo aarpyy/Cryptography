@@ -1,22 +1,4 @@
-import json
 from math import ceil, log, log10, log2, prod
-
-
-class Details:
-    __slots__ = ("_details",)
-
-    def __init__(self, **kwargs):
-        self._details = kwargs
-
-    def __str__(self):
-        return json.dumps(self._details)
-
-    def add_details(self, name, value):
-        self._details[name] = value
-
-    def clear_details(self):
-        for name in self._details:
-            self._details[name] = None
 
 
 def binary_search(a, key, *, start=0, end=None, exist=True):

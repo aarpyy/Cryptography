@@ -2,12 +2,10 @@ from collections.abc import Callable
 from typing import Optional, Any
 
 
-def get_details() -> dict[str, Any]: ...
-
 
 def factor(
         n: int, rho: bool = ..., ecm: bool = ..., p1: bool = ..., qs: bool = ..., limit: Optional[int] = ..., *,
-        details: bool = ...
+        details: dict | None = ...
 ) -> Optional[dict[int, int]]: ...
 
 

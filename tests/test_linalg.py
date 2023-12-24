@@ -1,12 +1,12 @@
 from cryptography318.linalg.linalg import *
 from timeit import timeit
 import numpy as np
-import sympy
 import pytest
 import random
 
 
 def test_rref():
+    import sympy
     np.random.seed(10)
 
     # Matches Sympy for random matrices

@@ -2,9 +2,10 @@ import json
 from pathlib import Path
 from random import seed, randrange
 
+import jsonschema
 import pytest
 
-from cryptography318.factor import siqs, factor, pollard_p1, pollard_rho_factor, get_details
+from cryptography318.factor import siqs, factor, pollard_p1, pollard_rho_factor
 from cryptography318.prime import randprime
 
 test_root = Path(__file__).parent.absolute()
@@ -47,25 +48,49 @@ def test_factor():
         assert factors == {a: 1, b: 2, c: 2}
 
 
-def test_get_details():
+def test_details():
+    schema = {
+        "type": "object",
+        "properties": {
+            "methods": {
+                "type": "array",
+                "items": {
+                    "type": "object",
+                    "properties": {
+                        "function": {"type": "string"},
+                        "name": {"type": "string"},
+                        "value": {
+                            "description": "The value returned by the function",
+                        },
+                    },
+                },
+            },
+            "error": {
+                "type": "string",
+            },
+        },
+        "required": ["methods"]
+    }
+
     seed(318)
     e = 10
-    for _ in range(10):
-        n = randrange(pow(10, e), pow(10, e + 1))
-        factor(n, details=True)
-        details = get_details()
+    n = randrange(pow(10, e), pow(10, e + 1))
+    details = {}
+    factor(n, details=details)
+    jsonschema.validate(details, schema)
+    assert "error" not in details
 
-        # At least one of the values must be literal True
-        assert any(v is True for v in details.values())
+    a = randprime(pow(10, e), pow(10, e + 1))
+    b = randprime(pow(10, e), pow(10, e + 1))
+    n = a * b * b
+    details = {}
+    factor(n, details=details)
+    jsonschema.validate(details, schema)
 
-        a = randprime(pow(10, e), pow(10, e + 1))
-        b = randprime(pow(10, e), pow(10, e + 1))
-        n = a * b * b
-        factor(n, details=True)
-        details = get_details()
-
-        # At least one of the values must be literal True
-        assert any(v is True for v in details.values())
+    details = {}
+    factor(1.2, details=details)
+    jsonschema.validate(details, schema)
+    assert "error" in details
 
 
 @pytest.mark.skip()
@@ -77,4 +102,4 @@ def test_all():
 
 
 if __name__ == "__main__":
-    test_all()
+    test_details()
