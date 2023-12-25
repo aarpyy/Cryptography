@@ -288,7 +288,7 @@ def miller_rabin(n, k=40, *, details=False):
     for _ in range(k):
         if not _mr_test(d, n):
             details['methods'].append({
-                'function': _mr_test,
+                'function': _mr_test.__name__,
                 'name': 'Miller-Rabin',
                 'description': f"{d} is a witness to {n}'s composite-ness",
                 'value': False
@@ -296,7 +296,7 @@ def miller_rabin(n, k=40, *, details=False):
             return False
 
     details['methods'].append({
-        'function': _mr_test,
+        'function': _mr_test.__name__,
         'name': 'Miller-Rabin',
         'description': f"Using {k} random bases, {n} is probably prime",
         'value': True
@@ -367,7 +367,7 @@ def miller_rabin_bases(bases, n, *, details=None):
     for a in bases:
         if not _miller_rabin_base_a(a, n):
             details['methods'].append({
-                'function': _miller_rabin_base_a,
+                'function': _miller_rabin_base_a.__name__,
                 'name': 'Miller-Rabin',
                 'description': f"{a} is a witness to {n}'s composite-ness",
                 'value': False
@@ -375,7 +375,7 @@ def miller_rabin_bases(bases, n, *, details=None):
             return False
 
     details['methods'].append({
-        'function': _miller_rabin_base_a,
+        'function': _miller_rabin_base_a.__name__,
         'name': 'Miller-Rabin',
         'description': f"Using {', '.join(str(b) for b in bases)} as bases, {n} is probably prime",
         'value': True
@@ -408,7 +408,7 @@ def baillie_psw(n, mr=True, details=None):
     # Now perform the Miller-Rabin primality test base 2
     if mr and not _miller_rabin_base_a(2, n):
         details['methods'].append({
-            'function': _miller_rabin_base_a,
+            'function': _miller_rabin_base_a.__name__,
             'name': 'Miller-Rabin',
             'description': f"2 is a witness to {n}'s composite-ness",
             'value': False
