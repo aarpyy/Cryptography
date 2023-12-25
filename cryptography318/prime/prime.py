@@ -3,21 +3,9 @@ from itertools import islice
 from math import isqrt, prod
 from pathlib import Path
 from random import choice, randrange
-from typing import Any
 
 from cryptography318.prime.bailliepsw_helper import D_chooser, LucasPseudoPrime
 from cryptography318.utils.utils import binary_search
-
-__isprime_details: dict[str, Any] = {
-    "Miller-Rabin": None,
-    "Baillie-PSW": None,
-    "Trial Division": None,
-}
-
-
-def get_details():
-    global __isprime_details
-    return __isprime_details
 
 
 class Sieve(UserList[int]):
@@ -299,11 +287,20 @@ def miller_rabin(n, k=40, *, details=False):
 
     for _ in range(k):
         if not _mr_test(d, n):
-            if details:
-                global __isprime_details
-                __isprime_details["Miller-Rabin"] = f"{d} is a witness to {n}'s composite-ness"
+            details['methods'].append({
+                'function': _mr_test,
+                'name': 'Miller-Rabin',
+                'description': f"{d} is a witness to {n}'s composite-ness",
+                'value': False
+            })
             return False
 
+    details['methods'].append({
+        'function': _mr_test,
+        'name': 'Miller-Rabin',
+        'description': f"Using {k} random bases, {n} is probably prime",
+        'value': True
+    })
     return True
 
 
@@ -359,45 +356,83 @@ def _miller_rabin_base_a(a, n):
     return False
 
 
-def miller_rabin_bases(bases, n, *, details=False):
+def miller_rabin_bases(bases, n, *, details=None):
     """Helper function that allows for a list of witnesses to be tested
     using MillerRabin_base_a function"""
-    global __isprime_details
+
+    if details is None:
+        details = {}
+    details['methods'] = details.get('methods', [])
 
     for a in bases:
         if not _miller_rabin_base_a(a, n):
-            if details:
-                __isprime_details["Miller-Rabin"] = f"{a} is witness to {n}'s compositeness"
+            details['methods'].append({
+                'function': _miller_rabin_base_a,
+                'name': 'Miller-Rabin',
+                'description': f"{a} is a witness to {n}'s composite-ness",
+                'value': False
+            })
             return False
-    if details:
-        __isprime_details["Miller-Rabin"] = f"{n} is probably prime"
+
+    details['methods'].append({
+        'function': _miller_rabin_base_a,
+        'name': 'Miller-Rabin',
+        'description': f"Using {', '.join(str(b) for b in bases)} as bases, {n} is probably prime",
+        'value': True
+    })
     return True
 
 
-def baillie_psw(n, mr=True):
+def baillie_psw(n, mr=True, details=None):
     """
     Perform the Baillie-PSW probabilistic primality test on candidate.
 
     :param n: prime candidate
     :param mr: if Miller-Rabin test base 2 should be used
+    :param details:
     :return:
     """
+    if details is None:
+        details = {}
+    details['methods'] = details.get('methods', [])
 
     # Check divisibility by a short list of primes less than 50
     if (res := known_prime(n)) is not None:
+        details['methods'].append({
+            'function': known_prime.__name__,
+            'name': 'Known prime',
+            'value': res
+        })
         return res
 
     # Now perform the Miller-Rabin primality test base 2
     if mr and not _miller_rabin_base_a(2, n):
+        details['methods'].append({
+            'function': _miller_rabin_base_a,
+            'name': 'Miller-Rabin',
+            'description': f"2 is a witness to {n}'s composite-ness",
+            'value': False
+        })
         return False
 
     # Checks if number has square root
     if is_square(n):
+        details['methods'].append({
+            'function': is_square.__name__,
+            'name': 'Is square',
+            'value': False
+        })
         return False
 
     # Finally perform the Lucas primality test
     D = D_chooser(n)
-    return LucasPseudoPrime(n, D, 1, (1 - D) // 4)
+    value = LucasPseudoPrime(n, D, 1, (1 - D) // 4)
+    details['methods'].append({
+        'function': LucasPseudoPrime.__name__,
+        'name': 'Lucas pseudo-prime',
+        'value': value
+    })
+    return value
 
 
 def known_prime(n):
@@ -421,7 +456,7 @@ def known_prime(n):
     return None
 
 
-def isprime(n, *, details=False):
+def isprime(n, *, details=None):
     """
     IsPrime function returns False iff the prime-candidate is composite, and True
     if the prime-candidate is probably prime.
@@ -435,39 +470,51 @@ def isprime(n, *, details=False):
     probably prime.
     """
 
-    global __isprime_details
-    if details:
-        for key in __isprime_details:
-            __isprime_details[key] = None
+    if details is None:
+        details = {}
+    details['methods'] = details.get('methods', [])
 
     if n < 2:
-        if details:
-            __isprime_details["Trial Division"] = f"{n} < 2"
+        details['error'] = str(ValueError("n must be greater than 1"))
         return False
 
     elif n < 10:
-        if details:
-            __isprime_details["Trial Division"] = f"{n} < 10"
-        return bool([0, 0, 1, 1, 0, 1, 0, 1, 0, 0, 0][n])
+        is_prime = bool([0, 0, 1, 1, 0, 1, 0, 1, 0, 0, 0][n])
+        details['methods'].append({
+            'function': None,
+            'name': 'Known prime' if is_prime else 'Known composite',
+            'value': is_prime
+        })
+        return is_prime
 
     # check for odds
     elif not n & 1:
-        if details:
-            __isprime_details["Trial Division"] = f"{n} is even"
+        details['methods'].append({
+            'function': None,
+            'name': 'Even',
+            'value': False
+        })
         return False
 
     # check for all other instances n != 6k +/- 1
     elif not n % 3:
-        if details:
-            __isprime_details["Trial Division"] = f"{n} is divisible by 3"
+        details['methods'].append({
+            'function': None,
+            'name': 'Divisible by 3',
+            'description': 'All prime integers are of the form 6k +/- 1 for some positive integer k',
+            'value': False
+        })
         return False
 
     # This step is pretty useless unless primesieve is being used for something else or is
     # being purposefully generated, since it is constructed only with first 6 primes
     global primesieve
     if n in primesieve:
-        if details:
-            __isprime_details["Trial Division"] = f"{n} is known prime"
+        details['methods'].append({
+            'function': None,
+            'name': 'Cached prime',
+            'value': True
+        })
         return True
     elif n < 2047:
         return miller_rabin_bases([2], n, details=details)
@@ -499,10 +546,15 @@ def isprime(n, *, details=False):
         if not res:
             return False
 
+        value = baillie_psw(n, mr=False, details=details)
         # If miller rabin didn't say it was composite, then we should note that we used Baillie-PSW
-        if details:
-            __isprime_details["Baillie-PSW"] = True
-        return baillie_psw(n, mr=False)
+        details['methods'].append({
+            'function': baillie_psw.__name__,
+            'name': 'Baillie-PSW',
+            'description': 'Baillie-PSW is a combination of Miller-Rabin and Lucas Pseudo-Prime tests',
+            'value': value
+        })
+        return value
 
 
 def randprime(a: int, b: int = None):

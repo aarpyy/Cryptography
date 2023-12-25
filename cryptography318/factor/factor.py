@@ -39,11 +39,12 @@ def factor(n, rho=True, ecm=True, p1=True, qs=True, limit=None, *, details=None)
         details['error'] = str(ValueError("n must be greater than 1"))
         return {}
 
-    if isprime(n):
+    prime_details = {}
+    if isprime(n, details=prime_details):
         details['methods'].append({
             'function': isprime.__name__,
-            'name': 'Is Prime',
-            'value': n
+            'name': 'Is prime',
+            'value': prime_details
         })
         return {n: 1}
 
@@ -56,7 +57,7 @@ def factor(n, rho=True, ecm=True, p1=True, qs=True, limit=None, *, details=None)
     # Update small factors in details - should only already exist if called recursively
     details['methods'].append({
         'function': factor_small.__name__,
-        'name': 'Trial Division',
+        'name': 'Trial division',
         'value': factors.copy()
     })
 
@@ -66,15 +67,16 @@ def factor(n, rho=True, ecm=True, p1=True, qs=True, limit=None, *, details=None)
 
     # If we factored it partially with small factors, recursively factor the rest
     elif k != n:
+        prime_details = {}
         # If remaining factor is prime, we are done factoring
-        if isprime(k):
+        if isprime(k, details=prime_details):
             factors[k] = factors.get(k, 0) + 1
 
             # Update details from previous small factors to include this prime
             details['methods'].append({
                 'function': isprime.__name__,
-                'name': 'Is Prime',
-                'value': k
+                'name': 'Is prime',
+                'value': prime_details
             })
             return factors
         n = k
