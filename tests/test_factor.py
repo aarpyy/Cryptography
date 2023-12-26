@@ -1,4 +1,3 @@
-import json
 from pathlib import Path
 from random import seed, randrange
 
@@ -59,9 +58,7 @@ def test_details():
                     "properties": {
                         "function": {"type": "string"},
                         "name": {"type": "string"},
-                        "value": {
-                            "description": "The value returned by the function",
-                        },
+                        "value": {},
                     },
                 },
             },
@@ -77,6 +74,7 @@ def test_details():
     n = randrange(pow(10, e), pow(10, e + 1))
     details = {}
     factor(n, details=details)
+
     jsonschema.validate(details, schema)
     assert "error" not in details
 
@@ -85,7 +83,9 @@ def test_details():
     n = a * b * b
     details = {}
     factor(n, details=details)
+
     jsonschema.validate(details, schema)
+    assert "error" not in details
 
     details = {}
     factor(1.2, details=details)
