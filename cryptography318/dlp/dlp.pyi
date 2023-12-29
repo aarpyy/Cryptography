@@ -7,9 +7,6 @@ def baby_step_giant_step(g: int, h: int, p: int, order: Optional[int] = ...) -> 
 def pollard_rho_dlp(g: int, h: int, p: int, order: Optional[int] = ...) -> int: ...
 
 
-def index_calculus_dlp(g: int, h: int, p: int) -> int: ...
-
-
 def calculate_state(state: tuple[int, int, int], g: int, h: int, p: int) -> tuple[int, int, int]: ...
 
 

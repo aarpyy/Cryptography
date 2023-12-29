@@ -2,11 +2,13 @@ import sys
 
 import setuptools.version
 
-from cryptography318.dlp import *
-from cryptography318.factor import *
-from cryptography318.linalg import *
-from cryptography318.prime import *
-from cryptography318.utils import *
+from cryptography318.dlp import baby_step_giant_step, pollard_rho_dlp, pohlig_hellman
+from cryptography318.factor import pollard_rho_factor, pollard_pm1, qs, factor, ecm
+from cryptography318.linalg import kernel_gf2
+from cryptography318.prime import (baillie_psw, chinese_remainder, confirm_prime, isprime, lift_sqrt, miller_rabin,
+                                   next_prime, prev_prime, prime_range, quadratic_non_residue, quadratic_residue,
+                                   randprime, sqrt_mod, primesieve)
+from cryptography318.utils import extended_gcd
 
 if sys.version_info < (3, 10):
     raise ImportError("cryptography318 requires Python 3.10 or higher!")
@@ -20,18 +22,18 @@ else:
     del numpy
 
 __all__ = [
-    "factor", "pollard_rho_factor", "pollard_p1",
+    "factor", "pollard_rho_factor", "pollard_pm1",
 
-    "siqs",
+    "qs",
 
     "randprime", "prime_range", "next_prime", "prev_prime", "isprime", "miller_rabin", "baillie_psw", "confirm_prime",
-    "sqrt_mod", "quadratic_residue", "quadratic_non_residue", "chinese_remainder",
+    "sqrt_mod", "quadratic_residue", "quadratic_non_residue", "chinese_remainder", "lift_sqrt", "primesieve",
 
-    "ecm_mont", "ecm_weierstrass", "lenstra_ecm",
+    "ecm",
 
     "extended_gcd",
 
-    "rref", "kernel_gf2", "kernel",
+    "kernel_gf2",
 
     "baby_step_giant_step", "pollard_rho_dlp", "pohlig_hellman"
 ]

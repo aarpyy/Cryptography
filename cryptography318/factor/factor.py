@@ -1,13 +1,15 @@
-import os
-from math import gcd, log, sqrt
+from math import gcd, log, sqrt, log2, ceil, isqrt
+from pathlib import Path
 from random import randrange
 
-from cryptography318.factor import lenstra_ecm
-from cryptography318.factor import siqs
-from cryptography318.prime.prime import isprime, next_prime, primesieve
+from .qs import qs
+from .elliptic import ecm
+from cryptography318.prime import isprime, next_prime, primesieve
+from utils.root import integer_nth_root, is_square
+from utils.misc import as_int
 
 
-def factor(n, rho=True, ecm=True, p1=True, qs=True, limit=None, *, details=None):
+def factor(n, use_rho=True, use_ecm=True, use_pm1=True, use_siqs=True, limit=None, verbose=False, *, details=None):
     """
     Attempts to factor given integer with four methods, returning None if un-factorable.
     Function first checks if number is prime then finds all small factors if any exist.
@@ -18,11 +20,12 @@ def factor(n, rho=True, ecm=True, p1=True, qs=True, limit=None, *, details=None)
     recursive call.
 
     :param n: int number to be factored
-    :param rho: bool determining if Pollard's Rho algorithm should be used
-    :param ecm: bool determining if Lenstra's ECM algorithm should be used
-    :param p1: bool determining if Pollard's P-1 algorithm should be used
-    :param qs: bool determining if Quadratic Sieve algorithm should be used
+    :param use_rho: bool determining if Pollard's Rho algorithm should be used
+    :param use_ecm: bool determining if Lenstra's ECM algorithm should be used
+    :param use_pm1: bool determining if Pollard's P-1 algorithm should be used
+    :param use_siqs: bool determining if Quadratic Sieve algorithm should be used
     :param limit: integer limit of factors to be found using small_factors()
+    :param verbose: bool determining if factorization details should be printed
     :param details: bool determining if factor details should be updated
     :return: dictionary of all primes factors and their powers, or None if not factorable
     """
@@ -31,28 +34,18 @@ def factor(n, rho=True, ecm=True, p1=True, qs=True, limit=None, *, details=None)
         details = {}
     details['methods'] = details.get('methods', [])
 
-    if not isinstance(n, int):
-        details['error'] = str(TypeError("n must be an integer"))
-        return {}
-
-    if n <= 1:
-        details['error'] = str(ValueError("n must be greater than 1"))
-        return {}
-
-    prime_details = {}
-    if isprime(n, details=prime_details):
-        details['methods'].append({
-            'function': isprime.__name__,
-            'name': 'Is prime',
-            'value': prime_details
-        })
-        return {n: 1}
-
-    if limit is None:
-        limit = 32768
+    n = as_int(n)
 
     factors = {}
-    k, _ = factor_small(factors, n, limit)
+    if n < 0:
+        n = -n
+        factors[-1] = 1
+
+    if isprime(n):
+        factors[n] = 1
+        return factors
+
+    k, _ = factor_small(factors, n, limit or 32768)
 
     # Update small factors in details only if we found any
     if k != n:
@@ -68,23 +61,41 @@ def factor(n, rho=True, ecm=True, p1=True, qs=True, limit=None, *, details=None)
 
     # If we factored it partially with small factors, recursively factor the rest
     if k != n:
-        prime_details = {}
         # If remaining factor is prime, we are done factoring
-        if isprime(k, details=prime_details):
+        if isprime(k):
             factors[k] = factors.get(k, 0) + 1
-
-            # Update details from previous small factors to include this prime
-            details['methods'].append({
-                'function': isprime.__name__,
-                'name': 'Is prime',
-                'value': prime_details
-            })
             return factors
         n = k
 
-    factor_kwargs = {"rho": rho, "ecm": ecm, "p1": p1, "qs": qs, "limit": limit, "details": details}
+    if is_square(n):
+        root = isqrt(n)
+        factors[root] = 2
+        details['methods'].append({
+            'function': is_square.__name__,
+            'name': 'Perfect square',
+            'value': {root: 2}
+        })
+        return factors
 
-    if rho:
+    # Now let's check for pefect powers
+    max_power = ceil(log2(n))  # Largest possible power of 2 (smallest prime) so all other powers would be smaller
+
+    # Start loop at 3 since we can use is_square() for 2
+    for i in range(3, max_power + 1):
+        root = integer_nth_root(n, i)
+        if root ** i == n:
+            factors[root] = i
+            details['methods'].append({
+                'function': integer_nth_root.__name__,
+                'name': 'Perfect power',
+                'value': {root: i}
+            })
+            return factors
+
+    factor_kwargs = {"use_rho": use_rho, "use_ecm": use_ecm, "use_pm1": use_pm1, "use_siqs": use_siqs, "limit": limit,
+                     "details": details}
+
+    if use_rho:
         value = pollard_rho_factor(n)
         if value is not None:
             details['methods'].append({
@@ -92,56 +103,57 @@ def factor(n, rho=True, ecm=True, p1=True, qs=True, limit=None, *, details=None)
                 'name': "Pollard's Rho",
                 'value': value
             })
-        n = _factor_further(n, value, factors, **factor_kwargs)
-        if n == 1:
-            return factors
+            n = _factor_further(n, value, factors, **factor_kwargs)
+            if n == 1:
+                return factors
 
-    if ecm:
-        value = lenstra_ecm(n)
+    if use_ecm:
+        value = ecm(n, verbose=verbose)
         if value is not None:
             details['methods'].append({
-                'function': lenstra_ecm.__name__,
+                'function': ecm.__name__,
                 'name': "ECM",
                 'value': value
             })
-        n = _factor_further(n, value, factors, **factor_kwargs)
-        if n == 1:
-            return factors
+            n = _factor_further(n, value, factors, **factor_kwargs)
+            if n == 1:
+                return factors
 
-    if p1:
-        value = pollard_p1(n)
+    if use_pm1:
+        value = pollard_pm1(n)
         if value is not None:
             details['methods'].append({
-                'function': pollard_p1.__name__,
+                'function': pollard_pm1.__name__,
                 'name': "Pollard's P-1",
                 'value': value
             })
-        n = _factor_further(n, value, factors, **factor_kwargs)
-        if n == 1:
-            return factors
+            n = _factor_further(n, value, factors, **factor_kwargs)
+            if n == 1:
+                return factors
 
-    if qs:
+    if use_siqs:
         # Use local primes.txt if we can find it, otherwise don't use a file (slow)
-        fp = "primes.txt" if os.path.exists("../prime/primes.txt") else None
+        path = Path(__file__).parent.parent.joinpath('data/primes.txt')
+        fp = path if path.is_file() else None
 
-        value = siqs(n, fp=fp, loud=False)
+        value = qs(n, fp=fp, loud=False)
         if value is not None:
             details['methods'].append({
-                'function': siqs.__name__,
+                'function': qs.__name__,
                 'name': "Quadratic Sieve",
                 'value': value
             })
 
-        # Nothing left after quadratic sieve, so just return factors
-        n = _factor_further(n, value, factors, **factor_kwargs)
-        if n != 1:
-            factors[n] = factors.get(n, 0) + 1
-        return factors
+            # Nothing left after quadratic sieve, so just return factors
+            n = _factor_further(n, value, factors, **factor_kwargs)
+            if n != 1:
+                factors[n] = factors.get(n, 0) + 1
+            return factors
 
-    return None
+    return factors
 
 
-def pollard_p1(n, B=None, _retry=5):
+def pollard_pm1(n, B=None, retry=5):
     """
     Pollard's p - 1 algorithm for factoring large composites.
     Returns one non-trivial factor if factor-able, False if otherwise.
@@ -157,14 +169,10 @@ def pollard_p1(n, B=None, _retry=5):
 
     primesieve.extend(B)
 
-    if isprime(n):
-        return n
-
     a = 2
-    primes = primesieve[:B]
-    for _ in range(_retry):
+    for _ in range(retry):
         m = a
-        for j in primes:
+        for j in primesieve.primerange(B + 1):
             exp = int(log(B, j))
             m = pow(m, pow(j, exp), n)
         q = gcd(m - 1, n)
@@ -176,15 +184,16 @@ def pollard_p1(n, B=None, _retry=5):
     return None
 
 
-def pollard_rho_factor(n, mix=None, _retry=5):
+def pollard_rho_factor(n, mix=None, retry=5):
     if n < 10:
         return factor_small({}, n, 10)
-    elif not callable(mix):
+
+    if not callable(mix):
         def mix(e):
             return (pow(e, 2, n) + 1) % n
 
     y = 2
-    for _ in range(_retry):
+    for _ in range(retry):
         x = y
         while True:
             x = mix(x)

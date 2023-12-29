@@ -1,11 +1,11 @@
-from cryptography318.factor.elliptic import ecm_mont, ecm_weierstrass, lenstra_ecm
-from cryptography318.factor.factor import factor, pollard_p1, pollard_rho_factor
-from cryptography318.factor.siqs import siqs
+from .elliptic import ecm
+from .factor import factor, pollard_pm1, pollard_rho_factor
+from .qs import qs
 
 __all__ = [
-    "ecm_mont", "ecm_weierstrass", "lenstra_ecm",
+    "ecm",
 
-    "factor", "pollard_rho_factor", "pollard_p1",
+    "factor", "pollard_rho_factor", "pollard_pm1",
 
-    "siqs",
+    "qs",
 ]

@@ -1,5 +1,5 @@
-from cryptography318.linalg.linalg import kernel, kernel_gf2, rref
+from cryptography318.linalg.linalg import kernel_gf2
 
 __all__ = [
-    "rref", "kernel_gf2", "kernel"
+    "kernel_gf2"
 ]

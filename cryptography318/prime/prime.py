@@ -1,275 +1,9 @@
-from collections import UserList
-from itertools import islice
-from math import isqrt, prod
-from pathlib import Path
-from random import choice, randrange
+from math import prod
+from random import randrange, randint
 
 from cryptography318.prime.bailliepsw_helper import D_chooser, LucasPseudoPrime
-from cryptography318.utils.utils import binary_search
-
-
-class Sieve(UserList[int]):
-    """
-    Unbound list of primes starting at 2. Object is iterable, index-able, print-able, searchable,
-    and extendable. Unless another specific use is required, import primesieve object as a global
-    variable for use. Intended to help with primality tests and factoring integers.
-    """
-
-    def __init__(self, data=None):
-        if data is None:
-            data = [2, 3, 5, 7, 11, 13]
-        super().__init__(data)
-
-    def search(self, value, *args):
-        """
-        Search for one or more values in the list. This is essentially
-        list.index() except when our list does not contain the value,
-        we will return the indices of the bordering primes.
-
-        :param value:
-        :param args:
-        :return:
-        """
-
-        # If we are just searching for the one value, much easier
-        if not args:
-            try:
-                # Try to just find it in the list
-                return self.data.index(value)
-            except ValueError:
-                # We either got a value error because the data is within the bounds of the list
-                # but not a prime OR it is outside the bounds of the list and possibly prime.
-                # If outside the bounds, we can't do anything so raise a ValueError
-                if value > self.data[-1] or value < self.data[0]:
-                    raise ValueError(f"{{{value}}} is not contained within the primesieve")
-
-                # Otherwise we know the value was within the bounds of the list but composite
-                # so lets find and return the indices of the bordering primes
-                i = binary_search(self.data, value, exist=False)
-                if i is None:
-                    raise ValueError(f"{{{value}}} is not contained within the primesieve")
-                return i - 1, i
-
-        # sorted() gets it back into a list, but now we've made sure to remove duplicates and add value
-        values = sorted({value, *args})
-
-        # If the largest value is larger than our upper bound or the smallest value is smaller than our
-        # lower bound then we cannot return information for all values so raise an error
-        if values[-1] > self.data[-1] or values[0] < self.data[0]:
-            raise ValueError(f"{set(values)} are not contained within the primesieve")
-
-        indices = []
-        composite = []
-        comp_indices = []
-
-        last_index = 0
-
-        # Try to get indices using index, add all that fail to our list, as well as the last prime
-        # we saw before the fail
-        for j, v in enumerate(values):
-            try:
-                last_index = self.data.index(v)
-                indices.append(last_index)
-            except ValueError:
-                # Keep track of where we should insert this into indices
-                comp_indices.append(j)
-                # Add the composite value and the index of the last prime before we searched for this one
-                composite.append((v, last_index))
-
-        # If all values being searched for were primes, just return the values
-        if len(composite) == 0:
-            return tuple(indices)
-
-        for k, (v, j) in enumerate(composite):
-            i = binary_search(self.data, v, start=j, exist=False)
-            if i is None:
-                raise ValueError(f"{{{value}}} is not contained within the primesieve")
-            indices.insert(comp_indices[k], (i - 1, i))
-
-        return tuple(indices)
-
-    def extend(self, n):
-        """
-        Extends the list to include all primes up to ``n`` inclusive.
-        If ``n`` is composite, list extends to include the smallest
-        prime larger than ``n``.
-
-        :param n: upper bound
-        :return: None
-        """
-        if n <= self.tail:
-            return
-
-        p = self.tail
-        while True:
-            p = next_prime(p)
-            self.data.append(p)
-            if p > n:
-                return
-
-    def load(self, file=None, overwrite=False):
-        """
-        Loads primes from text file into sieve.
-        :param file: Reads from primes.txt local to project
-        :param overwrite: If provided list of primes should replace existing list
-        """
-
-        if file is None:
-            fp = Path(__file__).parent.absolute().joinpath("primes.txt")
-        else:
-            fp = Path(file)
-
-        if not fp.is_file():
-            raise FileNotFoundError(f"Unable to locate file {fp}")
-
-        with open(fp, "r") as infile:
-
-            # If we are overwriting and just accepting this as the list
-            if overwrite:
-                self.data = []
-                for line in infile:
-                    self.data.append(int(line.strip()))
-                return
-
-            first_prime = int(infile.readline().strip())
-
-            # If we are starting from first prime, read all and then check to see if it read a higher prime
-            if first_prime == 2:
-                data = [2]
-                for line in infile:
-                    data.append(int(line.strip()))
-                if data[-1] > self.data[-1]:
-                    self.data = data
-                return
-
-            # If first prime is somewhere in list, find where it is and start adding from there
-            if first_prime < self.data[-1]:
-                # If this throws error then first_prime is not real prime
-                start_index = self.data.index(first_prime)
-                data = [first_prime]
-                for line in infile:
-                    data.append(int(line.strip()))
-
-                if data[-1] > self.data[-1]:
-                    self.data = self.data[:start_index] + data
-                return
-
-            # If first prime is our last prime, simple, just start appending to our list
-            if first_prime == self.data[-1]:
-                for line in infile:
-                    self.data.append(int(line.strip()))
-                return
-
-            # If first prime read is next sequentially, we can accept it
-            if next_prime(self.data[-1]) == first_prime:
-                self.data.append(first_prime)
-                for line in infile:
-                    self.data.append(int(line.strip()))
-                return
-
-            # Otherwise we have discontinuous list and have to throw error
-            raise ValueError(f"List of primes starting with {first_prime} is not continuous with current primesieve")
-
-    def range(self, a, b=None):
-        """
-        Returns all primes within the given range. If a lower bound is not given
-        the range starts at 2.
-
-        :param a: first bound
-        :param b: upper bound
-        :return: all primes in range [a, b)
-        """
-        if b is None:
-            b = a
-            a = 2
-
-        # Make sure that we've got a valid sized range
-        if b <= a:
-            return None
-
-        # Extend sieve up to upper bound inclusive
-        self.extend(b)
-
-        # Get indices of upper and lower bounds
-        i, j = self.search(a, b)
-        if isinstance(i, tuple):
-            i = i[1]
-
-        # If it's a tuple, lets take the lower since we need to add 1 later since if it's not a tuple
-        # we want to make sure we include that prime
-        if isinstance(j, tuple):
-            j = j[0]
-
-        return islice(self.data, i, j + 1)
-
-    @property
-    def list(self):
-        return self.data
-
-    @property
-    def tail(self):
-        return self.data[-1]
-
-
-primesieve = Sieve()
-
-
-def is_square(n):
-    """
-    Replacement for Sympy's is_square function that follows almost
-    explicitly the routine outlined in the link. The major difference
-    is that due to the speed of Python's integer, we don't need
-    to pre-mod our value to increase the speed of future mods, for each
-    test we can mod n directly.
-
-    References
-    ----------
-    https://mersenneforum.org/showpost.php?p=110896
-
-    :param n: integer
-    :return: if a * a == n for some integer a
-    """
-    if n < 0:
-        return False
-    elif n in (0, 1):
-        return True
-    elif n & 1:
-        return False
-
-    m = n & 127  # n % 128
-    if (m * 0x8bc40d7d) & (m * 0xa1e2f5d1) & 0x14020a:
-        return False
-
-    m = n % 63
-    if (m * 0x3d491df7) & (m * 0xc824a9f9) & 0x10f14008:
-        return False
-
-    m = n % 25
-    if (m * 0x1929fc1b) & (m * 0x4c9ea3b2) & 0x51001005:
-        return False
-
-    m = 0xd10d829a * (n % 31)
-    if m & (m + 0x672a5354) & 0x21025115:
-        return False
-
-    m = n % 23
-    if (m * 0x7bd28629) & (m * 0xe7180889) & 0xf8300:
-        return False
-
-    m = n % 19
-    if (m * 0x1b8bead3) & (m * 0x4d75a124) & 0x4280082b:
-        return False
-
-    m = n % 17
-    if (m * 0x6736f323) & (m * 0x9b1d499) & 0xc0000300:
-        return False
-
-    m = n % 11
-    if (m * 0xabf1a3a7) & (m * 0x2612bf93) & 0x45854000:
-        return False
-
-    m = isqrt(n)
-    return m * m == n
+from cryptography318.utils.root import is_square
+from cryptography318.prime.primesieve import primesieve
 
 
 def miller_rabin(n, k=40, *, details=False):
@@ -508,8 +242,7 @@ def isprime(n, *, details=None):
 
     # This step is pretty useless unless primesieve is being used for something else or is
     # being purposefully generated, since it is constructed only with first 6 primes
-    global primesieve
-    if n in primesieve:
+    if n < primesieve.tail and n in primesieve:
         details['methods'].append({
             'function': None,
             'name': 'Cached prime',
@@ -570,33 +303,18 @@ def randprime(a: int, b: int = None):
 
     # determines if user entered a lower and upper limit or just an upper
     if b is None:
-        b, a = a, 3
+        a, b = 2, a
 
-    base_2 = a == 2
-    a = a | 1  # If base_2, `a` isn't used, if not base 2 then even `a` is not prime so adjust to odd affects nothing
-
-    global primesieve
-    if b <= primesieve.tail:
-        start, stop = primesieve.search(a), primesieve.search(b)
-        if isinstance(start, tuple):
-            start = start[1]
-        if isinstance(stop, tuple):
-            stop = stop[0]
-        return choice(primesieve[start:stop])
-
-    # If base_2 is True then it uses 2 as a base and increments by 1 (default) for generating random int
-    # If base != 2, generates random int starting at lower limit, incrementing by 2
-    if base_2:
-        def rprime():
-            return randrange(2, b)
-    else:
-        def rprime():
-            return randrange(a, b, 2)
-
-    while True:
-        prime = rprime()
-        if isprime(prime):
-            return prime
+    if a >= b:
+        return
+    a, b = map(int, (a, b))
+    n = randint(a - 1, b)
+    p = next_prime(n)
+    if p >= b:
+        p = prev_prime(b)
+    if p < a:
+        raise ValueError("no primes exist in the specified range")
+    return p
 
 
 def confirm_prime(n):
@@ -608,7 +326,6 @@ def confirm_prime(n):
     elif n == 2:
         return True
 
-    global primesieve
     if n in primesieve:
         return True
 
@@ -633,12 +350,8 @@ def next_prime(n):
     elif n < 11:
         return [2, 2, 3, 5, 5, 7, 7, 11, 11, 11, 11][n]
     elif n < primesieve.tail:
-        i = primesieve.search(n)
-        if isinstance(i, tuple):
-            i = i[1]
-        else:
-            i += 1
-        return primesieve[i]
+        a, b = primesieve.search(n)
+        return primesieve[b]
 
     # Ensures that n starts at the nearest 6k + 1
 

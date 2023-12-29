@@ -1,8 +1,6 @@
-from functools import reduce
-from math import gcd, isqrt, sqrt
+from math import gcd, isqrt
 
-from cryptography318.prime.prime import primesieve
-from cryptography318.utils.utils import from_base, smooth_factor
+from cryptography318.utils.dlp import from_base
 
 
 def baby_step_giant_step(g, h, p, order=None):
@@ -77,39 +75,6 @@ def pollard_rho_dlp(g, h, p, order=None):
                                 return log_g_h
                             log_g_h += mod
                 continue
-
-
-def index_calculus_dlp(g, h, p):
-    """Function attempts to solve DLP through index calculus algorithm, computing a series of smaller dlp's
-    used to solve the larger."""
-
-    raise NotImplementedError("ICM currently in development.")
-
-    from math import e, log
-
-    B = int(pow(e, sqrt((log(p) * log(log(p))) / 2)))
-
-    print(f"B: {B}")
-
-    primesieve.extend(B)
-    primes = primesieve[:B]
-
-    print(f"primesieve extended")
-
-    # currently brute forces solutions to log_g_x with x for each prime <= B
-    logs = []
-    for n in primes:
-        lg = pollard_rho_dlp(g, n, p)
-        print(f"log {n} mod {p} = {lg}")
-        logs.append(lg)
-
-    k = 0
-    while 1:
-        k += 1
-        x = (h * pow(g, -k, p)) % p
-        if (exponents := smooth_factor(x, primes)) is not None:
-            # reduce sums list returned by map, which returns list of products of exponents and logs
-            return reduce(lambda a, b: a + b, list(map(lambda i, l: i * l, exponents, logs))) + k
 
 
 def calculate_state(state, g, h, p):
