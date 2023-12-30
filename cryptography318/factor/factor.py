@@ -5,8 +5,8 @@ from random import randrange
 from .qs import qs
 from .elliptic import ecm
 from cryptography318.prime import isprime, next_prime, primesieve
-from utils.root import integer_nth_root, is_square
-from utils.misc import as_int
+from cryptography318.utils.root import integer_nth_root, is_square
+from cryptography318.utils.misc import as_int
 
 
 def factor(n, use_rho=True, use_ecm=True, use_pm1=True, use_siqs=True, limit=None, verbose=False, *, details=None):

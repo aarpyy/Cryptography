@@ -2,7 +2,7 @@ from bisect import bisect
 from collections import UserList
 from itertools import count
 
-from utils.misc import as_int
+from cryptography318.utils.misc import as_int
 
 
 class Sieve(UserList[int]):

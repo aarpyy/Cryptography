@@ -2,7 +2,7 @@ from math import floor, gcd, isqrt, log, sqrt
 from random import Random
 
 from cryptography318.prime.primesieve import primesieve
-from utils.misc import as_int
+from cryptography318.utils.misc import as_int
 
 
 rndm = Random()

@@ -8,7 +8,7 @@ from math import ceil, gcd, isqrt, log2, prod, sqrt
 
 from cryptography318.linalg import kernel_gf2
 from cryptography318.prime.prime import quadratic_residue, sqrt_mod, primesieve
-from utils.siqs import choose_f, n_digits, choose_m
+from cryptography318.utils.siqs import choose_f, n_digits, choose_m
 
 
 @dataclass
