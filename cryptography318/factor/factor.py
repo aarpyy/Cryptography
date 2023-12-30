@@ -136,7 +136,7 @@ def factor(n, use_rho=True, use_ecm=True, use_pm1=True, use_siqs=True, limit=Non
         path = Path(__file__).parent.parent.joinpath('data/primes.txt')
         fp = path if path.is_file() else None
 
-        value = qs(n, fp=fp, loud=False)
+        value = qs(n, fp=fp, verbose=False)
         if value is not None:
             details['methods'].append({
                 'function': qs.__name__,

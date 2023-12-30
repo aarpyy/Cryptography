@@ -351,7 +351,7 @@ def next_prime(n):
         return [2, 2, 3, 5, 5, 7, 7, 11, 11, 11, 11][n]
     elif n < primesieve.tail:
         a, b = primesieve.search(n)
-        return primesieve[b]
+        return primesieve[b] if a != b else primesieve[b + 1]
 
     # Ensures that n starts at the nearest 6k + 1
 

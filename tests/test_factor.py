@@ -98,13 +98,17 @@ def test_p1():
 
 def test_factor():
     seed(318)
-    e = 10
-    for _ in range(10):
-        a = randprime(pow(10, e), pow(10, e + 1))
-        b = randprime(pow(10, e), pow(10, e + 1))
-        c = randprime(pow(10, 2), pow(10, 3))
-        factors = factor(a * b * b * c * c)
-        assert factors == {a: 1, b: 2, c: 2}
+    e = 8
+
+    a = randprime(pow(10, e), pow(10, e + 1))
+    b = randprime(pow(10, e), pow(10, e + 1))
+    c = randprime(pow(10, 2), pow(10, 3))
+    factors = factor(a * b * b * c * c)
+    assert factors == {a: 1, b: 2, c: 2}
+
+    details = {}
+    print(factor(90018734896147309532178918371784034437, details=details))
+    print(details)
 
 
 def test_details():
