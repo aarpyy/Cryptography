@@ -6,7 +6,7 @@ from cryptography318.dlp import baby_step_giant_step, pollard_rho_dlp, pohlig_he
 from cryptography318.factor import pollard_rho_factor, pollard_pm1, qs, factor, ecm
 from cryptography318.linalg import kernel_gf2
 from cryptography318.prime import (baillie_psw, chinese_remainder, confirm_prime, isprime, lift_sqrt, miller_rabin,
-                                   next_prime, prev_prime, prime_range, quadratic_non_residue, quadratic_residue,
+                                   next_prime, prev_prime, quadratic_non_residue, quadratic_residue,
                                    randprime, sqrt_mod, primesieve)
 from cryptography318.utils import extended_gcd
 
@@ -26,7 +26,7 @@ __all__ = [
 
     "qs",
 
-    "randprime", "prime_range", "next_prime", "prev_prime", "isprime", "miller_rabin", "baillie_psw", "confirm_prime",
+    "randprime", "next_prime", "prev_prime", "isprime", "miller_rabin", "baillie_psw", "confirm_prime",
     "sqrt_mod", "quadratic_residue", "quadratic_non_residue", "chinese_remainder", "lift_sqrt", "primesieve",
 
     "ecm",

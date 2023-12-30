@@ -1,17 +1,21 @@
-from math import prod
 from random import randrange, randint
+
+from math import prod
 
 from cryptography318.prime.bailliepsw_helper import D_chooser, LucasPseudoPrime
 from cryptography318.utils.root import is_square
 from cryptography318.prime.primesieve import primesieve
 
 
-def miller_rabin(n, k=40, *, details=False):
+def miller_rabin(n, k=40, *, details=None):
     """
     MRPrimality test reduces n - 1 to a power of 2 and an odd number, then
     tests if random `a` is a witness of n's composite-ness, testing with
     k random a's
     """
+    if details is None:
+        details = {}
+    details['methods'] = details.get('methods', [])
 
     d = n - 1
     r = 0
@@ -108,10 +112,12 @@ def miller_rabin_bases(bases, n, *, details=None):
             })
             return False
 
+    bases_str = f"{bases[0]} was not a witness" if len(bases) == 1 else f"{', '.join(str(b) for b in bases[:-1])} " \
+                                                                        f"and {bases[-1]} were not witnesses"
     details['methods'].append({
         'function': _miller_rabin_base_a.__name__,
         'name': 'Miller-Rabin',
-        'description': f"Using {', '.join(str(b) for b in bases)} as bases, {n} is probably prime",
+        'description': f"{bases_str} to {n} being composite",
         'value': True
     })
     return True
@@ -349,7 +355,7 @@ def next_prime(n):
         return 2
     elif n < 11:
         return [2, 2, 3, 5, 5, 7, 7, 11, 11, 11, 11][n]
-    elif n < primesieve.tail:
+    elif n <= primesieve.tail:
         a, b = primesieve.search(n)
         return primesieve[b] if a != b else primesieve[b + 1]
 
@@ -437,30 +443,6 @@ def prev_prime(n):
         # If we are sure that n passed was larger than 2, and we somehow end up below 2, just return 2
         if n < 2:
             return 2
-
-
-def prime_range(a, b=None):
-    """Constructs list of a <= primes < b"""
-    if b is None:
-        b = a
-        a = 1
-
-    if b < 2:
-        return []
-
-    global primesieve
-    if b < primesieve.tail:
-        primesieve.extend(b)
-
-    if a < 2:
-        a = 2
-    indices = primesieve.search(a, b)
-    start, stop = indices[0], indices[1]
-    if isinstance(start, tuple):
-        start = start[1]
-    if isinstance(stop, tuple):
-        stop = stop[1]
-    return primesieve[start:stop]
 
 
 def sqrt_mod(a, p):
