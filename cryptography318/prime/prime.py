@@ -3,8 +3,8 @@ from random import randrange, randint
 from math import prod
 
 from cryptography318.prime.bailliepsw_helper import D_chooser, LucasPseudoPrime
-from cryptography318.utils.root import is_square
 from cryptography318.prime.primesieve import primesieve
+from cryptography318.utils.root import is_square
 
 
 def miller_rabin(n, k=40, *, details=None):
@@ -28,7 +28,7 @@ def miller_rabin(n, k=40, *, details=None):
             details['methods'].append({
                 'function': _mr_test.__name__,
                 'name': 'Miller-Rabin',
-                'description': f"{d} is a witness to {n}'s composite-ness",
+                'description': f"{d} is a witness to n's composite-ness",
                 'value': False
             })
             return False
@@ -36,7 +36,7 @@ def miller_rabin(n, k=40, *, details=None):
     details['methods'].append({
         'function': _mr_test.__name__,
         'name': 'Miller-Rabin',
-        'description': f"Using {k} random bases, {n} is probably prime",
+        'description': f"Using {k} random bases, n is probably prime",
         'value': True
     })
     return True
@@ -107,17 +107,17 @@ def miller_rabin_bases(bases, n, *, details=None):
             details['methods'].append({
                 'function': _miller_rabin_base_a.__name__,
                 'name': 'Miller-Rabin',
-                'description': f"{a} is a witness to {n}'s composite-ness",
+                'description': f"{a} is a witness to n's composite-ness",
                 'value': False
             })
             return False
 
-    bases_str = f"{bases[0]} was not a witness" if len(bases) == 1 else f"{', '.join(str(b) for b in bases[:-1])} " \
-                                                                        f"and {bases[-1]} were not witnesses"
+    bases_str = f"{bases[0]} is not a witness" if len(bases) == 1 else f"{', '.join(str(b) for b in bases[:-1])} " \
+                                                                       f"and {bases[-1]} are not witnesses"
     details['methods'].append({
         'function': _miller_rabin_base_a.__name__,
         'name': 'Miller-Rabin',
-        'description': f"{bases_str} to {n} being composite",
+        'description': f"{bases_str} to n's composite-ness",
         'value': True
     })
     return True
@@ -150,7 +150,7 @@ def baillie_psw(n, mr=True, details=None):
         details['methods'].append({
             'function': _miller_rabin_base_a.__name__,
             'name': 'Miller-Rabin',
-            'description': f"2 is a witness to {n}'s composite-ness",
+            'description': "2 is a witness to n's composite-ness",
             'value': False
         })
         return False
@@ -160,6 +160,7 @@ def baillie_psw(n, mr=True, details=None):
         details['methods'].append({
             'function': is_square.__name__,
             'name': 'Is square',
+            'description': "n is a perfect square",
             'value': False
         })
         return False
@@ -170,6 +171,7 @@ def baillie_psw(n, mr=True, details=None):
     details['methods'].append({
         'function': LucasPseudoPrime.__name__,
         'name': 'Lucas pseudo-prime',
+        'description': "n is a Lucas pseudo-prime" if value else "n is not a Lucas pseudo-prime",
         'value': value
     })
     return value
